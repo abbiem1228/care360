@@ -634,8 +634,6 @@ ${narrative.closingReflection ? `
   <div class="reflect-sub">Looking Ahead</div>
   <div class="reflect-bridge">As Part 2 of the CARE 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
 </div>
-
-</div>` : ''}
 <div class="brand-footer">
   <div class="brand-footer-name">in good company.</div>
   <div class="brand-footer-tag">Thoughtful &nbsp;·&nbsp; Innovative &nbsp;·&nbsp; Human</div>

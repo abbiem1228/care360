@@ -34,7 +34,7 @@ router.get('/generate/:leaderId', requireAuth, async (req, res) => {
       .insert([{ leader_id: leaderId, report_html: reportHtml, report_data: { scoreData, narrative }, generated_by: 'ai' }])
       .select().single();
 
-    res.redirect(`/report/view/${saved.id}`);
+    res.redirect(`/admin/leaders/${leaderId}`);
   } catch (err) {
     console.error('Report error:', err);
     res.status(500).send(`<h2 style="padding:40px;font-family:Arial;color:#A94442">Report generation failed: ${err.message}</h2>`);
@@ -422,12 +422,12 @@ body{font-family:'Noto Sans',Arial,sans-serif;font-size:12px;color:#30383B;backg
 .page{max-width:820px;margin:0 auto;padding:44px 48px}
 
 /* Cover */
-.cover{padding-bottom:40px;border-bottom:3px solid #A9633D;margin-bottom:36px}
+.cover{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:88vh;padding:48px;border-bottom:none;margin-bottom:0}
 .cover-eyebrow{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px}
 .cover-name{font-family:'EB Garamond',Georgia,serif;font-size:44px;font-weight:600;color:#30383B;line-height:1.1;margin-bottom:12px}
 .cover-meta{font-size:12px;color:#595959;margin-bottom:3px}
-.cover-divider{border:none;border-top:1px solid #D9CBB2;margin:24px 0}
-.cover-intro{font-size:12px;color:#595959;line-height:1.85;max-width:580px}
+.cover-divider{border:none;border-top:1px solid #D9CBB2;margin:24px auto;width:80px}
+.cover-intro{font-size:12px;color:#595959;line-height:1.85;max-width:500px;margin:0 auto}
 
 /* Key insight */
 .key-insight{background:#30383B;color:#F7F4EF;padding:18px 22px;border-radius:8px;margin-top:22px}
@@ -508,15 +508,17 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 <body><div class="page">
 
 <div class="cover">
+  <div style="margin-bottom:28px"><img src="/logo.png" alt="In Good Company" style="height:48px"/></div>
   <div class="cover-eyebrow">CARE 360 Feedback Report</div>
   <div class="cover-name">${leader.name}</div>
-  <div class="cover-meta">${leader.title || ''} ${leader.cycles?.name ? '&nbsp;·&nbsp; ' + leader.cycles.name : ''}</div>
-  <div class="cover-meta">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+  <div class="cover-meta">${leader.title || ''}</div>
+  <div class="cover-meta">${leader.cycles?.name || ''}</div>
+  <div class="cover-meta" style="margin-top:4px">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
   <hr class="cover-divider"/>
-  <p class="cover-intro">This report presents feedback collected from colleagues across multiple rater groups as part of the CARE 360 Leadership Survey. Use the data as a starting point for reflection, development planning, and growth conversations. The goal is not evaluation. It is to give you a fuller, more honest picture of how your leadership lands — and to help you grow from it.</p>
-  ${narrative.keyInsight ? `<div class="key-insight"><div class="key-insight-label">Key Insight</div><div class="key-insight-text">${narrative.keyInsight}</div></div>` : ''}
+  <p class="cover-intro">This report presents feedback collected from colleagues across multiple rater groups. Use the data as a starting point for reflection and growth conversations. The goal is not evaluation. It is to give you a fuller picture of how your leadership lands.</p>
 </div>
 
+${narrative.keyInsight ? `<div class="key-insight" style="margin-bottom:14px"><div class="key-insight-label">Key Insight</div><div class="key-insight-text">${narrative.keyInsight}</div></div>` : ''}
 ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>` : ''}
 
 <div style="margin-bottom:16px">

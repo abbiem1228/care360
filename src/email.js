@@ -73,4 +73,89 @@ async function sendRaterInvite(rater, leader) {
   await resend.emails.send({ from: FROM, to: rater.email, subject, html, text });
 }
 
-module.exports = { sendRaterInvite };
+const GROUP_LABELS = {
+  self: 'Self', supervisor: 'Supervisor', peer: 'Peer',
+  direct_report: 'Direct Report', skip_level: 'Skip-Level'
+};
+
+async function sendAdminNotice({ leader, cycle, raters, reason }) {
+  const to = process.env.ADMIN_EMAIL;
+  if (!to) { console.log('ADMIN_EMAIL not set, skipping notification'); return; }
+
+  const done  = raters.filter(r => r.completed_at).length;
+  const total = raters.length;
+  const raterDone = raters.filter(r => r.completed_at && r.rater_group !== 'self').length;
+
+  const groups = {};
+  raters.forEach(r => {
+    if (!groups[r.rater_group]) groups[r.rater_group] = { total: 0, done: 0 };
+    groups[r.rater_group].total++;
+    if (r.completed_at) groups[r.rater_group].done++;
+  });
+
+  const order = ['self','supervisor','peer','direct_report','skip_level'];
+  const rows = Object.entries(groups)
+    .sort((a,b) => order.indexOf(a[0]) - order.indexOf(b[0]))
+    .map(([g,c]) => {
+      const low = g !== 'self' && g !== 'supervisor' && c.done < 3;
+      return `<tr>
+        <td style="padding:9px 12px;border-bottom:1px solid #EDE8DF;font-size:13px;color:#30383B">${GROUP_LABELS[g] || g}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid #EDE8DF;font-size:13px;color:#30383B">${c.done} of ${c.total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid #EDE8DF;font-size:12px;color:${low ? '#A94442' : '#7C8863'}">${low ? 'Below threshold' : 'OK'}</td>
+      </tr>`;
+    }).join('');
+
+  const complete = reason === 'complete';
+  const subject  = complete
+    ? `All responses received for ${leader.name}`
+    : `Survey window closed for ${leader.name}`;
+  const headline = complete
+    ? `Every rater has completed their survey. The report is ready to generate.`
+    : `The survey window has closed. ${raterDone} rater response${raterDone === 1 ? '' : 's'} were received.`;
+  const readiness = raterDone >= 3
+    ? `<p style="color:#7C8863;font-size:13px;line-height:1.7;margin:0 0 24px">There are enough responses to generate the report.</p>`
+    : `<p style="color:#A94442;font-size:13px;line-height:1.7;margin:0 0 24px">Only ${raterDone} rater response${raterDone === 1 ? '' : 's'} were received. Three are needed before a report can be generated.</p>`;
+
+  const leaderUrl = `${APP_URL}/admin/leaders/${leader.id}`;
+
+  const html = `
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/></head>
+<body style="font-family:Arial,sans-serif;background:#F7F4EF;margin:0;padding:40px 20px">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+  <div style="background:#30383B;padding:28px 36px">
+    <div style="color:#D9CBB2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">In Good Company Collective</div>
+    <div style="color:#fff;font-size:20px;font-weight:bold">${complete ? 'Survey Complete' : 'Survey Window Closed'}</div>
+  </div>
+  <div style="padding:36px">
+    <p style="color:#30383B;font-size:15px;font-weight:bold;margin:0 0 6px">${leader.name}${leader.title ? `, ${leader.title}` : ''}</p>
+    <p style="color:#595959;font-size:13px;margin:0 0 20px">${cycle && cycle.name ? cycle.name : ''}</p>
+    <p style="color:#444;font-size:14px;line-height:1.8;margin:0 0 20px">${headline}</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <thead><tr>
+        <th style="background:#30383B;color:#fff;padding:9px 12px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase">Group</th>
+        <th style="background:#30383B;color:#fff;padding:9px 12px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase">Completed</th>
+        <th style="background:#30383B;color:#fff;padding:9px 12px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase"></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${readiness}
+    <div style="text-align:center;margin-bottom:8px">
+      <a href="${leaderUrl}" style="display:inline-block;background:#A9633D;color:#fff;padding:14px 40px;border-radius:6px;font-size:15px;font-weight:bold;text-decoration:none">Open ${leader.name}</a>
+    </div>
+  </div>
+  <div style="background:#F7F4EF;padding:16px 36px;text-align:center">
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; CARE 360</p>
+  </div>
+</div>
+</body></html>`;
+
+  const text = `${leader.name}\n${headline}\n\n${done} of ${total} completed.\n\n${leaderUrl}`;
+
+  try {
+    await resend.emails.send({ from: FROM, to, subject, html, text });
+  } catch (e) {
+    console.error('Admin notice failed:', e.message);
+  }
+}
+module.exports = { sendRaterInvite, sendAdminNotice };

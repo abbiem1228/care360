@@ -339,6 +339,19 @@ function buildReportHtml(leader, scoreData, narrative, commentData) {
     return '';
   }
 
+    function symbolKey() {
+    const items = [
+      ['high',  'High Score',      'Scored 4.4 or above by that rater group'],
+      ['low',   'Low Score',       'Scored 3.5 or below by that rater group'],
+      ['hidden','Hidden Strength', 'Others rated you 0.5 or more above your self rating'],
+      ['blind', 'Blind Spot',      'You rated yourself 0.5 or more above a group scoring under 4.0']
+    ];
+    return `<div class="symbol-key">${items.map(([t,label,desc])=>`
+      <div class="sk-item">
+        <svg viewBox="0 0 14 14" width="12" height="12" style="flex-shrink:0;margin-top:1px">${symShape(t,7,7)}</svg>
+        <div><span class="sk-label">${label}</span><span class="sk-desc">${desc}</span></div>
+      </div>`).join('')}</div>`;
+  }
   function barChart(scores) {
     const LBL=128,BSTRT=134,BMAX=290,PPU=BMAX/5,VW=590;
     const BH=16,GAP=7;
@@ -457,7 +470,7 @@ body{font-family:'Noto Sans',Arial,sans-serif;font-size:12px;color:#30383B;backg
 .page{max-width:820px;margin:0 auto;padding:44px 48px}
 
 /* Cover */
-.cover{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:88vh;padding:48px;border-bottom:none;margin-bottom:0}
+.cover{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:8.6in;padding:48px;border-bottom:none;margin-bottom:0}
 .cover-eyebrow{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px}
 .cover-name{font-family:'EB Garamond',Georgia,serif;font-size:44px;font-weight:600;color:#30383B;line-height:1.1;margin-bottom:12px}
 .cover-meta{font-size:12px;color:#595959;margin-bottom:3px}
@@ -532,6 +545,19 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 .brand-footer{text-align:center;margin-top:48px;padding-top:20px;border-top:1px solid #EDE8DF}
 .brand-footer-name{font-family:'EB Garamond',Georgia,serif;font-size:14px;color:#30383B;margin-bottom:4px}
 .brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
+.page-break-before{break-before:page;page-break-before:always}
+.cover{break-after:page;page-break-after:always}
+.key-insight,.overview-block,.narrative-block,.ssc-block,
+.closing-block,.reflect-bridge,.symbol-key,.chart-wrap{
+  break-inside:avoid;page-break-inside:avoid}
+.comment-item{break-inside:avoid;page-break-inside:avoid}
+h2,.section-header,.comments-header,.reflect-sub{
+  break-after:avoid;page-break-after:avoid}
+p{orphans:3;widows:3}
+.symbol-key{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:10px}
+.sk-item{display:flex;align-items:flex-start;gap:7px;font-size:10px;width:calc(50% - 10px)}
+.sk-label{font-weight:600;color:#30383B;display:block}
+.sk-desc{color:#595959;line-height:1.5}
 
 
 </style></head>
@@ -554,6 +580,8 @@ ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>`
 <div style="margin-bottom:16px">
   <div style="font-size:10px;font-weight:600;color:#595959;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Rater Group Key</div>
   <div class="color-key">${Object.entries(RATER_GROUP_LABELS).map(([k,v])=>`<div class="ck-item"><div class="ck-swatch" style="background:${RATER_COLORS[k]||'#888'}"></div><span>${v}</span></div>`).join('')}</div>
+  <div style="font-size:10px;font-weight:600;color:#595959;text-transform:uppercase;letter-spacing:1px;margin:16px 0 0">Symbol Key</div>
+  ${symbolKey()}
 </div>
 
 <div class="summary-section page-break-before">

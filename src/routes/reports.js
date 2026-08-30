@@ -34,7 +34,7 @@ router.get('/generate/:leaderId', requireAuth, async (req, res) => {
       .insert([{ leader_id: leaderId, report_html: reportHtml, report_data: { scoreData, narrative }, generated_by: 'ai' }])
       .select().single();
 
-    res.redirect(`/report/view/${saved.id}`);
+    res.redirect(`/admin/leaders/${leaderId}?report=${saved.id}`);
   } catch (err) {
     console.error('Report error:', err);
     res.status(500).send(`<h2 style="padding:40px;font-family:Arial;color:#A94442">Report generation failed: ${err.message}</h2>`);

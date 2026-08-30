@@ -55,7 +55,72 @@ router.get('/pdf/:reportId', async (req, res) => {
   const printScript = `<style>
   .print-banner{background:#30383B;color:#F7F4EF;padding:10px 20px;font-family:Arial,sans-serif;font-size:12px;display:flex;align-items:center;justify-content:space-between}
   .print-btn{background:#A9633D;color:white;border:none;padding:7px 18px;border-radius:4px;font-size:12px;cursor:pointer;font-family:Arial}
-  @media print{.print-banner{display:none}}
+  @media print{
+  body{font-size:10px;line-height:1.45}
+  .page{padding:14px 18px;max-width:100%}
+
+  /* Cover - full page, force break after */
+  .cover{page-break-after:always;min-height:auto;padding:40px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100vh}
+
+  /* Never force breaks on sections - let content flow naturally */
+  .page-break-before{page-break-before:auto}
+  .summary-section{page-break-before:avoid;padding:6px 0 2px}
+  .summary-section h2{margin-bottom:6px;font-size:13px}
+
+  /* Chart stays with first narrative block */
+  .chart-wrap{page-break-after:avoid}
+
+  /* Narrative blocks stay together but don't force page breaks */
+  .narrative-block{page-break-inside:avoid;margin-bottom:3px;padding:6px 10px}
+  .narrative-label{margin-bottom:2px;font-size:8px}
+
+  /* Sections flow - don't try to keep entire section together */
+  .section{padding:8px 0}
+
+  /* Comments flow naturally across pages */
+  .comments-section{padding-top:4px}
+  .comments-header{margin-bottom:3px;font-size:8px}
+  .comment-item{padding:2px 0;font-size:9.5px}
+
+  /* SSC - keep label with first item but let content flow */
+  .ssc-block{margin-bottom:6px;padding:8px 10px}
+
+  /* Keep closing note together */
+  .closing-block{page-break-inside:avoid;padding:10px 14px;font-size:11px;margin-top:8px}
+
+  /* Reflecting section */
+  .reflect-section{padding:20px 0 14px}
+  .reflect-section h2{font-size:14px}
+  .reflect-q-list li{padding:3px 0 3px 10px;margin-bottom:2px;font-size:9.5px}
+  .reflect-bridge{padding:7px 10px;font-size:9.5px;margin-top:8px}
+
+  /* Key insight stays together */
+  .key-insight{page-break-inside:avoid;padding:10px 14px;margin-bottom:8px}
+  .key-insight-text{font-size:11px}
+  .key-insight-label{font-size:8px}
+
+  /* Overview */
+  .overview-block{padding:7px 10px;margin-bottom:7px;font-size:10px;line-height:1.6}
+
+  /* Section headers */
+  .section-header{margin-bottom:6px}
+  .section-header h2{font-size:13px}
+  .section-sub{font-size:9.5px;margin-bottom:6px}
+  .section-num{font-size:8.5px}
+
+  /* Color and symbol keys */
+  .color-key{margin:3px 0;gap:5px}
+  .ck-item{font-size:9px}
+  .ck-swatch{width:9px;height:9px}
+
+  /* Brand footer */
+  .brand-footer{margin-top:16px;padding-top:10px;padding-bottom:14px}
+  .brand-footer-name{font-size:12px}
+  .brand-footer-tag{font-size:9px}
+
+  /* General */
+  h2{font-size:13px;margin-bottom:6px}
+}
   </style>
   <div class="print-banner">
     <span>CARE 360 Report — PDF Export</span>

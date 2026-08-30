@@ -158,6 +158,7 @@ function buildScoreData(responses, raters, sections) {
     });
   });
 
+  console.log('SECTIONS DEBUG connect_len:', (result.sections.connect||{}).whatsWorking?.length||0, 'raw_has_marker:', raw.includes('##CONNECT_WORKING##'));
   return result;
 }
 

@@ -1,0 +1,163 @@
+// CARE 360 Survey — Complete Question Set
+// All 30 questions, 5 sections, both self and rater versions
+
+const SECTIONS = [
+  {
+    id: 'connect',
+    number: 1,
+    title: 'Connect',
+    subtitle: 'Leadership starts with knowing who you are actually leading. Connection is genuine interest in the person, not just the output.',
+    openTextSelf:  'What else would you add about how you show up for and connect with the people you lead?',
+    openTextRater: 'What additional feedback do you have about how this leader shows up for and connects with the people they lead?',
+    questions: [
+      { n: 1,
+        self:  'I know what motivates each person on my team: not just what they do, but what they care about and what they are working toward.',
+        rater: 'This leader knows what motivates each person on their team: not just what they do, but what they care about and what they are working toward.' },
+      { n: 2,
+        self:  'I adapt how I communicate and lead based on what I know about each person\'s working style and needs.',
+        rater: 'This leader adapts how they communicate and lead based on what they know about each person\'s working style and needs.' },
+      { n: 3,
+        self:  'I make time for real conversations, not just task check-ins, that reflect genuine interest in what my team members are experiencing at work and in their lives.',
+        rater: 'This leader makes time for real conversations, not just task check-ins, that reflect genuine interest in what their team members are experiencing at work and in their lives.' },
+      { n: 4,
+        self:  'People on my team feel genuinely known by me, not just managed.',
+        rater: 'People on this leader\'s team feel genuinely known by them, not just managed.' },
+      { n: 5,
+        self:  'When someone on my team is struggling, I notice and I do something about it.',
+        rater: 'When someone on this leader\'s team is struggling, they notice and they do something about it.' },
+      { n: 6,
+        self:  'I build relationships outside my immediate team. I invest in people across the organization, not just those who report to me.',
+        rater: 'This leader builds relationships outside their immediate team. They invest in people across the organization, not just those who report to them.' },
+    ]
+  },
+  {
+    id: 'accountable',
+    number: 2,
+    title: 'Accountable',
+    subtitle: 'Accountability means your word means something. You do what you say you will do. You do not disappear when things get hard.',
+    openTextSelf:  'What else would you add about how you follow through on your commitments and take responsibility for your impact?',
+    openTextRater: 'What additional feedback do you have about how this leader follows through on commitments and takes responsibility for their impact?',
+    questions: [
+      { n: 7,
+        self:  'I do what I say I am going to do. My commitments are reliable.',
+        rater: 'This leader does what they say they are going to do. Their commitments are reliable.' },
+      { n: 8,
+        self:  'When something goes wrong, I take ownership rather than deflecting or explaining it away.',
+        rater: 'When something goes wrong, this leader takes ownership rather than deflecting or explaining it away.' },
+      { n: 9,
+        self:  'I communicate proactively. My team is never left wondering where things stand or what has changed.',
+        rater: 'This leader communicates proactively. I am never left wondering where things stand or what has changed.' },
+      { n: 10,
+        self:  'I hold a fair and consistent standard. The same expectations apply to everyone, including myself.',
+        rater: 'This leader holds a fair and consistent standard. The same expectations apply to everyone, including themselves.' },
+      { n: 11,
+        self:  'I take seriously the responsibility I carry for the people in my charge, not just the results I am accountable for.',
+        rater: 'This leader takes seriously the responsibility they carry for the people in their charge, not just the results they are accountable for.' },
+      { n: 12,
+        self:  'When I make a mistake, I acknowledge it directly and move to fix it rather than moving past it quietly.',
+        rater: 'When this leader makes a mistake, they acknowledge it directly and move to fix it rather than moving past it quietly.' },
+    ]
+  },
+  {
+    id: 'reach',
+    number: 3,
+    title: 'Reach',
+    subtitle: 'A leader with reach is thinking beyond today. They invest in the growth of the people around them and connect daily work to a bigger purpose.',
+    openTextSelf:  'What else would you add about how you think strategically and invest in the growth of the people around you?',
+    openTextRater: 'What additional feedback do you have about how this leader thinks strategically and invests in the development of their people?',
+    questions: [
+      { n: 13,
+        self:  'I connect my team\'s work to a bigger purpose. The people I lead understand why what we do matters.',
+        rater: 'This leader connects our team\'s work to a bigger purpose. I understand why what we do matters.' },
+      { n: 14,
+        self:  'I think ahead. I anticipate challenges and position my team before problems arrive.',
+        rater: 'This leader thinks ahead. They anticipate challenges and position the team before problems arrive.' },
+      { n: 15,
+        self:  'I actively invest in each person\'s development. I know where they want to grow and take concrete steps to help them get there.',
+        rater: 'This leader actively invests in my development. They know where I want to grow and take concrete steps to help me get there.' },
+      { n: 16,
+        self:  'I make good decisions. I weigh the right information, involve the right people, and commit when it is time to commit.',
+        rater: 'This leader makes good decisions. They weigh the right information, involve the right people, and commit when it is time to commit.' },
+      { n: 17,
+        self:  'I am building something that will last beyond my time in this role. I develop people, not just results.',
+        rater: 'This leader is building something that will last beyond their time in this role. They develop people, not just results.' },
+      { n: 18,
+        self:  'I have honest, specific conversations about each person\'s career trajectory, not just their current performance.',
+        rater: 'This leader has honest, specific conversations about my career trajectory, not just my current performance.' },
+    ]
+  },
+  {
+    id: 'empower',
+    number: 4,
+    title: 'Empower',
+    subtitle: 'Empowerment is about what you make possible in others. Real delegation, real ownership, and an environment where people feel safe to take risks and grow.',
+    openTextSelf:  'What else would you add about the environment you create for your team and how you empower the people around you?',
+    openTextRater: 'What additional feedback do you have about the environment this leader creates and how they empower the people around them?',
+    questions: [
+      { n: 19,
+        self:  'I give my team real ownership. I delegate authority, not just tasks.',
+        rater: 'This leader gives their team real ownership. They delegate authority, not just tasks.' },
+      { n: 20,
+        self:  'My team feels genuinely safe to speak up, push back, and share a different point of view without fear of consequences.',
+        rater: 'This leader\'s team feels genuinely safe to speak up, push back, and share a different point of view without fear of consequences.' },
+      { n: 21,
+        self:  'When someone on my team makes a mistake, I treat it as a learning opportunity rather than a liability.',
+        rater: 'When someone on this leader\'s team makes a mistake, they treat it as a learning opportunity rather than a liability.' },
+      { n: 22,
+        self:  'I get out of the way when I should. I do not over-direct or undermine my team\'s ability to lead in their own lane.',
+        rater: 'This leader gets out of the way when they should. They do not over-direct or undermine my ability to lead in my own lane.' },
+      { n: 23,
+        self:  'The people on my team can see their input shaping how we work. Contributing on my team leads to something.',
+        rater: 'I can see my input shaping how we work. Contributing on this team actually leads to something.' },
+      { n: 24,
+        self:  'After working with me, the people on my team are more capable than they were before.',
+        rater: 'After working with this leader, I am more capable than I was before.' },
+      { n: 25,
+        self:  'My team focuses on learning and fixing when things go wrong, not on blame or self-protection.',
+        rater: 'When things go wrong on this team, we focus on learning and fixing, not on blame or self-protection.' },
+    ]
+  },
+  {
+    id: 'effectiveness',
+    number: 5,
+    title: 'Leadership Effectiveness',
+    subtitle: 'The operational and organizational dimensions of leadership: clarity, conflict, advocacy, and overall impact.',
+    openTextSelf:  'What else would you add about your overall effectiveness as a leader?',
+    openTextRater: 'What additional feedback do you have about this leader\'s overall effectiveness?',
+    questions: [
+      { n: 26,
+        self:  'I set clear expectations. The people on my team always know what success looks like in their role.',
+        rater: 'This leader sets clear expectations. I always know what success looks like in my role.' },
+      { n: 27,
+        self:  'I handle conflict and difficult conversations directly rather than avoiding them or letting them fester.',
+        rater: 'This leader handles conflict and difficult conversations directly rather than avoiding them or letting them fester.' },
+      { n: 28,
+        self:  'I advocate for my team. I represent their needs and interests to the people above me and across the organization.',
+        rater: 'This leader advocates for their team. They represent our needs and interests to the people above them and across the organization.' },
+      { n: 29,
+        self:  'My leadership makes the team around me stronger. We perform better because of how I show up.',
+        rater: 'This leader\'s presence makes the team stronger. We perform better because of how they lead.' },
+      { n: 30,
+        self:  'Overall, I am the kind of leader I would want to work for.',
+        rater: 'Overall, this is the kind of leader I would want to work for.' },
+    ]
+  }
+];
+
+const RATER_GROUP_LABELS = {
+  self:          'Self',
+  supervisor:    'Supervisor',
+  peer:          'Peer',
+  direct_report: 'Direct Report',
+  skip_level:    'Skip-Level'
+};
+
+const SCALE_LABELS = {
+  1: 'Strongly Disagree',
+  2: 'Disagree',
+  3: 'Neither Agree nor Disagree',
+  4: 'Agree',
+  5: 'Strongly Agree'
+};
+
+module.exports = { SECTIONS, RATER_GROUP_LABELS, SCALE_LABELS };

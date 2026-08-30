@@ -8,7 +8,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // Auth middleware (same simple check)
 function requireAuth(req, res, next) {
-  if (req.session.adminAuth) return next();
+  if (req.isAdmin) return next();
   res.redirect('/admin/login');
 }
 

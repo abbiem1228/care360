@@ -449,12 +449,17 @@ body{font-family:'Noto Sans',Arial,sans-serif;font-size:12px;color:#30383B;backg
 .page{max-width:820px;margin:0 auto;padding:44px 48px}
 
 /* Cover */
-.cover{padding-bottom:40px;border-bottom:3px solid #A9633D;margin-bottom:36px}
-.cover-eyebrow{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px}
-.cover-name{font-family:'EB Garamond',Georgia,serif;font-size:44px;font-weight:600;color:#30383B;line-height:1.1;margin-bottom:12px}
-.cover-meta{font-size:12px;color:#595959;margin-bottom:3px}
-.cover-divider{border:none;border-top:1px solid #D9CBB2;margin:24px 0}
-.cover-intro{font-size:12px;color:#595959;line-height:1.85;max-width:580px}
+.cover{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;min-height:90vh;padding:60px 48px;
+  border-bottom:none;margin-bottom:0;
+}
+.cover-eyebrow{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:24px}
+.cover-logo{margin-bottom:32px}
+.cover-name{font-family:'EB Garamond',Georgia,serif;font-size:52px;font-weight:600;color:#30383B;line-height:1.1;margin-bottom:14px}
+.cover-meta{font-size:13px;color:#595959;margin-bottom:4px}
+.cover-divider{border:none;border-top:1px solid #D9CBB2;margin:32px auto;width:60px}
+.cover-intro{font-size:12px;color:#595959;line-height:1.9;max-width:520px;margin:0 auto}
 
 /* Key insight */
 .key-insight{background:#30383B;color:#F7F4EF;padding:18px 22px;border-radius:8px;margin-top:22px}
@@ -506,7 +511,7 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 .closing-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#D9CBB2;margin-bottom:8px;font-family:'Noto Sans',Arial,sans-serif}
 
 /* Reflect */
-.reflect-section{padding:28px 0;border-top:3px solid #D9CBB2}
+.reflect-section{padding:40px 0 32px;border-top:3px solid #D9CBB2;margin-top:16px}
 .reflect-section h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;font-weight:600;margin-bottom:8px}
 .reflect-intro{font-size:12px;color:#595959;line-height:1.7;margin-bottom:20px}
 .reflect-q-list{list-style:none;padding:0;margin:0}
@@ -521,49 +526,48 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 .ck-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
 
 /* Brand footer */
-.brand-footer{text-align:center;margin-top:48px;padding-top:20px;border-top:1px solid #EDE8DF}
+.brand-footer{text-align:center;margin-top:60px;padding-top:24px;padding-bottom:32px;border-top:1px solid #EDE8DF}
 .brand-footer-name{font-family:'EB Garamond',Georgia,serif;font-size:14px;color:#30383B;margin-bottom:4px}
 .brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
 
 @media print{
   body{font-size:10.5px;line-height:1.5}
-  .page{padding:14px 20px;max-width:100%}
+  .page{padding:0;max-width:100%}
   
-  /* Only force breaks where truly needed */
-  .cover{page-break-after:always}
+  /* Cover page - full page centered */
+  .cover{min-height:100vh;page-break-after:always;padding:0}
   
-  /* Remove forced breaks from sections - let content flow */
+  /* Page 2 onwards - restore normal padding */
+  .summary-section,.section,.reflect-section{padding-left:0;padding-right:0}
+  
+  /* Remove forced breaks - let content flow except cover */
   .page-break-before{page-break-before:auto}
-  .summary-section{page-break-after:auto}
   
-  /* Keep individual blocks together */
-  .section{page-break-inside:avoid;padding:14px 0}
-  .narrative-block{page-break-inside:avoid;margin-bottom:6px;padding:10px 14px}
+  /* Keep blocks together */
+  .section{page-break-inside:avoid;padding:12px 0}
+  .narrative-block{page-break-inside:avoid;margin-bottom:5px;padding:8px 12px}
   .comments-section{page-break-inside:avoid}
-  .ssc-block{page-break-inside:avoid}
   .chart-wrap{page-break-inside:avoid}
+  .ssc-block{page-break-inside:avoid}
+  .key-insight{page-break-inside:avoid}
+  .reflect-section{page-break-inside:avoid}
   
-  /* Tighten spacing significantly */
-  .cover{padding-bottom:20px;margin-bottom:16px}
-  .cover-name{font-size:32px;margin-bottom:8px}
-  .key-insight{padding:12px 16px;margin-top:14px}
-  .overview-block{padding:10px 14px;margin-bottom:12px}
-  .section-header{margin-bottom:10px}
-  .section-header h2{font-size:16px}
-  .section-sub{margin-bottom:10px}
-  .narrative-label{margin-bottom:4px}
-  .comments-header{margin-bottom:6px}
-  .comment-item{padding:3px 0}
-  .brand-footer{margin-top:20px;padding-top:10px}
-  h2{font-size:16px;margin-bottom:8px}
-  .reflect-section{padding:14px 0}
-  .reflect-q-list li{padding:5px 0 5px 12px;margin-bottom:4px}
-  .closing-block{padding:14px 18px}
-  .color-key{margin:8px 0;gap:10px}
-  
-  /* Tighter summary chart area */
-  .summary-section{padding:14px 0 6px}
-  .summary-section h2{margin-bottom:10px}
+  /* Tighten spacing */
+  .summary-section{padding:12px 0 4px}
+  .summary-section h2{margin-bottom:8px;font-size:16px}
+  .section-header{margin-bottom:8px}
+  .section-header h2{font-size:15px}
+  .narrative-label{margin-bottom:3px;font-size:9px}
+  .comments-header{margin-bottom:5px}
+  .comment-item{padding:3px 0;font-size:10.5px}
+  .overview-block{padding:10px 14px;margin-bottom:10px;font-size:11px}
+  .closing-block{padding:12px 16px;font-size:12px}
+  .reflect-section h2{font-size:16px}
+  .reflect-q-list li{padding:5px 0 5px 12px;margin-bottom:3px;font-size:11px}
+  .reflect-bridge{padding:10px 14px;font-size:11px}
+  .brand-footer{margin-top:40px;padding-top:16px}
+  .color-key{margin:6px 0;gap:8px}
+  h2{font-size:15px;margin-bottom:8px}
 }
 </style></head>
 <body>
@@ -584,16 +588,17 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 </style><div id="report-actions-placeholder"></div><div class="page">
 
 <div class="cover">
-  <div style="margin-bottom:16px"><img src="/logo.png" alt="In Good Company" style="height:36px"/></div>
-<div class="cover-eyebrow">CARE 360 Feedback Report</div>
+  <div class="cover-logo"><img src="/logo.png" alt="In Good Company" style="height:52px"/></div>
+  <div class="cover-eyebrow">CARE 360 Feedback Report</div>
   <div class="cover-name">${leader.name}</div>
-  <div class="cover-meta">${leader.title || ''} ${leader.cycles?.name ? '&nbsp;·&nbsp; ' + leader.cycles.name : ''}</div>
-  <div class="cover-meta">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+  <div class="cover-meta">${leader.title || ''}</div>
+  <div class="cover-meta">${leader.cycles?.name || ''}</div>
+  <div class="cover-meta" style="margin-top:4px">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
   <hr class="cover-divider"/>
   <p class="cover-intro">This report presents feedback collected from colleagues across multiple rater groups as part of the CARE 360 Leadership Survey. Use the data as a starting point for reflection, development planning, and growth conversations. The goal is not evaluation. It is to give you a fuller, more honest picture of how your leadership lands — and to help you grow from it.</p>
-  ${narrative.keyInsight ? `<div class="key-insight"><div class="key-insight-label">Key Insight</div><div class="key-insight-text">${narrative.keyInsight}</div></div>` : ''}
 </div>
 
+${narrative.keyInsight ? `<div class="key-insight" style="margin-bottom:16px"><div class="key-insight-label">Key Insight</div><div class="key-insight-text">${narrative.keyInsight}</div></div>` : ''}
 ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>` : ''}
 
 <div style="margin-bottom:16px">
@@ -623,7 +628,7 @@ ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>`
     </div>
   </div>
 </div>
-<div class="summary-section page-break-before">
+<div class="summary-section">
   <h2>Summary of All Sections</h2>
   ${summaryChart()}
 </div>

@@ -526,10 +526,44 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 .brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
 
 @media print{
-  body{font-size:11px}.page{padding:20px 24px;max-width:100%}
-  .page-break-before{page-break-before:always}
-  .cover{page-break-after:always}.summary-section{page-break-after:always}
-  .narrative-block,.comments-section,.ssc-block{page-break-inside:avoid}
+  body{font-size:10.5px;line-height:1.5}
+  .page{padding:14px 20px;max-width:100%}
+  
+  /* Only force breaks where truly needed */
+  .cover{page-break-after:always}
+  
+  /* Remove forced breaks from sections - let content flow */
+  .page-break-before{page-break-before:auto}
+  .summary-section{page-break-after:auto}
+  
+  /* Keep individual blocks together */
+  .section{page-break-inside:avoid;padding:14px 0}
+  .narrative-block{page-break-inside:avoid;margin-bottom:6px;padding:10px 14px}
+  .comments-section{page-break-inside:avoid}
+  .ssc-block{page-break-inside:avoid}
+  .chart-wrap{page-break-inside:avoid}
+  
+  /* Tighten spacing significantly */
+  .cover{padding-bottom:20px;margin-bottom:16px}
+  .cover-name{font-size:32px;margin-bottom:8px}
+  .key-insight{padding:12px 16px;margin-top:14px}
+  .overview-block{padding:10px 14px;margin-bottom:12px}
+  .section-header{margin-bottom:10px}
+  .section-header h2{font-size:16px}
+  .section-sub{margin-bottom:10px}
+  .narrative-label{margin-bottom:4px}
+  .comments-header{margin-bottom:6px}
+  .comment-item{padding:3px 0}
+  .brand-footer{margin-top:20px;padding-top:10px}
+  h2{font-size:16px;margin-bottom:8px}
+  .reflect-section{padding:14px 0}
+  .reflect-q-list li{padding:5px 0 5px 12px;margin-bottom:4px}
+  .closing-block{padding:14px 18px}
+  .color-key{margin:8px 0;gap:10px}
+  
+  /* Tighter summary chart area */
+  .summary-section{padding:14px 0 6px}
+  .summary-section h2{margin-bottom:10px}
 }
 </style></head>
 <body>

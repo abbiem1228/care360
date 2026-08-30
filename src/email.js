@@ -158,4 +158,50 @@ async function sendAdminNotice({ leader, cycle, raters, reason }) {
     console.error('Admin notice failed:', e.message);
   }
 }
-module.exports = { sendRaterInvite, sendAdminNotice };
+async function sendRaterReminder(rater, leader, cycle) {
+  const surveyUrl = `${APP_URL}/survey/${rater.token}`;
+  const isSelf    = rater.rater_group === 'self';
+  const closes    = new Date(cycle.closes_at).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+
+  const subject = isSelf
+    ? `Reminder: your CARE 360 self-assessment closes soon`
+    : `Reminder: feedback for ${leader.name} closes soon`;
+
+  const html = `
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/></head>
+<body style="font-family:Arial,sans-serif;background:#F7F4EF;margin:0;padding:40px 20px">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+  <div style="background:#30383B;padding:28px 36px">
+    <div style="color:#D9CBB2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">In Good Company Collective</div>
+    <div style="color:#fff;font-size:20px;font-weight:bold">A quick reminder</div>
+  </div>
+  <div style="padding:36px">
+    <p style="color:#30383B;font-size:14px;margin-bottom:16px">Hi ${rater.name},</p>
+    ${isSelf
+      ? `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:20px">Your CARE 360 self-assessment is still open, and we have not received your responses yet.</p>`
+      : `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:20px">You were invited to give 360 feedback for <strong>${leader.name}</strong>, and we have not received your responses yet. Your perspective genuinely shapes what this report can tell them.</p>`
+    }
+    <div style="background:#FBF5EC;border-left:4px solid #A9633D;padding:14px 18px;border-radius:0 6px 6px 0;margin-bottom:26px">
+      <div style="font-size:14px;color:#30383B;line-height:1.7">This survey closes on <strong>${closes}</strong>. After that the link will no longer accept responses.</div>
+    </div>
+    <div style="text-align:center;margin-bottom:24px">
+      <a href="${surveyUrl}" style="display:inline-block;background:#A9633D;color:#fff;padding:14px 40px;border-radius:6px;font-size:15px;font-weight:bold;text-decoration:none">Complete the Survey</a>
+    </div>
+    <p style="color:#595959;font-size:12px;line-height:1.7">It takes about 10 minutes.${isSelf ? '' : ' Your responses are completely anonymous.'}</p>
+    <p style="color:#bbb;font-size:11px;margin-top:24px;border-top:1px solid #EDE8DF;padding-top:16px">
+      If the button does not work, copy and paste this link:<br/>
+      <span style="color:#A9633D">${surveyUrl}</span>
+    </p>
+  </div>
+  <div style="background:#F7F4EF;padding:16px 36px;text-align:center">
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; CARE 360</p>
+  </div>
+</div>
+</body></html>`;
+
+  const text = `Hi ${rater.name},\n\nYour CARE 360 survey${isSelf ? '' : ` for ${leader.name}`} is still open and closes on ${closes}.\n\n${surveyUrl}\n\nIt takes about 10 minutes.\n\nIn Good Company Collective`;
+
+  await resend.emails.send({ from: FROM, to: rater.email, subject, html, text });
+}
+module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder };

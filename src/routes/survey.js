@@ -46,7 +46,7 @@ router.post('/:token', async (req, res) => {
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Invalid link', 'Survey link not found.'));
     if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `Already submitted for <strong>${rater.leaders.name}</strong>.`, '#1F6B3A'));
-    if     if (rater.leaders.cycles.status !== 'active') return res.status(400).send(statusPage('!', 'Survey closed', 'This survey is no longer accepting responses.'));
+    if (rater.leaders.cycles.status !== 'active') return res.status(400).send(statusPage('!', 'Survey closed', 'This survey is no longer accepting responses.'));
     if (rater.leaders.cycles.closes_at && new Date() > new Date(rater.leaders.cycles.closes_at)) {
       return res.status(400).send(statusPage('!', 'Survey closed', 'The deadline for this survey has passed. Your responses could not be submitted. Please contact your survey administrator.'));
     }

@@ -37,7 +37,9 @@ router.get('/cycles/new', requireAuth, (req, res) => res.send(cycleFormPage()));
 
 router.post('/cycles', requireAuth, async (req, res) => {
   const { name, description, client_name, opens_at, closes_at } = req.body;
-  await supabase.from('cycles').insert([{ name, description, client_name, opens_at: opens_at||null, closes_at: closes_at||null }]);
+  if (!closes_at) return res.send(adminShell('Error', '<div class="card"><p>A close date is required. <a href="/admin/cycles/new">Go back</a></p></div>'));
+  if (new Date(closes_at) <= new Date()) return res.send(adminShell('Error', '<div class="card"><p>The close date must be in the future. <a href="/admin/cycles/new">Go back</a></p></div>'));
+  await supabase.from('cycles').insert([{ name, description, client_name, opens_at: opens_at||null, closes_at }]);
   res.redirect('/admin');
 });
 
@@ -355,8 +357,9 @@ function cycleFormPage() {
             <div class="form-hint">Leave blank to activate manually.</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Closes At</label>
-            <input class="form-control" type="datetime-local" name="closes_at"/>
+            <label class="form-label">Closes At *</label>
+            <input class="form-control" type="datetime-local" name="closes_at" required/>
+            <div class="form-hint">Raters cannot submit after this date. Two weeks is a good default.</div>
           </div>
         </div>
         <div class="actions-row">
@@ -405,6 +408,12 @@ function cycleDetailPage(cycle, leaders) {
       </div>
     </div>
     <div class="card">
+         ${cycle.status === 'draft' && leaders.length ? `
+    <div class="card" style="border-left:4px solid #A94442;background:#FFF7F6">
+      <div style="font-size:14px;font-weight:600;color:#A94442;margin-bottom:6px">This survey is not active</div>
+      <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:14px">Raters will not be able to open their survey until you activate it. If you send invites now, everyone will receive a link that does not work.</div>
+      <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">Activate Survey</button></form>
+    </div>` : ''}
       <div class="card-header"><span class="card-title">Leaders</span><span style="font-size:13px;color:var(--grey)">${leaders.length} leader${leaders.length!==1?'s':''}</span></div>
       ${leaders.length ? `
       <table class="data-table">
@@ -499,6 +508,7 @@ function raterFormPage(leader) {
 function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
   if (!leader) return adminShell('Error', '<p>Leader not found.</p>');
   const pct = totalCount ? Math.round(completedCount/totalCount*100) : 0;
+  const raterCompleted = raters.filter(r => r.completed_at && r.rater_group !== 'self').length;
   const groupOrder = ['self','supervisor','peer','direct_report','skip_level'];
   const sorted = [...raters].sort((a,b) => groupOrder.indexOf(a.rater_group)-groupOrder.indexOf(b.rater_group));
 
@@ -523,7 +533,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
       <div class="actions-row">
         <a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">+ Add Raters</a>
         <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-sage" type="submit">Send Pending Invites</button></form>
-        ${completedCount>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating... please wait (30-60 sec)'"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ responses to generate report</span>`}
+        ${raterCompleted>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating... please wait (30-60 sec)'"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ rater responses to generate report (currently ${raterCompleted})
         ${report?`<a href="/report/view/${report.id}" class="btn btn-outline" target="_blank" rel="noopener">View Report</a><a href="/report/pdf/${report.id}" class="btn btn-ghost" target="_blank" rel="noopener">Download PDF</a>`:''}
       </div>
     </div>

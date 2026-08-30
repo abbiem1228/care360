@@ -39,5 +39,48 @@ function errorPage(msg) {
   <body><div class="card"><h2>Oops</h2><p class="p">${msg}</p></div></body></html>`;
 }
 
+
+// ── Hourly check for cycles that have passed their close date ──
+const supabase = require('./db/client');
+const { sendAdminNotice } = require('./email');
+
+async function checkClosedCycles() {
+  try {
+    const now = new Date().toISOString();
+    const { data: cycles } = await supabase
+      .from('cycles')
+      .select('id, name, closes_at, closed_notified_at')
+      .lt('closes_at', now)
+      .is('closed_notified_at', null);
+
+    if (!cycles || !cycles.length) return;
+
+    for (const cycle of cycles) {
+      const { data: leaders } = await supabase
+        .from('leaders')
+        .select('id, name, title, completion_notified_at')
+        .eq('cycle_id', cycle.id);
+
+      for (const leader of (leaders || [])) {
+        if (leader.completion_notified_at) continue;
+        const { data: raters } = await supabase
+          .from('raters')
+          .select('id, rater_group, completed_at')
+          .eq('leader_id', leader.id);
+        if (!raters || !raters.length) continue;
+        await supabase.from('leaders').update({ completion_notified_at: new Date().toISOString() }).eq('id', leader.id);
+        await sendAdminNotice({ leader, cycle, raters, reason: 'closed' });
+      }
+
+      await supabase.from('cycles').update({ closed_notified_at: new Date().toISOString() }).eq('id', cycle.id);
+      console.log(`Closed-cycle notice sent for ${cycle.name}`);
+    }
+  } catch (e) {
+    console.error('Closed-cycle check failed:', e.message);
+  }
+}
+
+setInterval(checkClosedCycles, 60 * 60 * 1000);
+setTimeout(checkClosedCycles, 30 * 1000);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`CARE 360 running on port ${PORT}`));

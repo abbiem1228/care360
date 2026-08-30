@@ -37,7 +37,10 @@ router.get('/cycles/new', requireAuth, (req, res) => res.send(cycleFormPage()));
 
 router.post('/cycles', requireAuth, async (req, res) => {
   const { name, description, client_name, opens_at, closes_at } = req.body;
-  await supabase.from('cycles').insert([{ name, description, client_name, opens_at: opens_at||null, closes_at: closes_at||null }]);
+  console.log('Creating cycle:', name);
+  const { data, error } = await supabase.from('cycles').insert([{ name, description, client_name, opens_at: opens_at||null, closes_at: closes_at||null }]);
+  if (error) console.error('Cycle insert error:', JSON.stringify(error));
+  else console.log('Cycle created ok');
   res.redirect('/admin');
 });
 

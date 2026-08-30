@@ -37,10 +37,7 @@ router.get('/cycles/new', requireAuth, (req, res) => res.send(cycleFormPage()));
 
 router.post('/cycles', requireAuth, async (req, res) => {
   const { name, description, client_name, opens_at, closes_at } = req.body;
-  console.log('Creating cycle:', name);
-  const { data, error } = await supabase.from('cycles').insert([{ name, description, client_name, opens_at: opens_at||null, closes_at: closes_at||null }]);
-  if (error) console.error('Cycle insert error:', JSON.stringify(error));
-  else console.log('Cycle created ok');
+  await supabase.from('cycles').insert([{ name, description, client_name, opens_at: opens_at||null, closes_at: closes_at||null }]);
   res.redirect('/admin');
 });
 
@@ -232,7 +229,8 @@ function adminShell(title, content) {
   <title>${title} — CARE 360</title>${CSS}</head><body>
   <nav class="admin-nav">
     <div class="nav-logo">
-      <img src="/logo.png" alt="In Good Company" style="height:28px;filter:invert(1);opacity:0.9"/>
+      <div class="nav-logo-mark">C</div>
+      <span class="nav-brand">in good company.</span>
     </div>
     <a href="/admin" class="nav-link">Surveys</a>
     <div class="nav-spacer"></div>
@@ -264,7 +262,11 @@ function loginPage(error) {
   </style></head>
   <body><div class="login-wrap"><div class="login-card">
     <div class="login-logo">
-      <img src="/logo.png" alt="In Good Company" style="height:44px"/>
+      <div class="login-logo-mark">C</div>
+      <div>
+        <div class="login-logo-name">in good company.</div>
+        <div class="login-logo-sub">CARE 360 Leadership Survey</div>
+      </div>
     </div>
     <div class="login-title">Welcome back</div>
     <div class="login-sub">Sign in to manage your 360 surveys, leaders, and reports.</div>
@@ -521,7 +523,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
       <div class="actions-row">
         <a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">+ Add Raters</a>
         <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-sage" type="submit">Send Pending Invites</button></form>
-        ${completedCount>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating report... please wait (30-60 sec)';return true;"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ responses to generate report</span>`}
+        ${completedCount>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ responses to generate report</span>`}
         ${report?`<a href="/report/view/${report.id}" class="btn btn-outline" target="_blank" rel="noopener">View Report</a><a href="/report/pdf/${report.id}" class="btn btn-ghost" target="_blank" rel="noopener">Download PDF</a>`:''}
       </div>
     </div>

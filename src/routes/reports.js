@@ -34,7 +34,7 @@ router.get('/generate/:leaderId', requireAuth, async (req, res) => {
       .insert([{ leader_id: leaderId, report_html: reportHtml, report_data: { scoreData, narrative }, generated_by: 'ai' }])
       .select().single();
 
-    res.redirect(`/admin/leaders/${leaderId}?report=${saved.id}`);
+    res.redirect(`/report/view/${saved.id}`);
   } catch (err) {
     console.error('Report error:', err);
     res.status(500).send(`<h2 style="padding:40px;font-family:Arial;color:#A94442">Report generation failed: ${err.message}</h2>`);
@@ -46,53 +46,6 @@ router.get('/view/:reportId', async (req, res) => {
   if (!report) return res.status(404).send('Report not found.');
   res.send(report.report_html);
 });
-// ── PDF print view ────────────────────────────────────────────
-router.get('/pdf/:reportId', async (req, res) => {
-  const { data: report } = await supabase
-    .from('reports')
-    .select('*, leaders(name, title, cycles(name))')
-    .eq('id', req.params.reportId)
-    .single();
-  if (!report) return res.status(404).send('Report not found.');
-
-  // Inject auto-print script and print-specific overrides into the report HTML
-  let html = report.report_html;
-
-  const printScript = `
-<style>
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .no-print { display: none !important; }
-  }
-  .print-banner {
-    background: #30383B; color: #F7F4EF; padding: 12px 24px;
-    font-family: Arial, sans-serif; font-size: 13px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .print-banner span { opacity: 0.7; }
-  .print-btn {
-    background: #A9633D; color: white; border: none; padding: 8px 20px;
-    border-radius: 4px; font-size: 13px; cursor: pointer; font-family: Arial;
-  }
-  @media print { .print-banner { display: none; } }
-</style>
-<div class="print-banner no-print">
-  <span>CARE 360 Report — ${report.leaders.name} — PDF Export</span>
-  <button class="print-btn" onclick="window.print()">Save as PDF</button>
-</div>
-<script>
-  // Auto-trigger print dialog after a short delay so the page renders first
-  window.addEventListener('load', function() {
-    setTimeout(function() { window.print(); }, 800);
-  });
-</script>`;
-
-  // Insert before closing </body>
-  html = html.replace('</body>', printScript + '</body>');
-  res.send(html);
-});
-
-
 
 // ═══════════════════════════════════════════════════════════════
 // SCORING
@@ -365,7 +318,7 @@ function buildReportHtml(leader, scoreData, narrative, commentData) {
   function summaryChart() {
     const sects = Object.values(scoreData.sections);
     const LBL=178,BSTRT=184,BMAX=270,PPU=BMAX/5,VW=540;
-    const BH=10,GAP=3,CGAP=14;
+    const BH=13,GAP=4,CGAP=18;
     const totalH=4+sects.length*(18+groups.length*(BH+GAP)+CGAP)+30;
     let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW} ${totalH}" width="100%" style="display:block">`;
     let yo=20;
@@ -442,69 +395,108 @@ function buildReportHtml(leader, scoreData, narrative, commentData) {
 <html lang="en"><head><meta charset="UTF-8"/>
 <title>CARE 360 Report — ${leader.name}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<style>@media print{
-  body{font-size:10px;line-height:1.5}
-  .page{padding:0;max-width:100%}
-  .cover{min-height:calc(100vh - 1.2in);page-break-after:always;padding:0}
-  .page-break-before{page-break-before:auto}
-  .section{page-break-inside:avoid;padding:10px 0}
-  .narrative-block{page-break-inside:avoid;margin-bottom:4px;padding:7px 10px}
-  .comments-section{page-break-inside:avoid}
-  .chart-wrap{page-break-inside:avoid}
-  .ssc-block{page-break-inside:avoid}
-  .key-insight{page-break-inside:avoid;padding:12px 16px;margin-bottom:10px}
-  .reflect-section{page-break-inside:avoid;padding:28px 0 20px}
-  .summary-section{padding:8px 0 4px}
-  .summary-section h2{margin-bottom:6px;font-size:14px}
-  .section-header{margin-bottom:7px}
-  .section-header h2,.section-header h2{font-size:14px}
-  .section-sub{font-size:10px;margin-bottom:8px}
-  .narrative-label{margin-bottom:2px;font-size:8.5px}
-  .comments-header{margin-bottom:4px;font-size:8.5px}
-  .comment-item{padding:2px 0;font-size:10px}
-  .overview-block{padding:8px 12px;margin-bottom:8px;font-size:10.5px;line-height:1.65}
-  .closing-block{padding:10px 14px;font-size:11px}
-  .reflect-section h2{font-size:15px}
-  .reflect-q-list li{padding:4px 0 4px 10px;margin-bottom:2px;font-size:10px}
-  .reflect-bridge{padding:8px 12px;font-size:10px}
-  .brand-footer{margin-top:24px;padding-top:12px;padding-bottom:20px}
-  .color-key{margin:4px 0;gap:6px}
-  .ck-item{font-size:9.5px}
-  .ck-swatch{width:10px;height:10px}
-  h2{font-size:14px;margin-bottom:6px}
-  .key-insight-text{font-size:12px}
-  .key-insight-label{font-size:8.5px}
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans',Arial,sans-serif;font-size:12px;color:#30383B;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{max-width:820px;margin:0 auto;padding:44px 48px}
+
+/* Cover */
+.cover{padding-bottom:40px;border-bottom:3px solid #A9633D;margin-bottom:36px}
+.cover-eyebrow{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px}
+.cover-name{font-family:'EB Garamond',Georgia,serif;font-size:44px;font-weight:600;color:#30383B;line-height:1.1;margin-bottom:12px}
+.cover-meta{font-size:12px;color:#595959;margin-bottom:3px}
+.cover-divider{border:none;border-top:1px solid #D9CBB2;margin:24px 0}
+.cover-intro{font-size:12px;color:#595959;line-height:1.85;max-width:580px}
+
+/* Key insight */
+.key-insight{background:#30383B;color:#F7F4EF;padding:18px 22px;border-radius:8px;margin-top:22px}
+.key-insight-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#D9CBB2;margin-bottom:7px}
+.key-insight-text{font-family:'EB Garamond',Georgia,serif;font-size:15px;line-height:1.7}
+
+/* Summary */
+.summary-section{padding:24px 0 8px}
+.summary-section h2{font-family:'EB Garamond',Georgia,serif;font-size:20px;color:#30383B;margin-bottom:16px;font-weight:600}
+
+/* Overview */
+.overview-block{background:#F7F4EF;border-left:4px solid #A9633D;padding:16px 20px;border-radius:0 6px 6px 0;margin-bottom:24px;font-size:13px;line-height:1.85;color:#30383B}
+
+/* Sections */
+.section{padding:28px 0;border-top:3px solid #D9CBB2}
+.section-header{margin-bottom:18px}
+.section-num{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.section-header h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;font-weight:600;margin-bottom:4px}
+.section-sub{font-size:11px;color:#595959;font-style:italic;line-height:1.6}
+h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-bottom:14px;font-weight:600}
+
+.chart-wrap{margin-bottom:18px}
+
+/* Narrative blocks */
+.narrative-block{padding:14px 18px;border-radius:0 6px 6px 0;margin-bottom:10px;font-size:12px;line-height:1.85}
+.narrative-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
+.narrative-strength{background:#F4F7F2;border-left:4px solid #7C8863}
+.narrative-strength .narrative-label{color:#7C8863}
+.narrative-growth{background:#FBF5EC;border-left:4px solid #A9633D}
+.narrative-growth .narrative-label{color:#A9633D}
+.narrative-pattern{background:#F7F4EF;border-left:4px solid #D9CBB2}
+.narrative-pattern .narrative-label{color:#595959}
+
+/* Comments */
+.comments-section{margin-top:14px}
+.comments-header{font-size:9px;font-weight:700;color:#595959;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #EDE8DF}
+.comment-item{font-size:11px;color:#30383B;line-height:1.8;font-style:italic;padding:5px 0;border-bottom:0.5px solid #EDE8DF}
+.comment-item:last-child{border-bottom:none}
+
+/* SSC */
+.ssc-block{padding:14px 18px;border-radius:0 6px 6px 0;margin-bottom:10px}
+.ssc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.ssc-start{background:#F4F7F2;border-left:4px solid #7C8863}.ssc-start .ssc-label{color:#7C8863}
+.ssc-stop{background:#FEF0EE;border-left:4px solid #A94442}.ssc-stop .ssc-label{color:#A94442}
+.ssc-continue{background:#FBF5EC;border-left:4px solid #A9633D}.ssc-continue .ssc-label{color:#A9633D}
+
+/* Closing */
+.closing-block{background:#30383B;color:#F7F4EF;padding:20px 24px;border-radius:8px;margin-top:12px;font-family:'EB Garamond',Georgia,serif;font-size:14px;line-height:1.85}
+.closing-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#D9CBB2;margin-bottom:8px;font-family:'Noto Sans',Arial,sans-serif}
+
+/* Reflect */
+.reflect-section{padding:28px 0;border-top:3px solid #D9CBB2}
+.reflect-section h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;font-weight:600;margin-bottom:8px}
+.reflect-intro{font-size:12px;color:#595959;line-height:1.7;margin-bottom:20px}
+.reflect-q-list{list-style:none;padding:0;margin:0}
+.reflect-q-list li{font-size:12px;line-height:1.75;padding:9px 0 9px 16px;border-left:2px solid #D9CBB2;margin-bottom:8px}
+.reflect-q-num{font-weight:700;color:#A9633D;margin-right:6px}
+.reflect-sub{font-family:'EB Garamond',Georgia,serif;font-size:16px;font-weight:600;color:#A9633D;margin:28px 0 8px}
+.reflect-bridge{background:#F7F4EF;border-left:4px solid #A9633D;padding:14px 18px;border-radius:0 6px 6px 0;font-size:12px;color:#30383B;line-height:1.85;margin-bottom:18px}
+
+/* Color key */
+.color-key{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0}
+.ck-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#595959}
+.ck-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+
+/* Brand footer */
+.brand-footer{text-align:center;margin-top:48px;padding-top:20px;border-top:1px solid #EDE8DF}
+.brand-footer-name{font-family:'EB Garamond',Georgia,serif;font-size:14px;color:#30383B;margin-bottom:4px}
+.brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
+
+@media print{
+  body{font-size:11px}.page{padding:20px 24px;max-width:100%}
+  .page-break-before{page-break-before:always}
+  .cover{page-break-after:always}.summary-section{page-break-after:always}
+  .narrative-block,.comments-section,.ssc-block{page-break-inside:avoid}
 }
 </style></head>
-<body>
-<style>
-.report-actions {
-  position: fixed; bottom: 24px; right: 24px; z-index: 999;
-  display: flex; gap: 10px;
-}
-.report-action-btn {
-  background: #30383B; color: #F7F4EF; border: none;
-  padding: 12px 22px; border-radius: 6px; font-size: 13px;
-  font-family: Arial, sans-serif; cursor: pointer; font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: background 0.15s;
-  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
-}
-.report-action-btn:hover { background: #A9633D; }
-@media print { .report-actions { display: none; } }
-</style><div id="report-actions-placeholder"></div><div class="page">
+<body><div class="page">
 
 <div class="cover">
-  <div class="cover-logo"><img src="/logo.png" alt="In Good Company" style="height:52px"/></div>
   <div class="cover-eyebrow">CARE 360 Feedback Report</div>
   <div class="cover-name">${leader.name}</div>
-  <div class="cover-meta">${leader.title || ''}</div>
-  <div class="cover-meta">${leader.cycles?.name || ''}</div>
-  <div class="cover-meta" style="margin-top:4px">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+  <div class="cover-meta">${leader.title || ''} ${leader.cycles?.name ? '&nbsp;·&nbsp; ' + leader.cycles.name : ''}</div>
+  <div class="cover-meta">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
   <hr class="cover-divider"/>
-  <p class="cover-intro">This report presents feedback collected from colleagues across multiple rater groups as part of the CARE 360 Leadership Survey. Use the data as a starting point for reflection and growth conversations. The goal is not evaluation — it is to give you a fuller picture of how your leadership lands.</p>
+  <p class="cover-intro">This report presents feedback collected from colleagues across multiple rater groups as part of the CARE 360 Leadership Survey. Use the data as a starting point for reflection, development planning, and growth conversations. The goal is not evaluation. It is to give you a fuller, more honest picture of how your leadership lands — and to help you grow from it.</p>
+  ${narrative.keyInsight ? `<div class="key-insight"><div class="key-insight-label">Key Insight</div><div class="key-insight-text">${narrative.keyInsight}</div></div>` : ''}
 </div>
 
-${narrative.keyInsight ? `<div class="key-insight" style="margin-bottom:16px"><div class="key-insight-label">Key Insight</div><div class="key-insight-text">${narrative.keyInsight}</div></div>` : ''}
 ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>` : ''}
 
 <div style="margin-bottom:16px">
@@ -512,29 +504,7 @@ ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>`
   <div class="color-key">${Object.entries(RATER_GROUP_LABELS).map(([k,v])=>`<div class="ck-item"><div class="ck-swatch" style="background:${RATER_COLORS[k]||'#888'}"></div><span>${v}</span></div>`).join('')}</div>
 </div>
 
-
-<div style="margin-bottom:8px">
-  <div style="font-size:10px;font-weight:600;color:#595959;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Symbol Key</div>
-  <div style="display:flex;flex-wrap:wrap;gap:14px">
-    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
-      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 1,13 13,13" fill="#7C8863"/></svg>
-      <span><strong>High Score</strong> — 4.4 or above. A strength to build on.</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
-      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,13 1,1 13,1" fill="#A94442"/></svg>
-      <span><strong>Low Score</strong> — 3.5 or below. A development priority.</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
-      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#7C8863" opacity="0.6"/></svg>
-      <span><strong>Hidden Strength</strong> — Others rate this higher than you rate yourself.</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
-      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,7 7,13 1,7" fill="#A9633D"/></svg>
-      <span><strong>Blind Spot</strong> — You rate this higher than others, and their score is below 4.0.</span>
-    </div>
-  </div>
-</div>
-<div class="summary-section">
+<div class="summary-section page-break-before">
   <h2>Summary of All Sections</h2>
   ${summaryChart()}
 </div>
@@ -562,7 +532,7 @@ ${narrative.closingReflection ? `
     <li><span class="reflect-q-num">6.</span>What feedback was most difficult to hear? What can you learn from your reaction to it?</li>
   </ul>
   <div class="reflect-sub">Looking Ahead</div>
-  <div class="reflect-bridge">Use this feedback as the foundation for a focused development conversation with your coach or facilitator. Identify two or three areas where focused effort over the next six months would create the most meaningful growth for you and the people around you.</div>
+  <div class="reflect-bridge">As Part 2 of the CARE 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
 </div>
 
 <div class="brand-footer">

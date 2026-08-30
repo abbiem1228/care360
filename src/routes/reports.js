@@ -71,15 +71,20 @@ router.get('/pdf/:reportId', requireAuth, async (req, res) => {
     });
 
     const page = await browser.newPage();
+    
+    // Use screen media so the report looks exactly like the browser version
+    await page.emulateMediaType('screen');
+    await page.setViewport({ width: 900, height: 1100 });
 
     // Inject the report HTML directly
     await page.setContent(report.report_html, { waitUntil: 'networkidle0', timeout: 30000 });
 
     const pdfBuffer = await page.pdf({
       format: 'Letter',
-      margin: { top: '0.65in', right: '0.7in', bottom: '0.65in', left: '0.7in' },
+      margin: { top: '0.6in', right: '0.65in', bottom: '0.6in', left: '0.65in' },
       printBackground: true,
-      displayHeaderFooter: false
+      displayHeaderFooter: false,
+      preferCSSPageSize: false
     });
 
     const leaderName = (report.leaders?.name || 'Leader').replace(/[^a-zA-Z0-9]/g, '_');
@@ -528,50 +533,7 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 .brand-footer-name{font-family:'EB Garamond',Georgia,serif;font-size:14px;color:#30383B;margin-bottom:4px}
 .brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
 
-@media print{
-  body{font-size:10.5px;line-height:1.5}
-  .page{padding:0;max-width:100%}
-  .cover{page-break-after:always}
-  .page-break-before{page-break-before:auto}
 
-  /* Only keep small blocks together - nothing large */
-  .narrative-block{page-break-inside:avoid;margin-bottom:4px;padding:7px 10px}
-  .narrative-label{font-size:8.5px;margin-bottom:2px}
-  .key-insight{page-break-inside:avoid;padding:10px 14px;margin-bottom:8px}
-  .key-insight-text{font-size:11px}
-  .closing-block{page-break-inside:avoid;padding:10px 14px}
-
-  /* Let comments, sections, SSC flow naturally across pages */
-  .chart-wrap{margin-bottom:8px}
-  .section{padding:10px 0}
-  .section-header{margin-bottom:7px}
-  .section-header h2{font-size:14px}
-  .section-sub{font-size:9.5px;margin-bottom:8px}
-  .comments-section{padding-top:4px}
-  .comments-header{font-size:8.5px;margin-bottom:4px}
-  .comment-item{padding:2px 0;font-size:9.5px}
-
-  /* SSC blocks - keep label with content but allow flow */
-  .ssc-block{margin-bottom:6px;padding:8px 10px}
-  .ssc-label{font-size:8.5px;margin-bottom:4px}
-
-  /* Overview and summary */
-  .overview-block{padding:8px 12px;margin-bottom:8px;font-size:10px;line-height:1.6}
-  .summary-section{padding:8px 0 4px}
-  .summary-section h2{font-size:13px;margin-bottom:6px}
-
-  /* Reflecting section */
-  .reflect-section{padding:18px 0 12px}
-  .reflect-section h2{font-size:14px}
-  .reflect-q-list li{padding:3px 0 3px 10px;margin-bottom:2px;font-size:9.5px}
-  .reflect-bridge{padding:7px 10px;font-size:9.5px}
-
-  /* Footer */
-  .brand-footer{margin-top:16px;padding-top:10px;padding-bottom:12px}
-  .color-key{margin:4px 0;gap:5px}
-  .ck-item{font-size:9px}
-  h2{font-size:14px;margin-bottom:6px}
-}
 </style></head>
 <body><div class="page">
 

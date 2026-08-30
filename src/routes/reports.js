@@ -235,6 +235,7 @@ PRINCIPLES:
 - Name meaningful divergences between rater groups
 - Tone should feel like a trusted coach, not a performance review
 - Write in full, warm, direct sentences only
+- Never use em dashes or en dashes. Use commas, colons, periods, or restructure the sentence instead. This is a strict requirement.
 
 Respond using EXACTLY this format with these markers. Write the text directly after each marker on a new line. Do not add any other text, labels, or formatting.
 
@@ -283,7 +284,10 @@ One specific sentence naming the single most important pattern across all the da
     messages: [{ role: 'user', content: prompt }]
   });
 
-  const raw = response.content[0].text.trim();
+ const raw = response.content[0].text.trim()
+  .replace(/\s*—\s*/g, ', ')
+  .replace(/\s*–\s*/g, ', ')
+  .replace(/\s*--\s*/g, ', ');
   console.log('Narrative response length:', raw.length);
 
   // Parse delimiter-based response — much more robust than JSON

@@ -570,6 +570,13 @@ p{orphans:3;widows:3}
 .ssc-block .comment-item{line-height:1.45;padding:2px 0}
 .reflect-q-list li{padding:6px 0 6px 16px;margin-bottom:5px}
 .closing-block{padding:16px 20px;margin-top:8px}
+.reflect-section{padding:0;border-top:none}
+.reflect-intro{margin-bottom:12px}
+.reflect-q-list li{padding:4px 0 4px 14px;margin-bottom:3px;line-height:1.6}
+.reflect-sub{margin:16px 0 6px}
+.reflect-bridge{padding:10px 14px;margin-bottom:8px}
+.closing-block{line-height:1.65;margin-bottom:14px}
+.brand-footer{margin-top:24px;padding-top:14px}
 
 
 </style></head>
@@ -606,7 +613,14 @@ ${sscHtml}
 
 
 
-<div class="reflect-section page-break-before">
+${narrative.closingReflection ? `
+<div class="section page-break-before" style="border-top:none;padding-top:0">
+  <div class="closing-block">
+    <div class="closing-label">A Note From Your Coach</div>
+    ${narrative.closingReflection}
+  </div>
+</div>` : ''}
+<div class="reflect-section">
   <h2>Reflecting on the Feedback</h2>
   <p class="reflect-intro">Use the questions below as a guide for reflection before your development planning conversation. There are no right answers. The goal is to engage honestly with what the data is telling you about your leadership.</p>
   <ul class="reflect-q-list">
@@ -621,12 +635,6 @@ ${sscHtml}
   <div class="reflect-bridge">As Part 2 of the CARE 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
 </div>
 
-${narrative.closingReflection ? `
-<div class="section" style="border-top:none;padding-top:0">
-  <div class="closing-block">
-    <div class="closing-label">A Note From Your Coach</div>
-    ${narrative.closingReflection}
-  </div>
 </div>` : ''}
 <div class="brand-footer">
   <div class="brand-footer-name">in good company.</div>

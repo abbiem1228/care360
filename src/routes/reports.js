@@ -46,6 +46,26 @@ router.get('/view/:reportId', async (req, res) => {
   if (!report) return res.status(404).send('Report not found.');
   res.send(report.report_html);
 });
+// ── PDF print view ───────────────────────────────────────────
+router.get('/pdf/:reportId', async (req, res) => {
+  const { data: report } = await supabase
+    .from('reports').select('*, leaders(name, title, cycles(name))').eq('id', req.params.reportId).single();
+  if (!report) return res.status(404).send('Report not found.');
+  let html = report.report_html;
+  const printScript = `<style>
+  .print-banner{background:#30383B;color:#F7F4EF;padding:10px 20px;font-family:Arial,sans-serif;font-size:12px;display:flex;align-items:center;justify-content:space-between}
+  .print-btn{background:#A9633D;color:white;border:none;padding:7px 18px;border-radius:4px;font-size:12px;cursor:pointer;font-family:Arial}
+  @media print{.print-banner{display:none}}
+  </style>
+  <div class="print-banner">
+    <span>CARE 360 Report — PDF Export</span>
+    <button class="print-btn" onclick="window.print()">Save as PDF</button>
+  </div>
+  <script>window.addEventListener('load',function(){setTimeout(function(){window.print()},800);});<\/script>`;
+  html = html.replace('</body>', printScript + '</body>');
+  res.send(html);
+});
+
 
 // ═══════════════════════════════════════════════════════════════
 // SCORING

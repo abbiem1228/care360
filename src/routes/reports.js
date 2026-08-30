@@ -365,7 +365,7 @@ function buildReportHtml(leader, scoreData, narrative, commentData) {
   function summaryChart() {
     const sects = Object.values(scoreData.sections);
     const LBL=178,BSTRT=184,BMAX=270,PPU=BMAX/5,VW=540;
-    const BH=13,GAP=4,CGAP=18;
+    const BH=10,GAP=3,CGAP=14;
     const totalH=4+sects.length*(18+groups.length*(BH+GAP)+CGAP)+30;
     let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW} ${totalH}" width="100%" style="display:block">`;
     let yo=20;
@@ -442,135 +442,38 @@ function buildReportHtml(leader, scoreData, narrative, commentData) {
 <html lang="en"><head><meta charset="UTF-8"/>
 <title>CARE 360 Report — ${leader.name}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans',Arial,sans-serif;font-size:12px;color:#30383B;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.page{max-width:820px;margin:0 auto;padding:44px 48px}
-
-/* Cover */
-.cover{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;min-height:90vh;padding:60px 48px;
-  border-bottom:none;margin-bottom:0;
-}
-.cover-eyebrow{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:24px}
-.cover-logo{margin-bottom:32px}
-.cover-name{font-family:'EB Garamond',Georgia,serif;font-size:52px;font-weight:600;color:#30383B;line-height:1.1;margin-bottom:14px}
-.cover-meta{font-size:13px;color:#595959;margin-bottom:4px}
-.cover-divider{border:none;border-top:1px solid #D9CBB2;margin:32px auto;width:60px}
-.cover-intro{font-size:12px;color:#595959;line-height:1.9;max-width:520px;margin:0 auto}
-
-/* Key insight */
-.key-insight{background:#30383B;color:#F7F4EF;padding:18px 22px;border-radius:8px;margin-top:22px}
-.key-insight-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#D9CBB2;margin-bottom:7px}
-.key-insight-text{font-family:'EB Garamond',Georgia,serif;font-size:15px;line-height:1.7}
-
-/* Summary */
-.summary-section{padding:24px 0 8px}
-.summary-section h2{font-family:'EB Garamond',Georgia,serif;font-size:20px;color:#30383B;margin-bottom:16px;font-weight:600}
-
-/* Overview */
-.overview-block{background:#F7F4EF;border-left:4px solid #A9633D;padding:16px 20px;border-radius:0 6px 6px 0;margin-bottom:24px;font-size:13px;line-height:1.85;color:#30383B}
-
-/* Sections */
-.section{padding:28px 0;border-top:3px solid #D9CBB2}
-.section-header{margin-bottom:18px}
-.section-num{font-size:10px;font-weight:600;color:#A9633D;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
-.section-header h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;font-weight:600;margin-bottom:4px}
-.section-sub{font-size:11px;color:#595959;font-style:italic;line-height:1.6}
-h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-bottom:14px;font-weight:600}
-
-.chart-wrap{margin-bottom:18px}
-
-/* Narrative blocks */
-.narrative-block{padding:14px 18px;border-radius:0 6px 6px 0;margin-bottom:10px;font-size:12px;line-height:1.85}
-.narrative-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
-.narrative-strength{background:#F4F7F2;border-left:4px solid #7C8863}
-.narrative-strength .narrative-label{color:#7C8863}
-.narrative-growth{background:#FBF5EC;border-left:4px solid #A9633D}
-.narrative-growth .narrative-label{color:#A9633D}
-.narrative-pattern{background:#F7F4EF;border-left:4px solid #D9CBB2}
-.narrative-pattern .narrative-label{color:#595959}
-
-/* Comments */
-.comments-section{margin-top:14px}
-.comments-header{font-size:9px;font-weight:700;color:#595959;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #EDE8DF}
-.comment-item{font-size:11px;color:#30383B;line-height:1.8;font-style:italic;padding:5px 0;border-bottom:0.5px solid #EDE8DF}
-.comment-item:last-child{border-bottom:none}
-
-/* SSC */
-.ssc-block{padding:14px 18px;border-radius:0 6px 6px 0;margin-bottom:10px}
-.ssc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
-.ssc-start{background:#F4F7F2;border-left:4px solid #7C8863}.ssc-start .ssc-label{color:#7C8863}
-.ssc-stop{background:#FEF0EE;border-left:4px solid #A94442}.ssc-stop .ssc-label{color:#A94442}
-.ssc-continue{background:#FBF5EC;border-left:4px solid #A9633D}.ssc-continue .ssc-label{color:#A9633D}
-
-/* Closing */
-.closing-block{background:#30383B;color:#F7F4EF;padding:20px 24px;border-radius:8px;margin-top:12px;font-family:'EB Garamond',Georgia,serif;font-size:14px;line-height:1.85}
-.closing-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#D9CBB2;margin-bottom:8px;font-family:'Noto Sans',Arial,sans-serif}
-
-/* Reflect */
-.reflect-section{padding:40px 0 32px;border-top:3px solid #D9CBB2;margin-top:16px}
-.reflect-section h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;font-weight:600;margin-bottom:8px}
-.reflect-intro{font-size:12px;color:#595959;line-height:1.7;margin-bottom:20px}
-.reflect-q-list{list-style:none;padding:0;margin:0}
-.reflect-q-list li{font-size:12px;line-height:1.75;padding:9px 0 9px 16px;border-left:2px solid #D9CBB2;margin-bottom:8px}
-.reflect-q-num{font-weight:700;color:#A9633D;margin-right:6px}
-.reflect-sub{font-family:'EB Garamond',Georgia,serif;font-size:16px;font-weight:600;color:#A9633D;margin:28px 0 8px}
-.reflect-bridge{background:#F7F4EF;border-left:4px solid #A9633D;padding:14px 18px;border-radius:0 6px 6px 0;font-size:12px;color:#30383B;line-height:1.85;margin-bottom:18px}
-
-/* Color key */
-.color-key{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0}
-.ck-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#595959}
-.ck-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
-
-/* Brand footer */
-.brand-footer{text-align:center;margin-top:60px;padding-top:24px;padding-bottom:32px;border-top:1px solid #EDE8DF}
-.brand-footer-name{font-family:'EB Garamond',Georgia,serif;font-size:14px;color:#30383B;margin-bottom:4px}
-.brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
-
-@page{margin:0.65in 0.7in}
-@media print{
-  body{font-size:10.5px;line-height:1.5}
+<style>@media print{
+  body{font-size:10px;line-height:1.5}
   .page{padding:0;max-width:100%}
-  
-  /* Cover - full page centered, force break after */
-  .cover{min-height:calc(100vh - 1.3in);page-break-after:always}
-  
-  /* No forced breaks except cover */
+  .cover{min-height:calc(100vh - 1.2in);page-break-after:always;padding:0}
   .page-break-before{page-break-before:auto}
-  
-  /* Keep blocks together */
-  .section{page-break-inside:avoid;padding:12px 0}
-  .narrative-block{page-break-inside:avoid;margin-bottom:5px;padding:8px 12px}
+  .section{page-break-inside:avoid;padding:10px 0}
+  .narrative-block{page-break-inside:avoid;margin-bottom:4px;padding:7px 10px}
   .comments-section{page-break-inside:avoid}
   .chart-wrap{page-break-inside:avoid}
   .ssc-block{page-break-inside:avoid}
-  .key-insight{page-break-inside:avoid}
-  .reflect-section{page-break-inside:avoid}
-  
-  /* Tighten spacing for print */
-  .summary-section{padding:10px 0 4px}
-  .summary-section h2{margin-bottom:8px;font-size:15px}
-  .section-header{margin-bottom:8px}
-  .section-header h2{font-size:15px}
-  .narrative-label{margin-bottom:3px;font-size:9px}
-  .comments-header{margin-bottom:5px}
-  .comment-item{padding:3px 0;font-size:10.5px}
-  .overview-block{padding:10px 14px;margin-bottom:10px;font-size:11px;line-height:1.7}
-  .closing-block{padding:12px 16px;font-size:12px}
-  .reflect-section{padding:32px 0 24px}
-  .reflect-section h2{font-size:16px}
-  .reflect-q-list li{padding:5px 0 5px 12px;margin-bottom:3px;font-size:11px}
-  .reflect-bridge{padding:10px 14px;font-size:11px}
-  .brand-footer{margin-top:32px;padding-top:16px;padding-bottom:24px}
-  .color-key{margin:5px 0;gap:8px}
-  .color-key .ck-item{font-size:10px}
-  h2{font-size:15px;margin-bottom:8px}
-  
-  /* Compact symbol legend in print */
-  div[style*="Symbol Key"]{margin-bottom:10px}
+  .key-insight{page-break-inside:avoid;padding:12px 16px;margin-bottom:10px}
+  .reflect-section{page-break-inside:avoid;padding:28px 0 20px}
+  .summary-section{padding:8px 0 4px}
+  .summary-section h2{margin-bottom:6px;font-size:14px}
+  .section-header{margin-bottom:7px}
+  .section-header h2,.section-header h2{font-size:14px}
+  .section-sub{font-size:10px;margin-bottom:8px}
+  .narrative-label{margin-bottom:2px;font-size:8.5px}
+  .comments-header{margin-bottom:4px;font-size:8.5px}
+  .comment-item{padding:2px 0;font-size:10px}
+  .overview-block{padding:8px 12px;margin-bottom:8px;font-size:10.5px;line-height:1.65}
+  .closing-block{padding:10px 14px;font-size:11px}
+  .reflect-section h2{font-size:15px}
+  .reflect-q-list li{padding:4px 0 4px 10px;margin-bottom:2px;font-size:10px}
+  .reflect-bridge{padding:8px 12px;font-size:10px}
+  .brand-footer{margin-top:24px;padding-top:12px;padding-bottom:20px}
+  .color-key{margin:4px 0;gap:6px}
+  .ck-item{font-size:9.5px}
+  .ck-swatch{width:10px;height:10px}
+  h2{font-size:14px;margin-bottom:6px}
+  .key-insight-text{font-size:12px}
+  .key-insight-label{font-size:8.5px}
 }
 </style></head>
 <body>
@@ -610,22 +513,22 @@ ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>`
 </div>
 
 
-<div style="margin-bottom:12px">
+<div style="margin-bottom:8px">
   <div style="font-size:10px;font-weight:600;color:#595959;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Symbol Key</div>
   <div style="display:flex;flex-wrap:wrap;gap:14px">
-    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
       <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 1,13 13,13" fill="#7C8863"/></svg>
       <span><strong>High Score</strong> — 4.4 or above. A strength to build on.</span>
     </div>
-    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
       <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,13 1,1 13,1" fill="#A94442"/></svg>
       <span><strong>Low Score</strong> — 3.5 or below. A development priority.</span>
     </div>
-    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
       <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#7C8863" opacity="0.6"/></svg>
       <span><strong>Hidden Strength</strong> — Others rate this higher than you rate yourself.</span>
     </div>
-    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#595959">
       <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,7 7,13 1,7" fill="#A9633D"/></svg>
       <span><strong>Blind Spot</strong> — You rate this higher than others, and their score is below 4.0.</span>
     </div>

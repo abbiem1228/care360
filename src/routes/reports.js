@@ -186,62 +186,124 @@ function buildCommentData(openTexts, sscData, sections) {
 // ═══════════════════════════════════════════════════════════════
 
 async function generateNarrative(leader, scoreData, commentData) {
+  const groups = ['self','supervisor','peer','direct_report','skip_level'];
+
+  const overallSummary = Object.entries(scoreData.overall)
+    .filter(([,v]) => v !== null)
+    .map(([g,v]) => `${RATER_GROUP_LABELS[g]||g}: ${v.toFixed(2)}`).join(', ');
+
   const sectionSummaries = Object.entries(scoreData.sections).map(([id, data]) => {
     const scores = Object.entries(data.scores)
-      .filter(([,v])=>v!==null)
-      .map(([g,v])=>`${RATER_GROUP_LABELS[g]||g}: ${v.toFixed(2)}`).join(', ');
+      .filter(([,v]) => v !== null)
+      .map(([g,v]) => `${RATER_GROUP_LABELS[g]||g}: ${v.toFixed(2)}`).join(', ');
     const comments = (commentData.sections[id]||[]).map(c=>`[${c.group}] ${c.text}`).join('\n');
-    return `${data.title.toUpperCase()}\nScores: ${scores}\nComments:\n${comments||'(none)'}`;
-  }).join('\n\n');
+    return `${data.title.toUpperCase()} | Scores: ${scores}\nComments:\n${comments||'(none)'}`;
+  }).join('\n\n---\n\n');
+
+  const flags = [
+    scoreData.blindSpots.length ? `BLIND SPOTS: ${scoreData.blindSpots.map(b=>`${b.section} (Self ${b.self} vs ${b.group} ${b.other})`).join('; ')}` : null,
+    scoreData.hiddenStrengths.length ? `HIDDEN STRENGTHS: ${scoreData.hiddenStrengths.map(h=>`${h.section} (${h.group} rates higher)`).join('; ')}` : null,
+    scoreData.highScores.length ? `HIGH SCORES: ${scoreData.highScores.map(h=>`${h.section} from ${h.group}`).join('; ')}` : null,
+    scoreData.lowScores.length ? `LOW SCORES: ${scoreData.lowScores.map(l=>`${l.section} from ${l.group}`).join('; ')}` : null,
+  ].filter(Boolean).join('\n');
 
   const sscText = [
-    `START: ${commentData.ssc.start.join(' | ') || '(none)'}`,
-    `STOP: ${commentData.ssc.stop.join(' | ') || '(none)'}`,
-    `CONTINUE: ${commentData.ssc.continue.join(' | ') || '(none)'}`
-  ].join('\n');
+    commentData.ssc.start.length ? `START: ${commentData.ssc.start.join(' | ')}` : null,
+    commentData.ssc.stop.length ? `STOP: ${commentData.ssc.stop.join(' | ')}` : null,
+    commentData.ssc.continue.length ? `CONTINUE: ${commentData.ssc.continue.join(' | ')}` : null,
+  ].filter(Boolean).join('\n');
 
-  const prompt = `You are an expert leadership development coach generating 360 feedback narrative for a Sekisui House US leader.
+  const prompt = `You are a leadership development coach generating a CARE 360 feedback report for In Good Company Collective.
 
-Leader: ${leader.name}, ${leader.title || 'Division Leader'}
+LEADER: ${leader.name}${leader.title ? ', ' + leader.title : ''}
 
-SCORING DATA AND RATER COMMENTS BY SECTION:
+CARE FRAMEWORK: Connect (relationships, genuine interest), Accountable (commitments, transparency), Reach (strategic thinking, development), Empower (delegation, psychological safety), Leadership Effectiveness (clarity, conflict, advocacy).
+
+OVERALL SCORES: ${overallSummary}
+
+SECTION DATA:
 ${sectionSummaries}
 
-START / STOP / CONTINUE RESPONSES:
-${sscText}
+FLAGS: ${flags || 'none'}
 
-FRAMEWORK: This organization uses the H.O.M.E.S. Leadership Blueprint (Honor, Own, Model, Empower, Strengthen), SEKISUI HOUSE-SHIP values, and the Integrity Code ("Love of Humanity", Truth & Trust).
+START/STOP/CONTINUE: ${sscText || 'none provided'}
 
-Generate a JSON object with this exact structure — no markdown, just raw JSON:
-{
-  "overview": "2-3 sentence overall pattern summary",
-  "sections": {
-    "honor": { "themes": "2-3 sentence synthesis", "strength": "one key strength observed", "opportunity": "one key development area" },
-    "own": { "themes": "...", "strength": "...", "opportunity": "..." },
-    "model": { "themes": "...", "strength": "...", "opportunity": "..." },
-    "empower": { "themes": "...", "strength": "...", "opportunity": "..." },
-    "strengthen": { "themes": "...", "strength": "...", "opportunity": "..." },
-    "strategic": { "themes": "...", "strength": "...", "opportunity": "..." },
-    "values": { "themes": "...", "strength": "...", "opportunity": "..." }
-  },
-  "supervisorPerspective": "2 sentence note on how supervisor view differs from other groups",
-  "keyPattern": "The single most important theme across all rater groups in one sentence"
-}
+Write warm, specific, coach-like narrative. Lead with strengths. Growth is an invitation not a verdict. Reference actual scores and comment themes. No bullet points.
 
-Be direct, specific, and grounded in the actual data. Do not be generic. Reference specific score patterns and comment themes.`;
+Respond using EXACTLY these markers. Write text directly after each marker. No other formatting.
+
+##KEYINSIGHT##
+One sentence naming the single most important pattern across all the data.
+##OVERVIEW##
+3-4 sentences. Overall picture, greatest strength, clearest opportunity, any rater group pattern.
+##CONNECT_WORKING##
+2-3 sentences on what is working in Connect.
+##CONNECT_GROWTH##
+2-3 sentences on the growth edge in Connect.
+##CONNECT_PATTERN##
+1-2 sentences on rater group differences. Write NONE if not applicable.
+##ACCOUNTABLE_WORKING##
+2-3 sentences on what is working in Accountable.
+##ACCOUNTABLE_GROWTH##
+2-3 sentences on the growth edge in Accountable.
+##ACCOUNTABLE_PATTERN##
+1-2 sentences on rater group differences. Write NONE if not applicable.
+##REACH_WORKING##
+2-3 sentences on what is working in Reach.
+##REACH_GROWTH##
+2-3 sentences on the growth edge in Reach.
+##REACH_PATTERN##
+1-2 sentences on rater group differences. Write NONE if not applicable.
+##EMPOWER_WORKING##
+2-3 sentences on what is working in Empower.
+##EMPOWER_GROWTH##
+2-3 sentences on the growth edge in Empower.
+##EMPOWER_PATTERN##
+1-2 sentences on rater group differences. Write NONE if not applicable.
+##EFFECTIVENESS_WORKING##
+2-3 sentences on what is working in Leadership Effectiveness.
+##EFFECTIVENESS_GROWTH##
+2-3 sentences on the growth edge in Leadership Effectiveness.
+##EFFECTIVENESS_PATTERN##
+1-2 sentences on rater group differences. Write NONE if not applicable.
+##SSC_THEMES##
+2-3 sentences on Start/Stop/Continue themes. Write NONE if no data.
+##CLOSING##
+2-3 sentences affirming this leader. Reference something specific. Feel like a coach handing over the report.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
+    max_tokens: 3000,
     messages: [{ role: 'user', content: prompt }]
   });
 
-  try {
-    return JSON.parse(response.content[0].text);
-  } catch {
-    return { overview: response.content[0].text, sections: {}, keyPattern: '' };
-  }
+  const raw = response.content[0].text.trim();
+  console.log('Narrative length:', raw.length);
+
+  const get = (marker) => {
+    const start = raw.indexOf(`##${marker}##`);
+    if (start === -1) return '';
+    const contentStart = start + marker.length + 4;
+    const nextMarker = raw.indexOf('##', contentStart);
+    const content = (nextMarker === -1 ? raw.slice(contentStart) : raw.slice(contentStart, nextMarker)).trim();
+    return content === 'NONE' ? '' : content;
+  };
+
+  return {
+    keyInsight: get('KEYINSIGHT'),
+    overview: get('OVERVIEW'),
+    sscThemes: get('SSC_THEMES'),
+    closingReflection: get('CLOSING'),
+    sections: {
+      connect:       { whatsWorking: get('CONNECT_WORKING'),       growthEdge: get('CONNECT_GROWTH'),       raterPattern: get('CONNECT_PATTERN') },
+      accountable:   { whatsWorking: get('ACCOUNTABLE_WORKING'),   growthEdge: get('ACCOUNTABLE_GROWTH'),   raterPattern: get('ACCOUNTABLE_PATTERN') },
+      reach:         { whatsWorking: get('REACH_WORKING'),         growthEdge: get('REACH_GROWTH'),         raterPattern: get('REACH_PATTERN') },
+      empower:       { whatsWorking: get('EMPOWER_WORKING'),       growthEdge: get('EMPOWER_GROWTH'),       raterPattern: get('EMPOWER_PATTERN') },
+      effectiveness: { whatsWorking: get('EFFECTIVENESS_WORKING'), growthEdge: get('EFFECTIVENESS_GROWTH'), raterPattern: get('EFFECTIVENESS_PATTERN') },
+    }
+  };
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // HTML REPORT BUILDER

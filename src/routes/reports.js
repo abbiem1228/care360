@@ -530,17 +530,15 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 .brand-footer-name{font-family:'EB Garamond',Georgia,serif;font-size:14px;color:#30383B;margin-bottom:4px}
 .brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
 
+@page{margin:0.65in 0.7in}
 @media print{
   body{font-size:10.5px;line-height:1.5}
   .page{padding:0;max-width:100%}
   
-  /* Cover page - full page centered */
-  .cover{min-height:100vh;page-break-after:always;padding:0}
+  /* Cover - full page centered, force break after */
+  .cover{min-height:calc(100vh - 1.3in);page-break-after:always}
   
-  /* Page 2 onwards - restore normal padding */
-  .summary-section,.section,.reflect-section{padding-left:0;padding-right:0}
-  
-  /* Remove forced breaks - let content flow except cover */
+  /* No forced breaks except cover */
   .page-break-before{page-break-before:auto}
   
   /* Keep blocks together */
@@ -552,22 +550,27 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
   .key-insight{page-break-inside:avoid}
   .reflect-section{page-break-inside:avoid}
   
-  /* Tighten spacing */
-  .summary-section{padding:12px 0 4px}
-  .summary-section h2{margin-bottom:8px;font-size:16px}
+  /* Tighten spacing for print */
+  .summary-section{padding:10px 0 4px}
+  .summary-section h2{margin-bottom:8px;font-size:15px}
   .section-header{margin-bottom:8px}
   .section-header h2{font-size:15px}
   .narrative-label{margin-bottom:3px;font-size:9px}
   .comments-header{margin-bottom:5px}
   .comment-item{padding:3px 0;font-size:10.5px}
-  .overview-block{padding:10px 14px;margin-bottom:10px;font-size:11px}
+  .overview-block{padding:10px 14px;margin-bottom:10px;font-size:11px;line-height:1.7}
   .closing-block{padding:12px 16px;font-size:12px}
+  .reflect-section{padding:32px 0 24px}
   .reflect-section h2{font-size:16px}
   .reflect-q-list li{padding:5px 0 5px 12px;margin-bottom:3px;font-size:11px}
   .reflect-bridge{padding:10px 14px;font-size:11px}
-  .brand-footer{margin-top:40px;padding-top:16px}
-  .color-key{margin:6px 0;gap:8px}
+  .brand-footer{margin-top:32px;padding-top:16px;padding-bottom:24px}
+  .color-key{margin:5px 0;gap:8px}
+  .color-key .ck-item{font-size:10px}
   h2{font-size:15px;margin-bottom:8px}
+  
+  /* Compact symbol legend in print */
+  div[style*="Symbol Key"]{margin-bottom:10px}
 }
 </style></head>
 <body>
@@ -595,7 +598,7 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
   <div class="cover-meta">${leader.cycles?.name || ''}</div>
   <div class="cover-meta" style="margin-top:4px">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
   <hr class="cover-divider"/>
-  <p class="cover-intro">This report presents feedback collected from colleagues across multiple rater groups as part of the CARE 360 Leadership Survey. Use the data as a starting point for reflection, development planning, and growth conversations. The goal is not evaluation. It is to give you a fuller, more honest picture of how your leadership lands — and to help you grow from it.</p>
+  <p class="cover-intro">This report presents feedback collected from colleagues across multiple rater groups as part of the CARE 360 Leadership Survey. Use the data as a starting point for reflection and growth conversations. The goal is not evaluation — it is to give you a fuller picture of how your leadership lands.</p>
 </div>
 
 ${narrative.keyInsight ? `<div class="key-insight" style="margin-bottom:16px"><div class="key-insight-label">Key Insight</div><div class="key-insight-text">${narrative.keyInsight}</div></div>` : ''}
@@ -607,7 +610,7 @@ ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>`
 </div>
 
 
-<div style="margin-bottom:24px">
+<div style="margin-bottom:12px">
   <div style="font-size:10px;font-weight:600;color:#595959;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Symbol Key</div>
   <div style="display:flex;flex-wrap:wrap;gap:14px">
     <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">

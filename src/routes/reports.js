@@ -558,6 +558,10 @@ p{orphans:3;widows:3}
 .sk-item{display:flex;align-items:flex-start;gap:7px;font-size:10px;width:calc(50% - 10px)}
 .sk-label{font-weight:600;color:#30383B;display:block}
 .sk-desc{color:#595959;line-height:1.5}
+.section{border-top:none;padding:0 0 28px}
+.comments-section{break-before:page;page-break-before:always;margin-top:0}
+.narrative-block{line-height:1.65;padding:12px 16px}
+.comment-item{line-height:1.6}
 
 
 </style></head>
@@ -593,7 +597,7 @@ ${SECTIONS.map(s => sectionBlock(s)).join('')}
 ${sscHtml}
 
 ${narrative.closingReflection ? `
-<div class="section page-break-before" style="border-top:none;padding-top:0">
+<div class="section" style="border-top:none;padding-top:0">
   <div class="closing-block">
     <div class="closing-label">A Note From Your Coach</div>
     ${narrative.closingReflection}

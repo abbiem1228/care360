@@ -488,7 +488,8 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 <body><div class="page">
 
 <div class="cover">
-  <div class="cover-eyebrow">CARE 360 Feedback Report</div>
+  <div style="margin-bottom:16px"><img src="/logo.png" alt="In Good Company" style="height:36px"/></div>
+<div class="cover-eyebrow">CARE 360 Feedback Report</div>
   <div class="cover-name">${leader.name}</div>
   <div class="cover-meta">${leader.title || ''} ${leader.cycles?.name ? '&nbsp;·&nbsp; ' + leader.cycles.name : ''}</div>
   <div class="cover-meta">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
@@ -504,6 +505,28 @@ ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>`
   <div class="color-key">${Object.entries(RATER_GROUP_LABELS).map(([k,v])=>`<div class="ck-item"><div class="ck-swatch" style="background:${RATER_COLORS[k]||'#888'}"></div><span>${v}</span></div>`).join('')}</div>
 </div>
 
+
+<div style="margin-bottom:24px">
+  <div style="font-size:10px;font-weight:600;color:#595959;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Symbol Key</div>
+  <div style="display:flex;flex-wrap:wrap;gap:14px">
+    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 1,13 13,13" fill="#7C8863"/></svg>
+      <span><strong>High Score</strong> — 4.4 or above. A strength to build on.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,13 1,1 13,1" fill="#A94442"/></svg>
+      <span><strong>Low Score</strong> — 3.5 or below. A development priority.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#7C8863" opacity="0.6"/></svg>
+      <span><strong>Hidden Strength</strong> — Others rate this higher than you rate yourself.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:#595959">
+      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,7 7,13 1,7" fill="#A9633D"/></svg>
+      <span><strong>Blind Spot</strong> — You rate this higher than others, and their score is below 4.0.</span>
+    </div>
+  </div>
+</div>
 <div class="summary-section page-break-before">
   <h2>Summary of All Sections</h2>
   ${summaryChart()}
@@ -532,7 +555,7 @@ ${narrative.closingReflection ? `
     <li><span class="reflect-q-num">6.</span>What feedback was most difficult to hear? What can you learn from your reaction to it?</li>
   </ul>
   <div class="reflect-sub">Looking Ahead</div>
-  <div class="reflect-bridge">As Part 2 of the CARE 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
+  <div class="reflect-bridge">Use this feedback as the foundation for a focused development conversation with your coach or facilitator. Identify two or three areas where focused effort over the next six months would create the most meaningful growth for you and the people around you.</div>
 </div>
 
 <div class="brand-footer">

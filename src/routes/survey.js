@@ -8,13 +8,23 @@ router.get('/:token', async (req, res) => {
   try {
     const { data: rater, error } = await supabase
       .from('raters')
-      .select('*, leaders(name, title, cycle_id, cycles(name, status))')
+      .select('*, leaders(name, title, cycle_id, cycles(name, status, opens_at, closes_at))')
       .eq('token', req.params.token)
       .single();
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Link not found', 'This survey link was not found. Please check your email for the correct link.'));
     if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `You have already completed the survey for <strong>${rater.leaders.name}</strong>. Thank you for your contribution.`, '#1F6B3A'));
     if (rater.leaders.cycles.status !== 'active') return res.send(statusPage('!', 'Survey not open', 'This survey is not currently open. Please contact your survey administrator.'));
+
+    // Check closes_at date
+    const cycle = rater.leaders.cycles;
+    if (cycle.closes_at && new Date() > new Date(cycle.closes_at)) {
+      return res.send(statusPage('!', 'Survey closed', 'The deadline for this survey has passed. Please contact your survey administrator.'));
+    }
+    // Check opens_at date
+    if (cycle.opens_at && new Date() < new Date(cycle.opens_at)) {
+      return res.send(statusPage('!', 'Survey not open yet', 'This survey has not opened yet. Please check back later.'));
+    }
 
     const isSelf = rater.rater_group === 'self';
     res.send(surveyPage(rater, SECTIONS, isSelf, SCALE_LABELS));

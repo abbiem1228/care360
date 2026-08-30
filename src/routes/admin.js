@@ -232,8 +232,7 @@ function adminShell(title, content) {
   <title>${title} — CARE 360</title>${CSS}</head><body>
   <nav class="admin-nav">
     <div class="nav-logo">
-      <div class="nav-logo-mark">C</div>
-      <span class="nav-brand">in good company.</span>
+      <img src="/logo.png" alt="In Good Company" style="height:28px;filter:invert(1);opacity:0.9"/>
     </div>
     <a href="/admin" class="nav-link">Surveys</a>
     <div class="nav-spacer"></div>
@@ -265,11 +264,7 @@ function loginPage(error) {
   </style></head>
   <body><div class="login-wrap"><div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-mark">C</div>
-      <div>
-        <div class="login-logo-name">in good company.</div>
-        <div class="login-logo-sub">CARE 360 Leadership Survey</div>
-      </div>
+      <img src="/logo.png" alt="In Good Company" style="height:44px"/>
     </div>
     <div class="login-title">Welcome back</div>
     <div class="login-sub">Sign in to manage your 360 surveys, leaders, and reports.</div>
@@ -526,8 +521,8 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
       <div class="actions-row">
         <a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">+ Add Raters</a>
         <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-sage" type="submit">Send Pending Invites</button></form>
-        ${completedCount>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ responses to generate report</span>`}
-        ${report?`<a href="/report/view/${report.id}" class="btn btn-outline" target="_blank">View Report</a>`:''}
+        ${completedCount>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating... this takes ~30 seconds';return true;"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ responses to generate report</span>`}
+        ${report?`<a href="/report/view/${report.id}" class="btn btn-outline" target="_blank" rel="noopener">View Report</a>`:''}
       </div>
     </div>
     <div class="stats-row">

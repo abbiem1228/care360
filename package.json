@@ -1,7 +1,7 @@
 {
   "name": "care360",
   "version": "1.0.0",
-  "description": "In Good Company Collective — CARE 360 Leadership Survey Platform",
+  "description": "In Good Company Collective \u2014 CARE 360 Leadership Survey Platform",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -14,7 +14,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "nanoid": "^3.3.7",
-    "resend": "^3.2.0"
+    "resend": "^3.2.0",
+    "puppeteer": "^22.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

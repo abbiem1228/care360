@@ -1,4 +1,5 @@
 const express   = require('express');
+const puppeteer = require('puppeteer');
 const router    = express.Router();
 const supabase  = require('../db/client');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -46,90 +47,54 @@ router.get('/view/:reportId', async (req, res) => {
   if (!report) return res.status(404).send('Report not found.');
   res.send(report.report_html);
 });
-// ── PDF print view ───────────────────────────────────────────
-router.get('/pdf/:reportId', async (req, res) => {
+// ── PDF download (server-side via puppeteer) ─────────────────
+router.get('/pdf/:reportId', requireAuth, async (req, res) => {
   const { data: report } = await supabase
-    .from('reports').select('*, leaders(name, title, cycles(name))').eq('id', req.params.reportId).single();
+    .from('reports')
+    .select('*, leaders(name, title, cycles(name))')
+    .eq('id', req.params.reportId)
+    .single();
   if (!report) return res.status(404).send('Report not found.');
-  let html = report.report_html;
-  const printScript = `<style>
-  .print-banner{background:#30383B;color:#F7F4EF;padding:10px 20px;font-family:Arial,sans-serif;font-size:12px;display:flex;align-items:center;justify-content:space-between}
-  .print-btn{background:#A9633D;color:white;border:none;padding:7px 18px;border-radius:4px;font-size:12px;cursor:pointer;font-family:Arial}
-  @media print{
-  body{font-size:10px;line-height:1.45}
-  .page{padding:14px 18px;max-width:100%}
 
-  /* Cover - full page, force break after */
-  .cover{page-break-after:always;min-height:auto;padding:40px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100vh}
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+        '--single-process'
+      ]
+    });
 
-  /* Never force breaks on sections - let content flow naturally */
-  .page-break-before{page-break-before:auto}
-  .summary-section{page-break-before:avoid;padding:6px 0 2px}
-  .summary-section h2{margin-bottom:6px;font-size:13px}
+    const page = await browser.newPage();
 
-  /* Chart stays with first narrative block */
-  .chart-wrap{page-break-after:avoid}
+    // Inject the report HTML directly
+    await page.setContent(report.report_html, { waitUntil: 'networkidle0', timeout: 30000 });
 
-  /* Narrative blocks stay together but don't force page breaks */
-  .narrative-block{page-break-inside:avoid;margin-bottom:3px;padding:6px 10px}
-  .narrative-label{margin-bottom:2px;font-size:8px}
+    const pdfBuffer = await page.pdf({
+      format: 'Letter',
+      margin: { top: '0.65in', right: '0.7in', bottom: '0.65in', left: '0.7in' },
+      printBackground: true,
+      displayHeaderFooter: false
+    });
 
-  /* Sections flow - don't try to keep entire section together */
-  .section{padding:8px 0}
+    const leaderName = (report.leaders?.name || 'Leader').replace(/[^a-zA-Z0-9]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="CARE_360_${leaderName}.pdf"`);
+    res.send(pdfBuffer);
 
-  /* Comments flow naturally across pages */
-  .comments-section{padding-top:4px}
-  .comments-header{margin-bottom:3px;font-size:8px}
-  .comment-item{padding:2px 0;font-size:9.5px}
-
-  /* SSC - keep label with first item but let content flow */
-  .ssc-block{margin-bottom:6px;padding:8px 10px}
-
-  /* Keep closing note together */
-  .closing-block{page-break-inside:avoid;padding:10px 14px;font-size:11px;margin-top:8px}
-
-  /* Reflecting section */
-  .reflect-section{padding:20px 0 14px}
-  .reflect-section h2{font-size:14px}
-  .reflect-q-list li{padding:3px 0 3px 10px;margin-bottom:2px;font-size:9.5px}
-  .reflect-bridge{padding:7px 10px;font-size:9.5px;margin-top:8px}
-
-  /* Key insight stays together */
-  .key-insight{page-break-inside:avoid;padding:10px 14px;margin-bottom:8px}
-  .key-insight-text{font-size:11px}
-  .key-insight-label{font-size:8px}
-
-  /* Overview */
-  .overview-block{padding:7px 10px;margin-bottom:7px;font-size:10px;line-height:1.6}
-
-  /* Section headers */
-  .section-header{margin-bottom:6px}
-  .section-header h2{font-size:13px}
-  .section-sub{font-size:9.5px;margin-bottom:6px}
-  .section-num{font-size:8.5px}
-
-  /* Color and symbol keys */
-  .color-key{margin:3px 0;gap:5px}
-  .ck-item{font-size:9px}
-  .ck-swatch{width:9px;height:9px}
-
-  /* Brand footer */
-  .brand-footer{margin-top:16px;padding-top:10px;padding-bottom:14px}
-  .brand-footer-name{font-size:12px}
-  .brand-footer-tag{font-size:9px}
-
-  /* General */
-  h2{font-size:13px;margin-bottom:6px}
-}
-  </style>
-  <div class="print-banner">
-    <span>CARE 360 Report — PDF Export</span>
-    <button class="print-btn" onclick="window.print()">Save as PDF</button>
-  </div>
-  <script>window.addEventListener('load',function(){setTimeout(function(){window.print()},800);});<\/script>`;
-  html = html.replace('</body>', printScript + '</body>');
-  res.send(html);
+  } catch (err) {
+    console.error('PDF generation error:', err.message);
+    res.status(500).send('PDF generation failed. Please try again.');
+  } finally {
+    if (browser) await browser.close();
+  }
 });
+
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -564,10 +529,15 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
 .brand-footer-tag{font-size:10px;color:#D9CBB2;letter-spacing:1.5px;text-transform:uppercase}
 
 @media print{
-  body{font-size:11px}.page{padding:20px 24px;max-width:100%}
-  .page-break-before{page-break-before:always}
-  .cover{page-break-after:always}.summary-section{page-break-after:always}
-  .narrative-block,.comments-section,.ssc-block{page-break-inside:avoid}
+  body{font-size:10.5px}
+  .page{padding:0;max-width:100%}
+  .cover{page-break-after:always}
+  .page-break-before{page-break-before:auto}
+  .narrative-block{page-break-inside:avoid}
+  .chart-wrap{page-break-inside:avoid}
+  .key-insight{page-break-inside:avoid}
+  .closing-block{page-break-inside:avoid}
+  .brand-footer{margin-top:24px}
 }
 </style></head>
 <body><div class="page">

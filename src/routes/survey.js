@@ -2,7 +2,7 @@ const express  = require('express');
 const router   = express.Router();
 const supabase = require('../db/client');
 const { SECTIONS, SCALE_LABELS } = require('../questions');
-
+const { sendAdminNotice } = require('../email');
 // GET /survey/:token
 router.get('/:token', async (req, res) => {
   try {
@@ -40,13 +40,16 @@ router.post('/:token', async (req, res) => {
   try {
     const { data: rater, error } = await supabase
       .from('raters')
-      .select('*, leaders(name, cycle_id, cycles(status))')
+      .select('*, leaders(name, cycle_id, cycles(status, closes_at))')
       .eq('token', req.params.token)
       .single();
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Invalid link', 'Survey link not found.'));
     if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `Already submitted for <strong>${rater.leaders.name}</strong>.`, '#1F6B3A'));
-    if (rater.leaders.cycles.status !== 'active') return res.status(400).send(statusPage('!', 'Survey closed', 'This survey is no longer accepting responses.'));
+    if     if (rater.leaders.cycles.status !== 'active') return res.status(400).send(statusPage('!', 'Survey closed', 'This survey is no longer accepting responses.'));
+    if (rater.leaders.cycles.closes_at && new Date() > new Date(rater.leaders.cycles.closes_at)) {
+      return res.status(400).send(statusPage('!', 'Survey closed', 'The deadline for this survey has passed. Your responses could not be submitted. Please contact your survey administrator.'));
+    }
 
     const body = req.body;
     const raterId  = rater.id;
@@ -87,7 +90,22 @@ router.post('/:token', async (req, res) => {
     ]);
 
     await supabase.from('raters').update({ completed_at: new Date().toISOString() }).eq('id', raterId);
-
+    // Notify admin if everyone has now finished
+    try {
+      const { data: allRaters } = await supabase.from('raters').select('id, rater_group, completed_at').eq('leader_id', leaderId);
+      const outstanding = (allRaters || []).filter(r => !r.completed_at).length;
+      if (outstanding === 0) {
+        const { data: full } = await supabase.from('leaders')
+          .select('id, name, title, completion_notified_at, cycles(name)')
+          .eq('id', leaderId).single();
+        if (full && !full.completion_notified_at) {
+          await supabase.from('leaders').update({ completion_notified_at: new Date().toISOString() }).eq('id', leaderId);
+          await sendAdminNotice({ leader: full, cycle: full.cycles, raters: allRaters, reason: 'complete' });
+        }
+      }
+    } catch (e) {
+      console.error('Completion notice failed:', e.message);
+    }
     res.send(statusPage('✓', 'Thank you', `Your feedback for <strong>${rater.leaders.name}</strong> has been received. Your responses are anonymous and will be included in their development report.`, '#1F6B3A'));
 
   } catch (err) {

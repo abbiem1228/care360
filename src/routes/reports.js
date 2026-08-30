@@ -562,6 +562,8 @@ p{orphans:3;widows:3}
 .comments-section{break-before:page;page-break-before:always;margin-top:0}
 .narrative-block{line-height:1.65;padding:12px 16px}
 .comment-item{line-height:1.6}
+.ssc-block,.comment-item{break-inside:auto;page-break-inside:auto;orphans:2;widows:2}
+.ssc-label{break-after:avoid;page-break-after:avoid}
 
 
 </style></head>
@@ -596,13 +598,7 @@ ${narrative.overview ? `<div class="overview-block">${narrative.overview}</div>`
 ${SECTIONS.map(s => sectionBlock(s)).join('')}
 ${sscHtml}
 
-${narrative.closingReflection ? `
-<div class="section" style="border-top:none;padding-top:0">
-  <div class="closing-block">
-    <div class="closing-label">A Note From Your Coach</div>
-    ${narrative.closingReflection}
-  </div>
-</div>` : ''}
+
 
 <div class="reflect-section page-break-before">
   <h2>Reflecting on the Feedback</h2>
@@ -619,6 +615,13 @@ ${narrative.closingReflection ? `
   <div class="reflect-bridge">As Part 2 of the CARE 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
 </div>
 
+${narrative.closingReflection ? `
+<div class="section" style="border-top:none;padding-top:0">
+  <div class="closing-block">
+    <div class="closing-label">A Note From Your Coach</div>
+    ${narrative.closingReflection}
+  </div>
+</div>` : ''}
 <div class="brand-footer">
   <div class="brand-footer-name">in good company.</div>
   <div class="brand-footer-tag">Thoughtful &nbsp;·&nbsp; Innovative &nbsp;·&nbsp; Human</div>

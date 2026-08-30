@@ -564,6 +564,12 @@ p{orphans:3;widows:3}
 .comment-item{line-height:1.6}
 .ssc-block,.comment-item{break-inside:auto;page-break-inside:auto;orphans:2;widows:2}
 .ssc-label{break-after:avoid;page-break-after:avoid}
+.section{padding:0}
+.ssc-block{break-inside:avoid;page-break-inside:avoid;padding:9px 14px;margin-bottom:6px}
+.ssc-label{margin-bottom:6px}
+.ssc-block .comment-item{line-height:1.45;padding:2px 0}
+.reflect-q-list li{padding:6px 0 6px 16px;margin-bottom:5px}
+.closing-block{padding:16px 20px;margin-top:8px}
 
 
 </style></head>

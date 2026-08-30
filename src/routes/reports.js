@@ -46,6 +46,53 @@ router.get('/view/:reportId', async (req, res) => {
   if (!report) return res.status(404).send('Report not found.');
   res.send(report.report_html);
 });
+// ── PDF print view ────────────────────────────────────────────
+router.get('/pdf/:reportId', async (req, res) => {
+  const { data: report } = await supabase
+    .from('reports')
+    .select('*, leaders(name, title, cycles(name))')
+    .eq('id', req.params.reportId)
+    .single();
+  if (!report) return res.status(404).send('Report not found.');
+
+  // Inject auto-print script and print-specific overrides into the report HTML
+  let html = report.report_html;
+
+  const printScript = `
+<style>
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+  }
+  .print-banner {
+    background: #30383B; color: #F7F4EF; padding: 12px 24px;
+    font-family: Arial, sans-serif; font-size: 13px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .print-banner span { opacity: 0.7; }
+  .print-btn {
+    background: #A9633D; color: white; border: none; padding: 8px 20px;
+    border-radius: 4px; font-size: 13px; cursor: pointer; font-family: Arial;
+  }
+  @media print { .print-banner { display: none; } }
+</style>
+<div class="print-banner no-print">
+  <span>CARE 360 Report — ${report.leaders.name} — PDF Export</span>
+  <button class="print-btn" onclick="window.print()">Save as PDF</button>
+</div>
+<script>
+  // Auto-trigger print dialog after a short delay so the page renders first
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 800);
+  });
+</script>`;
+
+  // Insert before closing </body>
+  html = html.replace('</body>', printScript + '</body>');
+  res.send(html);
+});
+
+
 
 // ═══════════════════════════════════════════════════════════════
 // SCORING
@@ -485,7 +532,22 @@ h2{font-family:'EB Garamond',Georgia,serif;font-size:22px;color:#30383B;margin-b
   .narrative-block,.comments-section,.ssc-block{page-break-inside:avoid}
 }
 </style></head>
-<body><div class="page">
+<body>
+<style>
+.report-actions {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999;
+  display: flex; gap: 10px;
+}
+.report-action-btn {
+  background: #30383B; color: #F7F4EF; border: none;
+  padding: 12px 22px; border-radius: 6px; font-size: 13px;
+  font-family: Arial, sans-serif; cursor: pointer; font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: background 0.15s;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+}
+.report-action-btn:hover { background: #A9633D; }
+@media print { .report-actions { display: none; } }
+</style><div id="report-actions-placeholder"></div><div class="page">
 
 <div class="cover">
   <div style="margin-bottom:16px"><img src="/logo.png" alt="In Good Company" style="height:36px"/></div>

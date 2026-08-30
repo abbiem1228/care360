@@ -42,17 +42,16 @@ function errorPage(msg) {
 
 // ── Hourly check for cycles that have passed their close date ──
 const supabase = require('./db/client');
-const { sendAdminNotice } = require('./email');
-
+const { sendAdminNotice, sendRaterReminder } = require('./email');
 async function checkClosedCycles() {
   try {
     const now = new Date().toISOString();
     const { data: cycles } = await supabase
       .from('cycles')
-      .select('id, name, closes_at, closed_notified_at')
+      .select('id, name, status, closes_at, closed_notified_at')
       .lt('closes_at', now)
+      .eq('status', 'active')
       .is('closed_notified_at', null);
-
     if (!cycles || !cycles.length) return;
 
     for (const cycle of cycles) {
@@ -72,7 +71,7 @@ async function checkClosedCycles() {
         await sendAdminNotice({ leader, cycle, raters, reason: 'closed' });
       }
 
-      await supabase.from('cycles').update({ closed_notified_at: new Date().toISOString() }).eq('id', cycle.id);
+        await supabase.from('cycles').update({ closed_notified_at: new Date().toISOString(), status: 'closed' }).eq('id', cycle.id);
       console.log(`Closed-cycle notice sent for ${cycle.name}`);
     }
   } catch (e) {
@@ -80,6 +79,52 @@ async function checkClosedCycles() {
   }
 }
 
+// ── Remind raters two days before close ──
+async function sendReminders() {
+  try {
+    const now  = new Date();
+    const soon = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: cycles } = await supabase
+      .from('cycles')
+      .select('id, name, closes_at')
+      .eq('status', 'active')
+      .gt('closes_at', now.toISOString())
+      .lt('closes_at', soon);
+
+    if (!cycles || !cycles.length) return;
+
+    for (const cycle of cycles) {
+      const { data: leaders } = await supabase
+        .from('leaders').select('id, name, title').eq('cycle_id', cycle.id);
+
+      for (const leader of (leaders || [])) {
+        const { data: raters } = await supabase
+          .from('raters')
+          .select('id, name, email, token, rater_group')
+          .eq('leader_id', leader.id)
+          .is('completed_at', null)
+          .is('reminder_sent_at', null)
+          .not('email_sent_at', 'is', null);
+
+        for (const rater of (raters || [])) {
+          try {
+            await supabase.from('raters').update({ reminder_sent_at: new Date().toISOString() }).eq('id', rater.id);
+            await sendRaterReminder(rater, leader, cycle);
+            console.log(`Reminder sent to ${rater.email}`);
+          } catch (e) {
+            console.error('Reminder failed for', rater.email, e.message);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Reminder check failed:', e.message);
+  }
+}
+
+setInterval(sendReminders, 60 * 60 * 1000);
+setTimeout(sendReminders, 45 * 1000);
 setInterval(checkClosedCycles, 60 * 60 * 1000);
 setTimeout(checkClosedCycles, 30 * 1000);
 const PORT = process.env.PORT || 3000;

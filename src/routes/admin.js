@@ -243,6 +243,7 @@ function adminShell(title, content) {
       <span class="nav-brand">in good company.</span>
     </div>
     <a href="/admin" class="nav-link">Surveys</a>
+        <a href="/guide" class="nav-link">How it works</a>
     <div class="nav-spacer"></div>
     <div class="nav-user">
       <div class="nav-avatar">A</div>

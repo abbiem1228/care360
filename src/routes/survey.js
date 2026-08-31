@@ -83,13 +83,21 @@ router.post('/:token', async (req, res) => {
       continue_text: (body.continue || '').trim() || null
     };
 
-    await Promise.all([
+       const [scoreRes, textRes, sscRes] = await Promise.all([
       supabase.from('responses').insert(responseRows),
-      openTextRows.length ? supabase.from('open_text').insert(openTextRows) : Promise.resolve(),
+      openTextRows.length ? supabase.from('open_text').insert(openTextRows) : Promise.resolve({ error: null }),
       supabase.from('start_stop_continue').insert([sscRow])
     ]);
 
-    await supabase.from('raters').update({ completed_at: new Date().toISOString() }).eq('id', raterId);
+    if (scoreRes && scoreRes.error) {
+      console.error('SCORE SAVE FAILED', raterId, scoreRes.error.message);
+      return res.status(500).send(statusPage('!', 'Your responses were not saved', 'Something went wrong saving your answers. Nothing has been recorded. Please try the link again, and contact your survey administrator if it keeps happening.'));
+    }
+    if (textRes && textRes.error) console.error('OPEN TEXT SAVE FAILED', raterId, textRes.error.message);
+    if (sscRes  && sscRes.error)  console.error('SSC SAVE FAILED', raterId, sscRes.error.message);
+
+        const markRes = await supabase.from('raters').update({ completed_at: new Date().toISOString() }).eq('id', raterId);
+    if (markRes && markRes.error) console.error('MARK COMPLETE FAILED', raterId, markRes.error.message);
     // Notify admin if everyone has now finished
     try {
       const { data: allRaters } = await supabase.from('raters').select('id, rater_group, completed_at').eq('leader_id', leaderId);

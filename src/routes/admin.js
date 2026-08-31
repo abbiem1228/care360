@@ -535,6 +535,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
         <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-sage" type="submit">Send Pending Invites</button></form>
         ${raterCompleted>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating... please wait (30-60 sec)'"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ rater responses to generate report (currently ${raterCompleted})</span>`}
         ${report?`<a href="/report/view/${report.id}" class="btn btn-outline" target="_blank" rel="noopener">View Report</a><a href="/report/pdf/${report.id}" class="btn btn-ghost" target="_blank" rel="noopener">Download PDF</a>`:''}
+        <a href="/CARE_360_Leadership_Action_Plan.pptx" class="btn btn-ghost" download>Action Plan Template</a>
       </div>
     </div>
     <div class="stats-row">

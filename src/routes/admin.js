@@ -123,7 +123,15 @@ router.get('/leaders/:leaderId', requireAuth, async (req, res) => {
 
 // ── Delete rater ──────────────────────────────────────────────
 router.post('/raters/:raterId/delete', requireAuth, async (req, res) => {
-  const { data: rater } = await supabase.from('raters').select('leader_id').eq('id', req.params.raterId).single();
+  const { data: rater } = await supabase.from('raters').select('leader_id, name, completed_at').eq('id', req.params.raterId).single();
+  if (!rater) return res.redirect('/admin');
+  if (rater.completed_at) {
+    return res.send(adminShell('Cannot remove rater', `<div class="card" style="border-left:4px solid #A94442;background:#FFF7F6">
+      <div style="font-size:15px;font-weight:600;color:#A94442;margin-bottom:8px">This rater has already submitted</div>
+      <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:16px">${rater.name} completed their survey. Removing them would permanently delete their scores and comments, and that cannot be undone. Raters can only be removed before they respond.</div>
+      <a href="/admin/leaders/${rater.leader_id}" class="btn btn-ghost">Back to leader</a>
+    </div>`));
+  }
   await supabase.from('raters').delete().eq('id', req.params.raterId);
   res.redirect(`/admin/leaders/${rater.leader_id}`);
 });

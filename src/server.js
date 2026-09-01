@@ -8,6 +8,8 @@ const adminRoutes  = require('./routes/admin');
 const reportRoutes = require('./routes/reports');
 const guideRoutes  = require('./routes/guide');
 const accountRoutes = require('./routes/account');
+const plansRoutes = require('./routes/plans');
+const hqRoutes    = require('./routes/hq');
 const { getSession } = require('./auth');
 const app = express();
 
@@ -40,6 +42,8 @@ app.use('/survey', surveyRoutes);
 app.use('/admin',  adminRoutes);
 app.use('/report', reportRoutes);
 app.use('/guide',  guideRoutes);
+app.use('/plans', plansRoutes);
+app.use('/hq',    hqRoutes);
 app.use('/', accountRoutes);
 app.get('/', (req, res) => res.redirect('/admin'));
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'CARE360', ts: new Date().toISOString() }));

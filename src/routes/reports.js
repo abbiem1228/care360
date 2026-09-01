@@ -7,18 +7,19 @@ const { SECTIONS, RATER_GROUP_LABELS } = require('../questions');
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+function db(req) { return req.userDb || supabase; }
+
 function requireAuth(req, res, next) {
   if (req.isAdmin) return next();
-  res.redirect('/admin/login');
+  res.redirect('/signin');
 }
 
 // ── Generate report ───────────────────────────────────────────
 router.get('/generate/:leaderId', requireAuth, async (req, res) => {
   const { leaderId } = req.params;
   try {
-    const { data: leader } = await supabase.from('leaders').select('*, cycles(name)').eq('id', leaderId).single();
+        const { data: leader } = await db(req).from('leaders').select('*, cycles(name)').eq('id', leaderId).maybeSingle();
     if (!leader) return res.status(404).send('Leader not found');
-
     const { data: responses } = await supabase.from('responses').select('*').eq('leader_id', leaderId);
     const { data: openTexts } = await supabase.from('open_text').select('*, raters(rater_group)').eq('leader_id', leaderId);
     const { data: sscData   } = await supabase.from('start_stop_continue').select('*').eq('leader_id', leaderId);
@@ -31,9 +32,9 @@ router.get('/generate/:leaderId', requireAuth, async (req, res) => {
     const narrative   = await generateNarrative(leader, scoreData, commentData);
     const reportHtml  = buildReportHtml(leader, scoreData, narrative, commentData);
 
-    const { data: saved } = await supabase.from('reports')
-      .insert([{ leader_id: leaderId, report_html: reportHtml, report_data: { scoreData, narrative }, generated_by: 'ai' }])
-      .select().single();
+       const reportRow = { leader_id: leaderId, report_html: reportHtml, report_data: { scoreData, narrative }, generated_by: 'ai' };
+    if (req.accountId) reportRow.account_id = req.accountId;
+    const { data: saved } = await db(req).from('reports').insert([reportRow]).select().single();
 
     res.redirect(`/admin/leaders/${leaderId}`);
   } catch (err) {
@@ -42,14 +43,10 @@ router.get('/generate/:leaderId', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/view/:reportId', async (req, res) => {
-  const { data: report } = await supabase.from('reports').select('*, leaders(name, title, cycles(name))').eq('id', req.params.reportId).single();
-  if (!report) return res.status(404).send('Report not found.');
-  res.send(report.report_html);
-});
+
 // ── PDF download (server-side via puppeteer) ─────────────────
 router.get('/pdf/:reportId', requireAuth, async (req, res) => {
-  const { data: report } = await supabase
+  const { data: report } = await db(req)
     .from('reports')
     .select('*, leaders(name, title, cycles(name))')
     .eq('id', req.params.reportId)

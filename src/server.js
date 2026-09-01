@@ -8,6 +8,7 @@ const adminRoutes  = require('./routes/admin');
 const reportRoutes = require('./routes/reports');
 const guideRoutes  = require('./routes/guide');
 const accountRoutes = require('./routes/account');
+const { getSession } = require('./auth');
 const app = express();
 
 app.set('trust proxy', 1);
@@ -17,7 +18,20 @@ app.use(cookieParser(process.env.SESSION_SECRET || 'care360-secret'));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Cookie-based auth — available to all routes
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
+  try {
+    const session = await getSession(req, res);
+    if (session) {
+      req.session   = session;
+      req.accountId = session.accountId;
+      req.account   = session.account;
+      req.userDb    = session.db;
+      req.isAdmin   = true;
+      return next();
+    }
+  } catch (e) {
+    console.error('Session check failed:', e.message);
+  }
   req.isAdmin = req.signedCookies && req.signedCookies.adminAuth === 'yes';
   next();
 });

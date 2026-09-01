@@ -7,6 +7,7 @@ const surveyRoutes = require('./routes/survey');
 const adminRoutes  = require('./routes/admin');
 const reportRoutes = require('./routes/reports');
 const guideRoutes  = require('./routes/guide');
+const accountRoutes = require('./routes/account');
 const app = express();
 
 app.set('trust proxy', 1);
@@ -25,6 +26,7 @@ app.use('/survey', surveyRoutes);
 app.use('/admin',  adminRoutes);
 app.use('/report', reportRoutes);
 app.use('/guide',  guideRoutes);
+app.use('/', accountRoutes);
 app.get('/', (req, res) => res.redirect('/admin'));
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'CARE360', ts: new Date().toISOString() }));
 

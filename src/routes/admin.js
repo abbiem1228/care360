@@ -4,12 +4,17 @@ const supabase = require('../db/client');
 const { nanoid } = require('nanoid');
 const { sendRaterInvite } = require('../email');
 
+// Every query below runs on the signed in user's own connection, so the
+// database refuses to return another account's rows. The shared service
+// client is only a fallback for the legacy password login.
+function db(req) { return req.userDb || supabase; }
+
 function requireAuth(req, res, next) {
   if (req.isAdmin) return next();
-  res.redirect('/admin/login');
+  res.redirect('/signin');
 }
 
-// ── Login ─────────────────────────────────────────────────────
+// ── Legacy password login (kept as a fallback) ────────────────
 router.get('/login', (req, res) => res.send(loginPage(req.query.error)));
 
 router.post('/login', (req, res) => {
@@ -24,87 +29,128 @@ router.post('/login', (req, res) => {
   res.redirect('/admin/login?error=1');
 });
 
-router.get('/logout', (req, res) => { res.clearCookie('adminAuth'); res.redirect('/admin/login'); });
+router.get('/logout', (req, res) => { res.clearCookie('adminAuth'); res.redirect('/signin'); });
 
 // ── Dashboard ──────────────────────────────────────────────────
 router.get('/', requireAuth, async (req, res) => {
-  const { data: cycles } = await supabase.from('cycles').select('*').order('created_at', { ascending: false });
-  res.send(dashboardPage(cycles || []));
+  const { data: cycles } = await db(req).from('cycles').select('*').order('created_at', { ascending: false });
+  res.send(dashboardPage(cycles || [], req));
 });
 
 // ── Cycles ────────────────────────────────────────────────────
-router.get('/cycles/new', requireAuth, (req, res) => res.send(cycleFormPage()));
+router.get('/cycles/new', requireAuth, (req, res) => res.send(cycleFormPage(req)));
 
 router.post('/cycles', requireAuth, async (req, res) => {
   const { name, description, client_name, opens_at, closes_at } = req.body;
-  if (!closes_at) return res.send(adminShell('Error', '<div class="card"><p>A close date is required. <a href="/admin/cycles/new">Go back</a></p></div>'));
-  if (new Date(closes_at) <= new Date()) return res.send(adminShell('Error', '<div class="card"><p>The close date must be in the future. <a href="/admin/cycles/new">Go back</a></p></div>'));
-  await supabase.from('cycles').insert([{ name, description, client_name, opens_at: opens_at||null, closes_at }]);
+  if (!closes_at) return res.send(adminShell('Error', '<div class="card"><p>A close date is required. <a href="/admin/cycles/new">Go back</a></p></div>', req));
+  if (new Date(closes_at) <= new Date()) return res.send(adminShell('Error', '<div class="card"><p>The close date must be in the future. <a href="/admin/cycles/new">Go back</a></p></div>', req));
+
+  const row = { name, description, client_name, opens_at: opens_at || null, closes_at };
+  if (req.accountId) row.account_id = req.accountId;
+
+  const { error } = await db(req).from('cycles').insert([row]);
+  if (error) {
+    console.error('CYCLE CREATE FAILED', error.message);
+    return res.send(adminShell('Error', `<div class="card"><p>The survey could not be created. <a href="/admin/cycles/new">Go back</a></p></div>`, req));
+  }
   res.redirect('/admin');
 });
 
 router.post('/cycles/:id/status', requireAuth, async (req, res) => {
-  await supabase.from('cycles').update({ status: req.body.status }).eq('id', req.params.id);
+  await db(req).from('cycles').update({ status: req.body.status }).eq('id', req.params.id);
   res.redirect(`/admin/cycles/${req.params.id}`);
 });
 
 router.get('/cycles/:id', requireAuth, async (req, res) => {
-  const { data: cycle } = await supabase.from('cycles').select('*').eq('id', req.params.id).single();
+  const { data: cycle } = await db(req).from('cycles').select('*').eq('id', req.params.id).maybeSingle();
   if (!cycle) return res.redirect('/admin');
-  const { data: leaders } = await supabase.from('leaders').select('*, raters(id, rater_group, completed_at, email_sent_at)').eq('cycle_id', req.params.id).order('name');
-  res.send(cycleDetailPage(cycle, leaders || []));
+  const { data: leaders } = await db(req).from('leaders')
+    .select('*, raters(id, rater_group, completed_at, email_sent_at)')
+    .eq('cycle_id', req.params.id).order('name');
+  res.send(cycleDetailPage(cycle, leaders || [], req));
 });
 
 // ── Leaders ───────────────────────────────────────────────────
-router.get('/cycles/:cycleId/leaders/new', requireAuth, (req, res) => res.send(leaderFormPage(req.params.cycleId)));
+router.get('/cycles/:cycleId/leaders/new', requireAuth, (req, res) => res.send(leaderFormPage(req.params.cycleId, req)));
 
 router.post('/cycles/:cycleId/leaders', requireAuth, async (req, res) => {
   const { name, title, email, department } = req.body;
-  const { data: leader } = await supabase.from('leaders').insert([{ cycle_id: req.params.cycleId, name, title, email, department }]).select().single();
-  if (leader) {
-    await supabase.from('raters').insert([{ leader_id: leader.id, name, email, rater_group: 'self', token: nanoid(24) }]);
+
+  // Confirm the survey belongs to this account before adding to it.
+  const { data: cycle } = await db(req).from('cycles').select('id').eq('id', req.params.cycleId).maybeSingle();
+  if (!cycle) return res.redirect('/admin');
+
+  const leaderRow = { cycle_id: req.params.cycleId, name, title, email, department };
+  if (req.accountId) leaderRow.account_id = req.accountId;
+
+  const { data: leader, error } = await db(req).from('leaders').insert([leaderRow]).select().single();
+  if (error) {
+    console.error('LEADER CREATE FAILED', error.message);
+    return res.redirect(`/admin/cycles/${req.params.cycleId}`);
   }
+
+  const selfRow = { leader_id: leader.id, name, email, rater_group: 'self', token: nanoid(24) };
+  if (req.accountId) selfRow.account_id = req.accountId;
+  await db(req).from('raters').insert([selfRow]);
+
   res.redirect(`/admin/cycles/${req.params.cycleId}`);
 });
 
 // ── Raters ────────────────────────────────────────────────────
 router.get('/leaders/:leaderId/raters/new', requireAuth, async (req, res) => {
-  const { data: leader } = await supabase.from('leaders').select('*').eq('id', req.params.leaderId).single();
-  res.send(raterFormPage(leader));
+  const { data: leader } = await db(req).from('leaders').select('*').eq('id', req.params.leaderId).maybeSingle();
+  if (!leader) return res.redirect('/admin');
+  res.send(raterFormPage(leader, req));
 });
 
 router.post('/leaders/:leaderId/raters', requireAuth, async (req, res) => {
   const { leaderId } = req.params;
-  const { data: leader } = await supabase.from('leaders').select('cycle_id').eq('id', leaderId).single();
-  const names  = [].concat(req.body.name         || []);
-  const emails = [].concat(req.body.email        || []);
-  const groups = [].concat(req.body.rater_group  || []);
+  const { data: leader } = await db(req).from('leaders').select('cycle_id').eq('id', leaderId).maybeSingle();
+  if (!leader) return res.redirect('/admin');
+
+  const names  = [].concat(req.body.name        || []);
+  const emails = [].concat(req.body.email       || []);
+  const groups = [].concat(req.body.rater_group || []);
   const rows   = [];
   for (let i = 0; i < names.length; i++) {
     const n = (names[i]  || '').trim();
     const e = (emails[i] || '').trim();
     const g = (groups[i] || '').trim();
-    if (n && e && g) rows.push({ leader_id: leaderId, name: n, email: e, rater_group: g, token: nanoid(24) });
+    if (n && e && g) {
+      const row = { leader_id: leaderId, name: n, email: e, rater_group: g, token: nanoid(24) };
+      if (req.accountId) row.account_id = req.accountId;
+      rows.push(row);
+    }
   }
-  if (rows.length) await supabase.from('raters').insert(rows);
+  if (rows.length) {
+    const { error } = await db(req).from('raters').insert(rows);
+    if (error) console.error('RATER CREATE FAILED', error.message);
+  }
   res.redirect(`/admin/cycles/${leader.cycle_id}`);
 });
 
 // ── Send invites ──────────────────────────────────────────────
 router.post('/leaders/:leaderId/send-invites', requireAuth, async (req, res) => {
   const { leaderId } = req.params;
-  const { data: leader } = await supabase.from('leaders').select('*, cycles(name)').eq('id', leaderId).single();
-  const { data: raters  } = await supabase.from('raters').select('*').eq('leader_id', leaderId).is('email_sent_at', null);
-  if (raters && raters.length) {
-    for (const rater of raters) {
-      try {
-        await sendRaterInvite(rater, leader);
-        await supabase.from('raters').update({ email_sent_at: new Date().toISOString() }).eq('id', rater.id);
-      } catch (e) { console.error('Email failed for', rater.email, e.message); }
+  const { data: leader } = await db(req).from('leaders').select('*, cycles(name)').eq('id', leaderId).maybeSingle();
+  if (!leader) return res.redirect('/admin');
+
+  const { data: raters } = await db(req).from('raters').select('*').eq('leader_id', leaderId).is('email_sent_at', null);
+
+  let sent = 0, failed = 0;
+  for (const rater of (raters || [])) {
+    try {
+      await sendRaterInvite(rater, leader);
+      await db(req).from('raters').update({ email_sent_at: new Date().toISOString() }).eq('id', rater.id);
+      sent++;
+    } catch (e) {
+      failed++;
+      console.error('Email failed for', rater.email, e.message);
     }
   }
-  const { data: l } = await supabase.from('leaders').select('cycle_id').eq('id', leaderId).single();
-  res.redirect(`/admin/cycles/${l.cycle_id}`);
+  if (failed) console.error(`INVITES: ${sent} sent, ${failed} failed for leader ${leaderId}`);
+
+  res.redirect(`/admin/cycles/${leader.cycle_id}?sent=${sent}&failed=${failed}`);
 });
 
 // ── Generate report ───────────────────────────────────────────
@@ -114,25 +160,26 @@ router.post('/leaders/:leaderId/generate-report', requireAuth, (req, res) => {
 
 // ── Leader detail ─────────────────────────────────────────────
 router.get('/leaders/:leaderId', requireAuth, async (req, res) => {
-  const { data: leader } = await supabase.from('leaders').select('*, cycles(name,status)').eq('id', req.params.leaderId).single();
-  const { data: raters  } = await supabase.from('raters').select('*').eq('leader_id', req.params.leaderId).order('rater_group');
-  const { data: report  } = await supabase.from('reports').select('id, generated_at').eq('leader_id', req.params.leaderId).order('generated_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: leader } = await db(req).from('leaders').select('*, cycles(name,status)').eq('id', req.params.leaderId).maybeSingle();
+  if (!leader) return res.redirect('/admin');
+  const { data: raters } = await db(req).from('raters').select('*').eq('leader_id', req.params.leaderId).order('rater_group');
+  const { data: report } = await db(req).from('reports').select('id, generated_at').eq('leader_id', req.params.leaderId).order('generated_at', { ascending: false }).limit(1).maybeSingle();
   const completed = (raters || []).filter(r => r.completed_at).length;
-  res.send(leaderDetailPage(leader, raters || [], report, completed, (raters || []).length));
+  res.send(leaderDetailPage(leader, raters || [], report, completed, (raters || []).length, req));
 });
 
 // ── Delete rater ──────────────────────────────────────────────
 router.post('/raters/:raterId/delete', requireAuth, async (req, res) => {
-  const { data: rater } = await supabase.from('raters').select('leader_id, name, completed_at').eq('id', req.params.raterId).single();
+  const { data: rater } = await db(req).from('raters').select('leader_id, name, completed_at').eq('id', req.params.raterId).maybeSingle();
   if (!rater) return res.redirect('/admin');
   if (rater.completed_at) {
     return res.send(adminShell('Cannot remove rater', `<div class="card" style="border-left:4px solid #A94442;background:#FFF7F6">
       <div style="font-size:15px;font-weight:600;color:#A94442;margin-bottom:8px">This rater has already submitted</div>
       <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:16px">${rater.name} completed their survey. Removing them would permanently delete their scores and comments, and that cannot be undone. Raters can only be removed before they respond.</div>
       <a href="/admin/leaders/${rater.leader_id}" class="btn btn-ghost">Back to leader</a>
-    </div>`));
+    </div>`, req));
   }
-  await supabase.from('raters').delete().eq('id', req.params.raterId);
+  await db(req).from('raters').delete().eq('id', req.params.raterId);
   res.redirect(`/admin/leaders/${rater.leader_id}`);
 });
 
@@ -155,8 +202,10 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
 .nav-link{color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;transition:color 0.15s}
 .nav-link:hover{color:white;text-decoration:none}
 .nav-spacer{flex:1}
-.nav-user{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.6);font-size:13px}
-.nav-avatar{width:28px;height:28px;border-radius:50%;background:var(--clay);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.nav-user{display:flex;align-items:center;gap:9px;color:rgba(255,255,255,0.6);font-size:13px}
+.nav-acct{color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-plan{font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;background:rgba(255,255,255,0.14);color:rgba(255,255,255,0.75);padding:3px 7px;border-radius:10px}
+.nav-avatar{width:28px;height:28px;border-radius:50%;background:var(--clay);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
 
 .admin-main{max-width:1100px;margin:0 auto;padding:32px 24px}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px}
@@ -231,10 +280,19 @@ select.form-control{cursor:pointer}
 .empty-state-icon{font-size:36px;margin-bottom:12px;opacity:0.4}
 .empty-state-text{font-size:14px;margin-bottom:16px}
 
-@media(max-width:700px){.admin-main{padding:16px 12px}.form-row{grid-template-columns:1fr}.rater-row{grid-template-columns:1fr}.rater-row-header{display:none}.data-table{font-size:12px}.data-table td,.data-table th{padding:8px 10px}}
+.flash{border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px;line-height:1.6}
+.flash-ok{background:#EEF5EE;border:1px solid #CFE3D2;color:#1A6B36}
+.flash-warn{background:#FFF7F6;border:1px solid #FDDDD9;color:#A94442}
+
+@media(max-width:700px){.admin-main{padding:16px 12px}.form-row{grid-template-columns:1fr}.rater-row{grid-template-columns:1fr}.rater-row-header{display:none}.data-table{font-size:12px}.data-table td,.data-table th{padding:8px 10px}.nav-acct{display:none}}
 </style>`;
 
-function adminShell(title, content) {
+function adminShell(title, content, req) {
+  const acct    = req && req.account ? req.account : null;
+  const acctName = acct ? acct.name : '';
+  const plan     = acct ? acct.plan : '';
+  const initial  = acctName ? acctName.trim().charAt(0).toUpperCase() : 'A';
+
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${title} — CARE 360</title>${CSS}</head><body>
   <nav class="admin-nav">
@@ -243,11 +301,13 @@ function adminShell(title, content) {
       <span class="nav-brand">in good company.</span>
     </div>
     <a href="/admin" class="nav-link">Surveys</a>
-        <a href="/guide" class="nav-link">How it works</a>
+    <a href="/guide" class="nav-link">How it works</a>
     <div class="nav-spacer"></div>
     <div class="nav-user">
-      <div class="nav-avatar">A</div>
-       <a href="/signout" class="nav-link">Sign out</a>
+      <div class="nav-avatar">${initial}</div>
+      ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
+      ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
+      <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>
   <div class="admin-main">${content}</div></body></html>`;
@@ -279,8 +339,8 @@ function loginPage(error) {
         <div class="login-logo-sub">CARE 360 Leadership Survey</div>
       </div>
     </div>
-    <div class="login-title">Welcome back</div>
-    <div class="login-sub">Sign in to manage your 360 surveys, leaders, and reports.</div>
+    <div class="login-title">Recovery sign in</div>
+    <div class="login-sub">This is the legacy shared password. Most people should <a href="/signin">sign in with their email</a> instead.</div>
     ${error ? '<div class="alert-error">Incorrect password. Please try again.</div>' : ''}
     <form method="POST" action="/admin/login">
       <div class="form-group">
@@ -293,16 +353,16 @@ function loginPage(error) {
   </div></div></body></html>`;
 }
 
-function dashboardPage(cycles) {
+function dashboardPage(cycles, req) {
   const active = cycles.filter(c => c.status === 'active').length;
   const draft  = cycles.filter(c => c.status === 'draft').length;
   const rows   = cycles.map(c => `
     <tr>
       <td><a href="/admin/cycles/${c.id}" style="font-weight:600">${c.name}</a></td>
-      <td style="color:var(--grey)">${c.client_name || c.description || '<span style="color:#ccc">—</span>'}</td>
+      <td style="color:var(--grey)">${c.client_name || c.description || '<span style="color:#ccc">&mdash;</span>'}</td>
       <td><span class="badge badge-${c.status}">${c.status}</span></td>
-      <td>${c.opens_at ? new Date(c.opens_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '<span style="color:#ccc">—</span>'}</td>
-      <td>${c.closes_at ? new Date(c.closes_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '<span style="color:#ccc">—</span>'}</td>
+      <td>${c.opens_at ? new Date(c.opens_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '<span style="color:#ccc">&mdash;</span>'}</td>
+      <td>${c.closes_at ? new Date(c.closes_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '<span style="color:#ccc">&mdash;</span>'}</td>
       <td><a href="/admin/cycles/${c.id}" class="btn btn-outline btn-sm">Open</a></td>
     </tr>`).join('');
 
@@ -330,14 +390,14 @@ function dashboardPage(cycles) {
         <tbody>${rows}</tbody>
       </table>` : `
       <div class="empty-state">
-        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-icon">&#128203;</div>
         <div class="empty-state-text">No surveys yet. Create your first one to get started.</div>
         <a href="/admin/cycles/new" class="btn btn-primary">Create Survey</a>
       </div>`}
-    </div>`);
+    </div>`, req);
 }
 
-function cycleFormPage() {
+function cycleFormPage(req) {
   return adminShell('New Survey', `
     <div class="page-header">
       <div><div class="page-title">New Survey</div>
@@ -376,15 +436,24 @@ function cycleFormPage() {
           <a href="/admin" class="btn btn-ghost">Cancel</a>
         </div>
       </form>
-    </div>`);
+    </div>`, req);
 }
 
-function cycleDetailPage(cycle, leaders) {
+function cycleDetailPage(cycle, leaders, req) {
   const statusBtns = {
     draft:  [['active','Activate'],['closed','Close']],
     active: [['closed','Close'],['draft','Back to Draft']],
     closed: [['active','Re-open'],['draft','Back to Draft']]
   }[cycle.status] || [];
+
+  const sent   = parseInt(req.query.sent   || '0', 10);
+  const failed = parseInt(req.query.failed || '0', 10);
+  let flash = '';
+  if (sent || failed) {
+    flash = failed
+      ? `<div class="flash flash-warn"><strong>${sent} invitation${sent===1?'':'s'} sent, ${failed} failed.</strong> Failures are usually a bad email address or a sending limit. Check the logs, then click Send Invites again to retry the ones that did not go.</div>`
+      : `<div class="flash flash-ok">${sent} invitation${sent===1?'':'s'} sent.</div>`;
+  }
 
   const rows = leaders.map(l => {
     const total     = l.raters?.length || 0;
@@ -392,8 +461,8 @@ function cycleDetailPage(cycle, leaders) {
     const pct       = total ? Math.round(completed/total*100) : 0;
     return `<tr>
       <td><a href="/admin/leaders/${l.id}">${l.name}</a></td>
-      <td style="color:var(--grey)">${l.title || '—'}</td>
-      <td style="color:var(--grey)">${l.department || '—'}</td>
+      <td style="color:var(--grey)">${l.title || '&mdash;'}</td>
+      <td style="color:var(--grey)">${l.department || '&mdash;'}</td>
       <td>${total}</td>
       <td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-label">${completed}/${total}</span></div></td>
       <td><div class="actions-row">
@@ -416,24 +485,25 @@ function cycleDetailPage(cycle, leaders) {
         <a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">+ Add Leader</a>
       </div>
     </div>
-    <div class="card">
-         ${cycle.status === 'draft' && leaders.length ? `
+    ${flash}
+    ${cycle.status === 'draft' && leaders.length ? `
     <div class="card" style="border-left:4px solid #A94442;background:#FFF7F6">
       <div style="font-size:14px;font-weight:600;color:#A94442;margin-bottom:6px">This survey is not active</div>
       <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:14px">Raters will not be able to open their survey until you activate it. If you send invites now, everyone will receive a link that does not work.</div>
       <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">Activate Survey</button></form>
     </div>` : ''}
+    <div class="card">
       <div class="card-header"><span class="card-title">Leaders</span><span style="font-size:13px;color:var(--grey)">${leaders.length} leader${leaders.length!==1?'s':''}</span></div>
       ${leaders.length ? `
       <table class="data-table">
         <thead><tr><th>Leader</th><th>Title</th><th>Department</th><th>Raters</th><th>Responses</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>` : `
-      <div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-text">No leaders added yet.</div><a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">Add First Leader</a></div>`}
-    </div>`);
+      <div class="empty-state"><div class="empty-state-icon">&#128100;</div><div class="empty-state-text">No leaders added yet.</div><a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">Add First Leader</a></div>`}
+    </div>`, req);
 }
 
-function leaderFormPage(cycleId) {
+function leaderFormPage(cycleId, req) {
   return adminShell('Add Leader', `
     <div class="page-header"><div>
       <div class="page-title">Add Leader</div>
@@ -454,7 +524,7 @@ function leaderFormPage(cycleId) {
           <a href="/admin/cycles/${cycleId}" class="btn btn-ghost">Cancel</a>
         </div>
       </form>
-    </div>`);
+    </div>`, req);
 }
 
 function raterRow() {
@@ -472,8 +542,8 @@ function raterRow() {
   </div>`;
 }
 
-function raterFormPage(leader) {
-  if (!leader) return adminShell('Error', '<p>Leader not found.</p>');
+function raterFormPage(leader, req) {
+  if (!leader) return adminShell('Error', '<p>Leader not found.</p>', req);
   return adminShell('Add Raters', `
     <div class="page-header"><div>
       <div class="page-title">Add Raters</div>
@@ -486,6 +556,7 @@ function raterFormPage(leader) {
           <div class="rater-row-header"><span>Full Name</span><span>Email Address</span><span>Relationship to Leader</span><span></span></div>
           <div class="rater-rows" id="rater-rows">${[1,2,3].map(() => raterRow()).join('')}</div>
           <button type="button" class="add-rater-btn" onclick="addRaterRow()"><span style="font-size:18px;line-height:1">+</span> Add Another Rater</button>
+          <div class="form-hint" style="margin-top:10px">Three completed rater responses are needed before a report can be generated. The self-assessment does not count toward that.</div>
         </div>
         <div class="actions-row" style="margin-top:8px">
           <button class="btn btn-primary" type="submit">Save Raters</button>
@@ -511,11 +582,11 @@ function raterFormPage(leader) {
       \`;
       document.getElementById('rater-rows').appendChild(div);
     }
-    </script>`);
+    </script>`, req);
 }
 
-function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
-  if (!leader) return adminShell('Error', '<p>Leader not found.</p>');
+function leaderDetailPage(leader, raters, report, completedCount, totalCount, req) {
+  if (!leader) return adminShell('Error', '<p>Leader not found.</p>', req);
   const pct = totalCount ? Math.round(completedCount/totalCount*100) : 0;
   const raterCompleted = raters.filter(r => r.completed_at && r.rater_group !== 'self').length;
   const groupOrder = ['self','supervisor','peer','direct_report','skip_level'];
@@ -543,7 +614,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
         <a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">+ Add Raters</a>
         <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-sage" type="submit">Send Pending Invites</button></form>
         ${raterCompleted>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating... please wait (30-60 sec)'"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ rater responses to generate report (currently ${raterCompleted})</span>`}
-        ${report?`<a href="/report/view/${report.id}" class="btn btn-outline" target="_blank" rel="noopener">View Report</a><a href="/report/pdf/${report.id}" class="btn btn-ghost" target="_blank" rel="noopener">Download PDF</a>`:''}
+        ${report?`<a href="/report/pdf/${report.id}" class="btn btn-outline" target="_blank" rel="noopener">Download PDF</a>`:''}
         <a href="/CARE_360_Leadership_Action_Plan.pptx" class="btn btn-ghost" download>Action Plan Template</a>
       </div>
     </div>
@@ -563,7 +634,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount) {
         <tbody>${rows}</tbody>
       </table>`:`
       <div class="empty-state"><div class="empty-state-icon">&#128101;</div><div class="empty-state-text">No raters added yet.</div><a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">Add Raters</a></div>`}
-    </div>`);
+    </div>`, req);
 }
 
 module.exports = router;

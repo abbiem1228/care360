@@ -247,7 +247,7 @@ function adminShell(title, content) {
     <div class="nav-spacer"></div>
     <div class="nav-user">
       <div class="nav-avatar">A</div>
-      <a href="/admin/logout" class="nav-link">Sign out</a>
+       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>
   <div class="admin-main">${content}</div></body></html>`;

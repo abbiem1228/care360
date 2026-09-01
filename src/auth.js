@@ -17,7 +17,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const admin = require('./db/client');
-
+const { sendSignupNotice } = require('./email');
 const URL  = process.env.SUPABASE_URL;
 const ANON = process.env.SUPABASE_ANON_KEY;
 
@@ -81,7 +81,7 @@ async function signUp({ email, password, name, organization }) {
     console.error('ACCOUNT LINK FAILED', email, linkErr.message);
     return { error: 'Your login was created but the account setup failed. Please contact support.' };
   }
-
+  sendSignupNotice({ account, user: { email, name: name || null } }).catch(() => {});
   return { user: data.user, account, needsConfirmation: !data.session };
 }
 

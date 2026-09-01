@@ -204,4 +204,57 @@ async function sendRaterReminder(rater, leader, cycle) {
 
   await resend.emails.send({ from: FROM, to: rater.email, subject, html, text });
 }
-module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder };
+async function sendSignupNotice({ account, user }) {
+  const to = process.env.ADMIN_EMAIL;
+  if (!to) return;
+
+  const planLabel = {
+    trial: 'Free trial', starter: 'Starter', growth: 'Growth',
+    community: 'Community', enterprise: 'Enterprise'
+  }[account.plan] || account.plan;
+
+  const html = `
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/></head>
+<body style="font-family:Arial,sans-serif;background:#F7F4EF;margin:0;padding:40px 20px">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+  <div style="background:#30383B;padding:26px 34px">
+    <div style="color:#D9CBB2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">In Good Company Collective</div>
+    <div style="color:#fff;font-size:19px;font-weight:bold">New signup</div>
+  </div>
+  <div style="padding:32px 34px">
+    <p style="color:#30383B;font-size:17px;font-weight:bold;margin:0 0 4px">${account.name}</p>
+    <p style="color:#595959;font-size:13px;margin:0 0 22px">${planLabel}</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:22px">
+      <tr>
+        <td style="padding:9px 0;border-bottom:1px solid #EDE8DF;font-size:12px;color:#595959;width:110px">Name</td>
+        <td style="padding:9px 0;border-bottom:1px solid #EDE8DF;font-size:13px;color:#30383B">${user.name || '&mdash;'}</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;border-bottom:1px solid #EDE8DF;font-size:12px;color:#595959">Email</td>
+        <td style="padding:9px 0;border-bottom:1px solid #EDE8DF;font-size:13px;color:#30383B">${user.email}</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;font-size:12px;color:#595959">Signed up</td>
+        <td style="padding:9px 0;font-size:13px;color:#30383B">${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+      </tr>
+    </table>
+    <div style="text-align:center">
+      <a href="${APP_URL}/hq" style="display:inline-block;background:#A9633D;color:#fff;padding:13px 34px;border-radius:6px;font-size:14px;font-weight:bold;text-decoration:none">Open HQ</a>
+    </div>
+  </div>
+  <div style="background:#F7F4EF;padding:15px 34px;text-align:center">
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;&middot;&nbsp; CARE 360</p>
+  </div>
+</div>
+</body></html>`;
+
+  const text = `New signup\n\n${account.name}\n${planLabel}\n${user.name || ''} ${user.email}\n\n${APP_URL}/hq`;
+
+  try {
+    await resend.emails.send({ from: FROM, to, subject: `New CARE 360 signup: ${account.name}`, html, text });
+  } catch (e) {
+    console.error('Signup notice failed:', e.message);
+  }
+}
+module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice };

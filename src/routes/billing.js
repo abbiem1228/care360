@@ -53,7 +53,27 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
       customer_email: req.session ? req.session.email : undefined,
       client_reference_id: req.accountId,
       metadata: { account_id: req.accountId, plan }
+    }); // ── Manage subscription (Stripe Customer Portal) ───────────────
+// One click into Stripe's own hosted portal, where a customer can
+// cancel, update their payment method, or view invoices. Nothing
+// here needs building or maintaining ourselves, Stripe owns the
+// whole experience once they land on it.
+checkoutRouter.get('/portal', requireAuth, async (req, res) => {
+  if (!req.account || !req.account.stripe_customer_id) {
+    return res.status(400).send('No billing account found. <a href="/plans">See plans</a>');
+  }
+
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: req.account.stripe_customer_id,
+      return_url: `${APP_URL}/admin`
     });
+    res.redirect(session.url);
+  } catch (e) {
+    console.error('Portal session failed:', e.message);
+    res.status(500).send('Could not open billing management right now. Please try again.');
+  }
+});
 
     res.redirect(session.url);
   } catch (e) {

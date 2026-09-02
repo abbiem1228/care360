@@ -13,6 +13,21 @@ function requireAuth(req, res, next) {
   res.redirect('/signin');
 }
 
+// Custom questions lock the moment anyone has actually answered one,
+// not simply when the Group's status says "active." This matters
+// because a Group can be flipped back to draft and forward again
+// (to invite a few more raters, say) without that meaning it is safe
+// to edit wording that some raters have already responded to. Editing
+// after even one response exists would mean different raters answered
+// different questions while the report quietly averages them together.
+async function hasCustomResponses(req, cycleId) {
+  const { data: questions } = await db(req).from('custom_questions').select('id').eq('cycle_id', cycleId);
+  const ids = (questions || []).map(q => q.id);
+  if (!ids.length) return false;
+  const { count } = await db(req).from('custom_responses').select('id', { count: 'exact', head: true }).in('question_id', ids);
+  return (count || 0) > 0;
+}
+
 // ── View / edit custom questions for a Group ──────────────────
 router.get('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) => {
   const { data: cycle } = await db(req).from('cycles').select('*').eq('id', req.params.cycleId).maybeSingle();
@@ -21,7 +36,8 @@ router.get('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =>
   const { data: existing } = await db(req).from('custom_questions')
     .select('*').eq('cycle_id', cycle.id).order('position');
 
-  res.send(page(cycle, existing || [], null));
+  const locked = await hasCustomResponses(req, cycle.id);
+  res.send(page(cycle, existing || [], null, null, null, null, locked));
 });
 
 // ── Step 1: draft self-assessment wording ──────────────────────
@@ -32,7 +48,7 @@ router.get('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =>
 router.post('/cycles/:cycleId/custom-questions/draft', requireAuth, async (req, res) => {
   const { data: cycle } = await db(req).from('cycles').select('*').eq('id', req.params.cycleId).maybeSingle();
   if (!cycle) return res.redirect('/admin');
-  if (cycle.status !== 'draft') return res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
+  if (await hasCustomResponses(req, cycle.id)) return res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
 
   const raterTexts = [].concat(req.body.rater_text || [])
     .map(t => (t || '').trim())
@@ -79,7 +95,7 @@ Respond with exactly ${filled.length} lines, one per question, in the same order
 router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) => {
   const { data: cycle } = await db(req).from('cycles').select('*').eq('id', req.params.cycleId).maybeSingle();
   if (!cycle) return res.redirect('/admin');
-  if (cycle.status !== 'draft') return res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
+  if (await hasCustomResponses(req, cycle.id)) return res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
 
   const raterTexts = [].concat(req.body.rater_text || []).map(t => (t || '').trim());
   const selfTexts  = [].concat(req.body.self_text  || []).map(t => (t || '').trim());
@@ -113,7 +129,7 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
 router.post('/cycles/:cycleId/custom-questions/clear', requireAuth, async (req, res) => {
   const { data: cycle } = await db(req).from('cycles').select('id, status').eq('id', req.params.cycleId).maybeSingle();
   if (!cycle) return res.redirect('/admin');
-  if (cycle.status !== 'draft') return res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
+  if (await hasCustomResponses(req, cycle.id)) return res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
   await db(req).from('custom_questions').delete().eq('cycle_id', cycle.id);
   res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
 });
@@ -180,8 +196,8 @@ function shell(title, content) {
 <div class="admin-main">${content}</div></body></html>`;
 }
 
-function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts) {
-  const locked = cycle.status !== 'draft';
+function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, locked) {
+  locked = !!locked;
 
   // Figure out what to show in each of the 5 rows: a draft in progress
   // beats saved data, saved data beats a blank row.

@@ -3,6 +3,7 @@ const router   = express.Router();
 const supabase = require('../db/client');
 const { SECTIONS, SCALE_LABELS } = require('../questions');
 const { sendAdminNotice } = require('../email');
+
 // GET /survey/:token
 router.get('/:token', async (req, res) => {
   try {
@@ -27,7 +28,16 @@ router.get('/:token', async (req, res) => {
     }
 
     const isSelf = rater.rater_group === 'self';
-    res.send(surveyPage(rater, SECTIONS, isSelf, SCALE_LABELS));
+
+    // Custom questions belong to the Group (cycle), so every leader in
+    // that Group shares the same set. Empty array if none were added.
+    const { data: customQuestions } = await supabase
+      .from('custom_questions')
+      .select('*')
+      .eq('cycle_id', rater.leaders.cycle_id)
+      .order('position');
+
+    res.send(surveyPage(rater, SECTIONS, isSelf, SCALE_LABELS, customQuestions || []));
 
   } catch (err) {
     console.error(err);
@@ -70,10 +80,34 @@ router.post('/:token', async (req, res) => {
       return res.send(statusPage('!', 'Incomplete', `Please answer all 30 questions. You answered ${responseRows.length}.`));
     }
 
+    // Custom questions, if this Group has any. Required, same as the
+    // CARE questions, since a partially answered custom section would
+    // make its score unreliable.
+    const { data: customQuestions } = await supabase
+      .from('custom_questions')
+      .select('id')
+      .eq('cycle_id', rater.leaders.cycle_id);
+
+    const customResponseRows = [];
+    for (const q of (customQuestions || [])) {
+      const score = parseInt(body[`cq_${q.id}`]);
+      if (score >= 1 && score <= 5) {
+        customResponseRows.push({ question_id: q.id, rater_id: raterId, leader_id: leaderId, score });
+      }
+    }
+
+    if (customQuestions && customResponseRows.length < customQuestions.length) {
+      const missing = customQuestions.length - customResponseRows.length;
+      return res.send(statusPage('!', 'Incomplete', `Please answer every custom question. You missed ${missing} of ${customQuestions.length}.`));
+    }
+
     // Open text
     const openTextRows = SECTIONS
       .map(s => ({ rater_id: raterId, leader_id: leaderId, section: s.id, response: (body[`ot_${s.id}`] || '').trim() || null }))
       .filter(r => r.response);
+
+    // Custom section comment, one box for the whole section
+    const customCommentText = (body.cq_comment || '').trim();
 
     // SSC
     const sscRow = {
@@ -83,10 +117,14 @@ router.post('/:token', async (req, res) => {
       continue_text: (body.continue || '').trim() || null
     };
 
-       const [scoreRes, textRes, sscRes] = await Promise.all([
+    const [scoreRes, textRes, sscRes, customScoreRes, customTextRes] = await Promise.all([
       supabase.from('responses').insert(responseRows),
       openTextRows.length ? supabase.from('open_text').insert(openTextRows) : Promise.resolve({ error: null }),
-      supabase.from('start_stop_continue').insert([sscRow])
+      supabase.from('start_stop_continue').insert([sscRow]),
+      customResponseRows.length ? supabase.from('custom_responses').insert(customResponseRows) : Promise.resolve({ error: null }),
+      customCommentText
+        ? supabase.from('custom_comments').insert([{ cycle_id: rater.leaders.cycle_id, rater_id: raterId, leader_id: leaderId, response: customCommentText }])
+        : Promise.resolve({ error: null })
     ]);
 
     if (scoreRes && scoreRes.error) {
@@ -95,9 +133,12 @@ router.post('/:token', async (req, res) => {
     }
     if (textRes && textRes.error) console.error('OPEN TEXT SAVE FAILED', raterId, textRes.error.message);
     if (sscRes  && sscRes.error)  console.error('SSC SAVE FAILED', raterId, sscRes.error.message);
+    if (customScoreRes && customScoreRes.error) console.error('CUSTOM SCORE SAVE FAILED', raterId, customScoreRes.error.message);
+    if (customTextRes  && customTextRes.error)  console.error('CUSTOM COMMENT SAVE FAILED', raterId, customTextRes.error.message);
 
-        const markRes = await supabase.from('raters').update({ completed_at: new Date().toISOString() }).eq('id', raterId);
+    const markRes = await supabase.from('raters').update({ completed_at: new Date().toISOString() }).eq('id', raterId);
     if (markRes && markRes.error) console.error('MARK COMPLETE FAILED', raterId, markRes.error.message);
+
     // Notify admin if everyone has now finished
     try {
       const { data: allRaters } = await supabase.from('raters').select('id, rater_group, completed_at').eq('leader_id', leaderId);
@@ -123,7 +164,7 @@ router.post('/:token', async (req, res) => {
 });
 
 // ── SURVEY PAGE ───────────────────────────────────────────────────────────────
-function surveyPage(rater, sections, isSelf, scaleLabels) {
+function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions) {
   const leaderName = rater.leaders.name;
   const groupLabel = {
     self: 'Self Assessment', supervisor: 'Supervisor', peer: 'Peer',
@@ -165,6 +206,42 @@ function surveyPage(rater, sections, isSelf, scaleLabels) {
       <div class="section-divider"></div>`;
   }).join('');
 
+  // Custom section, rendered only when this Group actually has any.
+  // Visually it matches a CARE section (badge, title, same 1-5 scale)
+  // but is clearly labeled as additional, separate from the five CARE
+  // sections above it, and feeds its own tables rather than the CARE
+  // scoring tables.
+  const customSectionHTML = customQuestions.length ? `
+    <div class="survey-section" id="section-custom">
+      <div class="section-badge">Additional Questions</div>
+      <h2 class="section-title">A Few More Questions</h2>
+      <p class="section-subtitle">These questions were added specifically for this survey, alongside the standard CARE questions above.</p>
+      <div class="questions">
+        ${customQuestions.map((q, i) => {
+          const text = isSelf ? q.self_text : q.rater_text;
+          return `
+          <div class="question-block" id="qb-cq-${q.id}">
+            <div class="question-text"><span class="q-num">${i + 1}.</span>${text}</div>
+            <div class="scale-row">
+              ${[1,2,3,4,5].map(v => `
+                <label class="scale-option">
+                  <input type="radio" name="cq_${q.id}" value="${v}" required>
+                  <span class="scale-dot"></span>
+                  <span class="scale-val">${v}</span>
+                  <span class="scale-lbl">${scaleLabels[v]}</span>
+                </label>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="open-text-block">
+        <label class="ot-label" for="cq-comment">Open Text (optional)</label>
+        <p class="ot-prompt">Any additional context on the questions above.</p>
+        <textarea id="cq-comment" name="cq_comment" rows="3" placeholder="Share any specific examples or additional context..."></textarea>
+      </div>
+    </div>
+    <div class="section-divider"></div>` : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -192,7 +269,7 @@ function surveyPage(rater, sections, isSelf, scaleLabels) {
 <div class="survey-container">
   <div class="survey-intro">
     <h1>Your feedback matters.</h1>
-    <p>You have been asked to provide CARE 360 feedback for <strong>${leaderName}</strong>. This is a developmental tool — your responses help this leader understand how their leadership lands and where they have the greatest opportunity to grow.</p>
+    <p>You have been asked to provide CARE 360 feedback for <strong>${leaderName}</strong>. This is a developmental tool, and your responses help this leader understand how their leadership lands and where they have the greatest opportunity to grow.</p>
     <p>All responses are <strong>completely anonymous</strong>. Answer based on your direct, observed experience. The open-text sections are optional but are often the most valuable part.</p>
     <div class="scale-legend">
       <div class="legend-title">Rating Scale</div>
@@ -204,6 +281,7 @@ function surveyPage(rater, sections, isSelf, scaleLabels) {
 
   <form method="POST" action="/survey/${rater.token}" id="survey-form" novalidate>
     ${sectionsHTML}
+    ${customSectionHTML}
 
     <div class="survey-section" id="section-ssc">
       <div class="section-badge">Final Question</div>

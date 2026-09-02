@@ -53,7 +53,7 @@ const PLANS = {
       'Onboarding walkthrough'
     ],
     cta: 'Choose Growth',
-    href: '/billing/checkout?plan=growth
+    href: '/billing/checkout?plan=growth'
     style: 'plain'
   },
   community: {

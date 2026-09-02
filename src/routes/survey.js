@@ -62,8 +62,9 @@ router.post('/:token', async (req, res) => {
     }
 
     const body = req.body;
-    const raterId  = rater.id;
-    const leaderId = rater.leader_id;
+    const raterId   = rater.id;
+    const leaderId  = rater.leader_id;
+    const accountId = rater.account_id || null;
 
     // Build score responses
     const responseRows = [];
@@ -71,7 +72,7 @@ router.post('/:token', async (req, res) => {
       for (const q of section.questions) {
         const score = parseInt(body[`q_${q.n}`]);
         if (score >= 1 && score <= 5) {
-          responseRows.push({ rater_id: raterId, leader_id: leaderId, question_number: q.n, section: section.id, score });
+          responseRows.push({ rater_id: raterId, leader_id: leaderId, account_id: accountId, question_number: q.n, section: section.id, score });
         }
       }
     }
@@ -92,7 +93,7 @@ router.post('/:token', async (req, res) => {
     for (const q of (customQuestions || [])) {
       const score = parseInt(body[`cq_${q.id}`]);
       if (score >= 1 && score <= 5) {
-        customResponseRows.push({ question_id: q.id, rater_id: raterId, leader_id: leaderId, score });
+        customResponseRows.push({ question_id: q.id, rater_id: raterId, leader_id: leaderId, account_id: accountId, score });
       }
     }
 
@@ -103,7 +104,7 @@ router.post('/:token', async (req, res) => {
 
     // Open text
     const openTextRows = SECTIONS
-      .map(s => ({ rater_id: raterId, leader_id: leaderId, section: s.id, response: (body[`ot_${s.id}`] || '').trim() || null }))
+      .map(s => ({ rater_id: raterId, leader_id: leaderId, account_id: accountId, section: s.id, response: (body[`ot_${s.id}`] || '').trim() || null }))
       .filter(r => r.response);
 
     // Custom section comment, one box for the whole section
@@ -111,7 +112,7 @@ router.post('/:token', async (req, res) => {
 
     // SSC
     const sscRow = {
-      rater_id: raterId, leader_id: leaderId,
+      rater_id: raterId, leader_id: leaderId, account_id: accountId,
       start_text:    (body.start    || '').trim() || null,
       stop_text:     (body.stop     || '').trim() || null,
       continue_text: (body.continue || '').trim() || null
@@ -123,7 +124,7 @@ router.post('/:token', async (req, res) => {
       supabase.from('start_stop_continue').insert([sscRow]),
       customResponseRows.length ? supabase.from('custom_responses').insert(customResponseRows) : Promise.resolve({ error: null }),
       customCommentText
-        ? supabase.from('custom_comments').insert([{ cycle_id: rater.leaders.cycle_id, rater_id: raterId, leader_id: leaderId, response: customCommentText }])
+        ? supabase.from('custom_comments').insert([{ cycle_id: rater.leaders.cycle_id, rater_id: raterId, leader_id: leaderId, account_id: accountId, response: customCommentText }])
         : Promise.resolve({ error: null })
     ]);
 

@@ -333,6 +333,7 @@ function adminShell(title, content, req) {
       <div class="nav-avatar">${initial}</div>
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
+      <a href="/billing/portal" class="nav-link">Manage Billing</a>
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>

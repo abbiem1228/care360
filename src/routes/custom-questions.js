@@ -100,6 +100,14 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
   const raterTexts = [].concat(req.body.rater_text || []).map(t => (t || '').trim());
   const selfTexts  = [].concat(req.body.self_text  || []).map(t => (t || '').trim());
 
+  // Check every submitted question against its own real position BEFORE
+  // any filtering happens, since a half-filled question (rater text with
+  // no self text yet) must be caught here, not silently dropped.
+  const hasUnpaired = raterTexts.slice(0, MAX_QUESTIONS).some((t, i) => t && !selfTexts[i]);
+  if (hasUnpaired) {
+    return res.send(page(cycle, [], null, 'Every question needs a self-assessment version before saving. Draft it or write your own for each one.', raterTexts, selfTexts));
+  }
+
   const rows = [];
   for (let i = 0; i < Math.min(raterTexts.length, MAX_QUESTIONS); i++) {
     if (raterTexts[i] && selfTexts[i]) {
@@ -107,10 +115,6 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
       if (req.accountId) row.account_id = req.accountId;
       rows.push(row);
     }
-  }
-
-  if (rows.some((r, i) => raterTexts[i] && !selfTexts[i])) {
-    return res.send(page(cycle, [], null, 'Every question needs a self-assessment version before saving. Draft it or write your own for each one.', raterTexts, selfTexts));
   }
 
   await db(req).from('custom_questions').delete().eq('cycle_id', cycle.id);

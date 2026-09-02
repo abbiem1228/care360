@@ -137,17 +137,41 @@ router.post('/leaders/:leaderId/raters', requireAuth, async (req, res) => {
   const names  = [].concat(req.body.name        || []);
   const emails = [].concat(req.body.email       || []);
   const groups = [].concat(req.body.rater_group || []);
-  const rows   = [];
+
+  const rows = [];
+  const incompleteRows = [];
+
   for (let i = 0; i < names.length; i++) {
     const n = (names[i]  || '').trim();
     const e = (emails[i] || '').trim();
     const g = (groups[i] || '').trim();
-    if (n && e && g) {
+    const anyFilled  = n || e || g;
+    const allFilled  = n && e && g;
+
+    if (allFilled) {
       const row = { leader_id: leaderId, name: n, email: e, rater_group: g, token: nanoid(24) };
       if (req.accountId) row.account_id = req.accountId;
       rows.push(row);
+    } else if (anyFilled) {
+      // Some fields were touched but not all. This is the exact case that
+      // used to fail silently: a name and email typed in, but the
+      // relationship dropdown left on its placeholder. Block the whole
+      // save rather than quietly dropping this one row, since a partial
+      // save with no explanation is worse than making someone fix it.
+      incompleteRows.push({ name: n, email: e, rater_group: g, rowNumber: i + 1 });
     }
+    // Rows with nothing filled in at all are just unused extra rows and
+    // are silently ignored, same as before.
   }
+
+  if (incompleteRows.length) {
+    const { data: leaderFull } = await db(req).from('leaders').select('*').eq('id', leaderId).maybeSingle();
+    return res.send(raterFormPage(leaderFull, req,
+      `Row ${incompleteRows.map(r => r.rowNumber).join(', ')} ${incompleteRows.length === 1 ? 'is' : 'are'} missing a name, email, or relationship. All three are required for each rater. Please complete or remove the highlighted row before saving.`,
+      { names, emails, groups }
+    ));
+  }
+
   if (rows.length) {
     const { error } = await db(req).from('raters').insert(rows);
     if (error) console.error('RATER CREATE FAILED', error.message);
@@ -294,6 +318,7 @@ select.form-control{cursor:pointer}
 
 .rater-rows{display:flex;flex-direction:column;gap:10px}
 .rater-row{display:grid;grid-template-columns:1fr 1fr 180px 40px;gap:10px;align-items:end;background:var(--cream);border-radius:8px;padding:12px 14px;border:1.5px solid var(--sand)}
+.rater-row-incomplete{border-color:#A94442;background:#FFF7F6}
 .rater-row-header{display:grid;grid-template-columns:1fr 1fr 180px 40px;gap:10px;padding:0 14px}
 .rater-row-header span{font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px}
 .remove-rater-btn{width:32px;height:32px;border-radius:6px;border:1.5px solid #FDECEA;background:#FDECEA;color:#A94442;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:inherit}
@@ -333,7 +358,6 @@ function adminShell(title, content, req) {
       <div class="nav-avatar">${initial}</div>
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
-      <a href="/billing/portal" class="nav-link">Manage Billing</a>
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>
@@ -564,36 +588,51 @@ function leaderFormPage(cycleId, req) {
     </div>`, req);
 }
 
-function raterRow() {
-  return `<div class="rater-row">
-    <div><input class="form-control" type="text" name="name" placeholder="Full name"/></div>
-    <div><input class="form-control" type="email" name="email" placeholder="email@company.com"/></div>
-    <div><select class="form-control" name="rater_group">
-      <option value="">Select relationship...</option>
-      <option value="supervisor">Supervisor</option>
-      <option value="peer">Peer</option>
-      <option value="direct_report">Direct Report</option>
-      <option value="skip_level">Skip-Level</option>
+function raterRow(prefill) {
+  const n = prefill ? prefill.name  || '' : '';
+  const e = prefill ? prefill.email || '' : '';
+  const g = prefill ? prefill.group || '' : '';
+  const incomplete = prefill && (n || e || g) && !(n && e && g);
+  return `<div class="rater-row${incomplete ? ' rater-row-incomplete' : ''}">
+    <div><input class="form-control" type="text" name="name" placeholder="Full name" required value="${n}"/></div>
+    <div><input class="form-control" type="email" name="email" placeholder="email@company.com" required value="${e}"/></div>
+    <div><select class="form-control" name="rater_group" required>
+      <option value="" ${g ? '' : 'selected'}>Select relationship...</option>
+      <option value="supervisor" ${g==='supervisor'?'selected':''}>Supervisor</option>
+      <option value="peer" ${g==='peer'?'selected':''}>Peer</option>
+      <option value="direct_report" ${g==='direct_report'?'selected':''}>Direct Report</option>
+      <option value="skip_level" ${g==='skip_level'?'selected':''}>Skip-Level</option>
     </select></div>
     <button type="button" class="remove-rater-btn" onclick="this.closest('.rater-row').remove()">&#215;</button>
   </div>`;
 }
 
-function raterFormPage(leader, req) {
+function raterFormPage(leader, req, error, prevValues) {
   if (!leader) return adminShell('Error', '<p>Leader not found.</p>', req);
+
+  const prevNames  = prevValues ? [].concat(prevValues.names  || []) : [];
+  const prevEmails = prevValues ? [].concat(prevValues.emails || []) : [];
+  const prevGroups = prevValues ? [].concat(prevValues.groups || []) : [];
+  const rowCount = Math.max(3, prevNames.length);
+
+  const initialRows = Array.from({ length: rowCount }, (_, i) =>
+    raterRow(prevValues ? { name: prevNames[i], email: prevEmails[i], group: prevGroups[i] } : null)
+  ).join('');
+
   return adminShell('Add Raters', `
     <div class="page-header"><div>
       <div class="page-title">Add Raters</div>
       <div class="page-sub">Adding raters for <strong>${leader.name}</strong>. Each person receives a unique anonymous survey link.</div>
     </div></div>
+    ${error ? `<div class="flash flash-warn">${error}</div>` : ''}
     <div class="card">
       <form method="POST" action="/admin/leaders/${leader.id}/raters" id="rater-form">
         <div class="form-section">
           <div class="form-section-title">Rater Information</div>
-          <div class="rater-row-header"><span>Full Name</span><span>Email Address</span><span>Relationship to Leader</span><span></span></div>
-          <div class="rater-rows" id="rater-rows">${[1,2,3].map(() => raterRow()).join('')}</div>
+          <div class="rater-row-header"><span>Full Name *</span><span>Email Address *</span><span>Relationship to Leader *</span><span></span></div>
+          <div class="rater-rows" id="rater-rows">${initialRows}</div>
           <button type="button" class="add-rater-btn" onclick="addRaterRow()"><span style="font-size:18px;line-height:1">+</span> Add Another Rater</button>
-          <div class="form-hint" style="margin-top:10px">Three completed rater responses are needed before a report can be generated. The self-assessment does not count toward that.</div>
+          <div class="form-hint" style="margin-top:10px">All three fields are required for each rater you add. Leave a row completely blank to skip it. Three completed rater responses are needed before a report can be generated, and the self-assessment does not count toward that.</div>
         </div>
         <div class="actions-row" style="margin-top:8px">
           <button class="btn btn-primary" type="submit">Save Raters</button>
@@ -606,9 +645,9 @@ function raterFormPage(leader, req) {
       const div = document.createElement('div');
       div.className = 'rater-row';
       div.innerHTML = \`
-        <div><input class="form-control" type="text" name="name" placeholder="Full name"/></div>
-        <div><input class="form-control" type="email" name="email" placeholder="email@company.com"/></div>
-        <div><select class="form-control" name="rater_group">
+        <div><input class="form-control" type="text" name="name" placeholder="Full name" required/></div>
+        <div><input class="form-control" type="email" name="email" placeholder="email@company.com" required/></div>
+        <div><select class="form-control" name="rater_group" required>
           <option value="">Select relationship...</option>
           <option value="supervisor">Supervisor</option>
           <option value="peer">Peer</option>
@@ -621,6 +660,7 @@ function raterFormPage(leader, req) {
     }
     </script>`, req);
 }
+
 
 function leaderDetailPage(leader, raters, report, completedCount, totalCount, req) {
   if (!leader) return adminShell('Error', '<p>Leader not found.</p>', req);

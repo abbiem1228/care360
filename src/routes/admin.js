@@ -79,6 +79,17 @@ router.post('/cycles/:cycleId/leaders', requireAuth, async (req, res) => {
   // Confirm the survey belongs to this account before adding to it.
   const { data: cycle } = await db(req).from('cycles').select('id').eq('id', req.params.cycleId).maybeSingle();
   if (!cycle) return res.redirect('/admin');
+    if (req.account && req.account.plan === 'trial') {
+    const { count } = await db(req).from('leaders').select('id', { count: 'exact', head: true });
+    if ((count || 0) >= 1) {
+      return res.send(adminShell('Trial limit reached', `
+        <div class="card" style="border-left:4px solid #A9633D;background:#FBF5EC;max-width:520px">
+          <div style="font-size:16px;font-weight:600;color:#30383B;margin-bottom:8px">You've used your free trial</div>
+          <div style="font-size:13px;color:var(--grey);line-height:1.75;margin-bottom:18px">Your trial covers one leader, and you've already run one. Upgrade to add more leaders, unlimited surveys, and everything else CARE 360 offers.</div>
+          <a href="/plans" class="btn btn-primary">See plans</a>
+        </div>`, req));
+    }
+  }
 
   const leaderRow = { cycle_id: req.params.cycleId, name, title, email, department };
   if (req.accountId) leaderRow.account_id = req.accountId;

@@ -37,7 +37,7 @@ const PLANS = {
       'Email support'
     ],
     cta: 'Choose Starter',
-    href: '/signup?plan=starter',
+        href: '/billing/checkout?plan=starter',
     style: 'featured'
   },
   growth: {
@@ -53,7 +53,7 @@ const PLANS = {
       'Onboarding walkthrough'
     ],
     cta: 'Choose Growth',
-    href: '/signup?plan=growth',
+    href: '/billing/checkout?plan=growth
     style: 'plain'
   },
   community: {

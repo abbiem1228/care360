@@ -14,7 +14,6 @@ const { getSession } = require('./auth');
 const app = express();
 
 app.set('trust proxy', 1);
-app.use('/billing', require('./routes/billing'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SESSION_SECRET || 'care360-secret'));
@@ -38,6 +37,7 @@ app.use(async (req, res, next) => {
   req.isAdmin = req.signedCookies && req.signedCookies.adminAuth === 'yes';
   next();
 });
+app.use('/billing', require('./routes/billing'));
 
 app.use('/survey', surveyRoutes);
 app.use('/admin',  adminRoutes);

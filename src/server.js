@@ -37,8 +37,9 @@ app.use(async (req, res, next) => {
   req.isAdmin = req.signedCookies && req.signedCookies.adminAuth === 'yes';
   next();
 });
-app.use('/billing', require('./routes/billing'));
-
+const billing = require('./routes/billing');
+app.use('/billing/webhook', billing.webhookRouter);
+app.use('/billing', billing.checkoutRouter);
 app.use('/survey', surveyRoutes);
 app.use('/admin',  adminRoutes);
 app.use('/report', reportRoutes);

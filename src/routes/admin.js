@@ -60,6 +60,17 @@ router.post('/cycles', requireAuth, async (req, res) => {
 });
 
 router.post('/cycles/:id/status', requireAuth, async (req, res) => {
+  if (req.body.status === 'draft') {
+    const { data: leaders } = await db(req).from('leaders').select('raters(email_sent_at)').eq('cycle_id', req.params.id);
+    const anyInviteSent = (leaders || []).some(l => (l.raters || []).some(r => r.email_sent_at));
+    if (anyInviteSent) {
+      return res.send(adminShell('Cannot reopen to draft', `<div class="card" style="border-left:4px solid #A94442;background:#FFF7F6;max-width:520px">
+        <div style="font-size:15px;font-weight:600;color:#A94442;margin-bottom:8px">Invitations have already been sent</div>
+        <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:16px">At least one rater has already received a link for this Group. Reopening it to draft could let leaders, raters, or questions be edited while someone is mid-way through their survey. This Group can still be closed or re-activated, just not returned to draft.</div>
+        <a href="/admin/cycles/${req.params.id}" class="btn btn-ghost">Back to Group</a>
+      </div>`, req));
+    }
+  }
   await db(req).from('cycles').update({ status: req.body.status }).eq('id', req.params.id);
   res.redirect(`/admin/cycles/${req.params.id}`);
 });
@@ -455,11 +466,21 @@ function cycleFormPage(req) {
 }
 
 function cycleDetailPage(cycle, leaders, req) {
-  const statusBtns = {
+  // Once at least one invite has actually been sent, we cannot know
+  // whether someone out there is holding a live link. Reopening the
+  // Group to draft at that point stops being a safety valve and
+  // becomes a way to silently edit leaders, raters, or questions out
+  // from under a survey someone may be mid-way through. So the
+  // "Back to Draft" transition disappears entirely from that point on,
+  // for the life of the Group. Close and Re-open stay available, since
+  // neither of those retroactively unlocks anything already answered.
+  const anyInviteSent = leaders.some(l => (l.raters || []).some(r => r.email_sent_at));
+
+  const statusBtns = ({
     draft:  [['active','Activate'],['closed','Close']],
     active: [['closed','Close'],['draft','Back to Draft']],
     closed: [['active','Re-open'],['draft','Back to Draft']]
-  }[cycle.status] || [];
+  }[cycle.status] || []).filter(([s]) => !(s === 'draft' && anyInviteSent));
 
   const sent   = parseInt(req.query.sent   || '0', 10);
   const failed = parseInt(req.query.failed || '0', 10);
@@ -497,7 +518,6 @@ function cycleDetailPage(cycle, leaders, req) {
       </div>
       <div class="actions-row">
         ${statusBtns.map(([s,l]) => `<form method="POST" action="/admin/cycles/${cycle.id}/status" style="display:inline"><input type="hidden" name="status" value="${s}"/><button class="btn ${s==='active'?'btn-sage':s==='closed'?'btn-red':'btn-ghost'}" type="submit">${l}</button></form>`).join('')}
-                ${cycle.status === 'draft' ? `<a href="/admin/cycles/${cycle.id}/custom-questions" class="btn btn-ghost">Custom Questions</a>` : ''}
         <a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">+ Add Leader</a>
       </div>
     </div>
@@ -623,6 +643,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount, re
   return adminShell(leader.name, `
     <div class="page-header">
       <div>
+        <a href="/admin/cycles/${leader.cycle_id}" class="nav-link" style="color:var(--clay);font-size:12px;font-weight:600;display:inline-block;margin-bottom:6px">&larr; Back to ${leader.cycles ? leader.cycles.name : 'Group'}</a>
         <div class="page-title">${leader.name}</div>
         <div class="page-sub">${leader.title||''}${leader.department?' &nbsp;·&nbsp; '+leader.department:''}</div>
       </div>

@@ -1,5 +1,6 @@
 const express = require('express');
-const router  = express.Router();
+const webhookRouter  = express.Router();
+const checkoutRouter = express.Router();
 const Stripe  = require('stripe');
 const supabase = require('../db/client');
 
@@ -27,8 +28,10 @@ function requireAuth(req, res, next) {
 // ── Start checkout ───────────────────────────────────────────
 // Called when a signed in user clicks Upgrade to Starter/Growth.
 // GET, not POST, so the plans page can link straight to it.
+// This router is mounted AFTER the session middleware, so req.isAdmin
+// and req.accountId are already set by the time this runs.
 
-router.get('/checkout', requireAuth, async (req, res) => {
+checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
   const plan    = req.query.plan;
   const billing = req.query.billing === 'annual' ? 'annual' : 'monthly';
   const priceId = PRICE_MAP[plan] && PRICE_MAP[plan][billing];
@@ -45,7 +48,7 @@ router.get('/checkout', requireAuth, async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${APP_URL}/billing/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${APP_URL}/plans`,
       customer_email: req.session ? req.session.email : undefined,
       client_reference_id: req.accountId,
@@ -64,7 +67,7 @@ router.get('/checkout', requireAuth, async (req, res) => {
 // the person something to look at while that happens, since the
 // webhook can arrive a few seconds after the redirect.
 
-router.get('/checkout/success', requireAuth, (req, res) => {
+checkoutRouter.get('/checkout/success', requireAuth, (req, res) => {
   res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
   <meta http-equiv="refresh" content="3;url=/admin"/>
   <style>body{font-family:Arial,sans-serif;background:#F7F4EF;display:flex;align-items:center;justify-content:center;min-height:100vh}
@@ -79,10 +82,13 @@ router.get('/checkout/success', requireAuth, (req, res) => {
 // flaky connection would leave the account stuck on trial despite
 // a successful charge.
 //
-// IMPORTANT: this route needs the raw request body to verify the
-// signature, so it is mounted in server.js BEFORE express.json().
+// This router is mounted BEFORE express.json() in server.js, and the
+// route itself uses express.raw() so it sees the completely untouched
+// request body. Stripe's signature check fails if anything upstream
+// has already parsed the body, which is why this route must never be
+// moved to sit after express.json() runs.
 
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
@@ -130,4 +136,4 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   res.json({ received: true });
 });
 
-module.exports = router;
+module.exports = { checkoutRouter, webhookRouter };

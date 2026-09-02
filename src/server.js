@@ -41,8 +41,10 @@ app.use(async (req, res, next) => {
   next();
 });
 const billing = require('./routes/billing');
+const customQuestions = require('./routes/custom-questions');
 app.use('/billing/webhook', billing.webhookRouter);
 app.use('/billing', billing.checkoutRouter);
+app.use('/admin', customQuestions);
 app.use('/survey', surveyRoutes);
 app.use('/admin',  adminRoutes);
 app.use('/report', reportRoutes);

@@ -32,12 +32,15 @@ router.post('/login', (req, res) => {
 router.get('/logout', (req, res) => { res.clearCookie('adminAuth'); res.redirect('/signin'); });
 
 // ── Dashboard ──────────────────────────────────────────────────
+// NOTE: this file uses "Group" in every user-facing label. The database
+// table underneath is still called "cycles" on purpose, that name never
+// needs to change since nobody but us ever sees it.
 router.get('/', requireAuth, async (req, res) => {
   const { data: cycles } = await db(req).from('cycles').select('*').order('created_at', { ascending: false });
   res.send(dashboardPage(cycles || [], req));
 });
 
-// ── Cycles ────────────────────────────────────────────────────
+// ── Groups ────────────────────────────────────────────────────
 router.get('/cycles/new', requireAuth, (req, res) => res.send(cycleFormPage(req)));
 
 router.post('/cycles', requireAuth, async (req, res) => {
@@ -50,8 +53,8 @@ router.post('/cycles', requireAuth, async (req, res) => {
 
   const { error } = await db(req).from('cycles').insert([row]);
   if (error) {
-    console.error('CYCLE CREATE FAILED', error.message);
-    return res.send(adminShell('Error', `<div class="card"><p>The survey could not be created. <a href="/admin/cycles/new">Go back</a></p></div>`, req));
+    console.error('GROUP CREATE FAILED', error.message);
+    return res.send(adminShell('Error', `<div class="card"><p>The Group could not be created. <a href="/admin/cycles/new">Go back</a></p></div>`, req));
   }
   res.redirect('/admin');
 });
@@ -76,16 +79,17 @@ router.get('/cycles/:cycleId/leaders/new', requireAuth, (req, res) => res.send(l
 router.post('/cycles/:cycleId/leaders', requireAuth, async (req, res) => {
   const { name, title, email, department } = req.body;
 
-  // Confirm the survey belongs to this account before adding to it.
+  // Confirm the Group belongs to this account before adding to it.
   const { data: cycle } = await db(req).from('cycles').select('id').eq('id', req.params.cycleId).maybeSingle();
   if (!cycle) return res.redirect('/admin');
-    if (req.account && req.account.plan === 'trial') {
+
+  if (req.account && req.account.plan === 'trial') {
     const { count } = await db(req).from('leaders').select('id', { count: 'exact', head: true });
     if ((count || 0) >= 1) {
       return res.send(adminShell('Trial limit reached', `
         <div class="card" style="border-left:4px solid #A9633D;background:#FBF5EC;max-width:520px">
           <div style="font-size:16px;font-weight:600;color:#30383B;margin-bottom:8px">You've used your free trial</div>
-          <div style="font-size:13px;color:var(--grey);line-height:1.75;margin-bottom:18px">Your trial covers one leader, and you've already run one. Upgrade to add more leaders, unlimited surveys, and everything else CARE 360 offers.</div>
+          <div style="font-size:13px;color:var(--grey);line-height:1.75;margin-bottom:18px">Your trial covers one leader, and you've already run one. Upgrade to add more leaders, unlimited Groups, and everything else CARE 360 offers.</div>
           <a href="/plans" class="btn btn-primary">See plans</a>
         </div>`, req));
     }
@@ -311,7 +315,7 @@ function adminShell(title, content, req) {
       <div class="nav-logo-mark">C</div>
       <span class="nav-brand">in good company.</span>
     </div>
-    <a href="/admin" class="nav-link">Surveys</a>
+    <a href="/admin" class="nav-link">Groups</a>
     <a href="/guide" class="nav-link">How it works</a>
     <div class="nav-spacer"></div>
     <div class="nav-user">
@@ -380,44 +384,44 @@ function dashboardPage(cycles, req) {
   return adminShell('Dashboard', `
     <div class="page-header">
       <div>
-        <div class="page-title">Surveys</div>
-        <div class="page-sub">Manage your CARE 360 survey rounds, leaders, and raters.</div>
+        <div class="page-title">Groups</div>
+        <div class="page-sub">Manage your CARE 360 Groups, leaders, and raters.</div>
       </div>
-      <a href="/admin/cycles/new" class="btn btn-primary">+ New Survey</a>
+      <a href="/admin/cycles/new" class="btn btn-primary">+ New Group</a>
     </div>
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${cycles.length}</div><div class="stat-lbl">Total Surveys</div></div>
+      <div class="stat-card"><div class="stat-num">${cycles.length}</div><div class="stat-lbl">Total Groups</div></div>
       <div class="stat-card" style="border-color:var(--sage)"><div class="stat-num" style="color:var(--sage)">${active}</div><div class="stat-lbl">Active</div></div>
       <div class="stat-card" style="border-color:var(--sand)"><div class="stat-num" style="color:var(--grey)">${draft}</div><div class="stat-lbl">Drafts</div></div>
     </div>
     <div class="card">
       <div class="card-header">
-        <span class="card-title">All Surveys</span>
+        <span class="card-title">All Groups</span>
         <a href="/admin/cycles/new" class="btn btn-ghost btn-sm">+ New</a>
       </div>
       ${cycles.length ? `
       <table class="data-table">
-        <thead><tr><th>Survey Name</th><th>Client / Notes</th><th>Status</th><th>Opens</th><th>Closes</th><th></th></tr></thead>
+        <thead><tr><th>Group Name</th><th>Client / Notes</th><th>Status</th><th>Opens</th><th>Closes</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>` : `
       <div class="empty-state">
         <div class="empty-state-icon">&#128203;</div>
-        <div class="empty-state-text">No surveys yet. Create your first one to get started.</div>
-        <a href="/admin/cycles/new" class="btn btn-primary">Create Survey</a>
+        <div class="empty-state-text">No Groups yet. Create your first one to get started.</div>
+        <a href="/admin/cycles/new" class="btn btn-primary">Create Group</a>
       </div>`}
     </div>`, req);
 }
 
 function cycleFormPage(req) {
-  return adminShell('New Survey', `
+  return adminShell('New Group', `
     <div class="page-header">
-      <div><div class="page-title">New Survey</div>
-      <div class="page-sub">A survey round groups the leaders being assessed at the same time.</div></div>
+      <div><div class="page-title">New Group</div>
+      <div class="page-sub">A Group holds the leaders being assessed together, with one close date for everyone in it.</div></div>
     </div>
     <div class="card" style="max-width:580px">
       <form method="POST" action="/admin/cycles">
         <div class="form-group">
-          <label class="form-label">Survey Name *</label>
+          <label class="form-label">Group Name *</label>
           <input class="form-control" name="name" required placeholder="e.g. 2027 Q1 Leadership Review"/>
         </div>
         <div class="form-row">
@@ -443,7 +447,7 @@ function cycleFormPage(req) {
           </div>
         </div>
         <div class="actions-row">
-          <button class="btn btn-primary" type="submit">Create Survey</button>
+          <button class="btn btn-primary" type="submit">Create Group</button>
           <a href="/admin" class="btn btn-ghost">Cancel</a>
         </div>
       </form>
@@ -499,9 +503,9 @@ function cycleDetailPage(cycle, leaders, req) {
     ${flash}
     ${cycle.status === 'draft' && leaders.length ? `
     <div class="card" style="border-left:4px solid #A94442;background:#FFF7F6">
-      <div style="font-size:14px;font-weight:600;color:#A94442;margin-bottom:6px">This survey is not active</div>
-      <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:14px">Raters will not be able to open their survey until you activate it. If you send invites now, everyone will receive a link that does not work.</div>
-      <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">Activate Survey</button></form>
+      <div style="font-size:14px;font-weight:600;color:#A94442;margin-bottom:6px">This Group is not active</div>
+      <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:14px">Raters will not be able to open their survey until you activate this Group. If you send invites now, everyone will receive a link that does not work.</div>
+      <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">Activate Group</button></form>
     </div>` : ''}
     <div class="card">
       <div class="card-header"><span class="card-title">Leaders</span><span style="font-size:13px;color:var(--grey)">${leaders.length} leader${leaders.length!==1?'s':''}</span></div>

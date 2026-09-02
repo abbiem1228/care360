@@ -53,27 +53,7 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
       customer_email: req.session ? req.session.email : undefined,
       client_reference_id: req.accountId,
       metadata: { account_id: req.accountId, plan }
-    }); // ── Manage subscription (Stripe Customer Portal) ───────────────
-// One click into Stripe's own hosted portal, where a customer can
-// cancel, update their payment method, or view invoices. Nothing
-// here needs building or maintaining ourselves, Stripe owns the
-// whole experience once they land on it.
-checkoutRouter.get('/portal', requireAuth, async (req, res) => {
-  if (!req.account || !req.account.stripe_customer_id) {
-    return res.status(400).send('No billing account found. <a href="/plans">See plans</a>');
-  }
-
-  try {
-    const session = await stripe.billingPortal.sessions.create({
-      customer: req.account.stripe_customer_id,
-      return_url: `${APP_URL}/admin`
     });
-    res.redirect(session.url);
-  } catch (e) {
-    console.error('Portal session failed:', e.message);
-    res.status(500).send('Could not open billing management right now. Please try again.');
-  }
-});
 
     res.redirect(session.url);
   } catch (e) {
@@ -94,6 +74,29 @@ checkoutRouter.get('/checkout/success', requireAuth, (req, res) => {
   .card{background:#fff;border-radius:10px;padding:48px;max-width:440px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08);border-top:4px solid #7C8863}
   h2{color:#30383B;font-size:20px;margin-bottom:10px}p{color:#595959;font-size:14px;line-height:1.6}</style></head>
   <body><div class="card"><h2>Thank you</h2><p>Your subscription is being set up. This takes a few seconds. You will be taken to your dashboard automatically.</p></div></body></html>`);
+});
+
+// ── Manage subscription (Stripe Customer Portal) ───────────────
+// One click into Stripe's own hosted portal, where a customer can
+// cancel, update their payment method, or view invoices. Nothing
+// here needs building or maintaining ourselves, Stripe owns the
+// whole experience once they land on it.
+
+checkoutRouter.get('/portal', requireAuth, async (req, res) => {
+  if (!req.account || !req.account.stripe_customer_id) {
+    return res.status(400).send('No billing account found. <a href="/plans">See plans</a>');
+  }
+
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: req.account.stripe_customer_id,
+      return_url: `${APP_URL}/admin`
+    });
+    res.redirect(session.url);
+  } catch (e) {
+    console.error('Portal session failed:', e.message);
+    res.status(500).send('Could not open billing management right now. Please try again.');
+  }
 });
 
 // ── Stripe webhook ───────────────────────────────────────────

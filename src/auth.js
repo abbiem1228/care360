@@ -17,7 +17,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const admin = require('./db/client');
-const { sendSignupNotice } = require('./email');
+
 const URL  = process.env.SUPABASE_URL;
 const ANON = process.env.SUPABASE_ANON_KEY;
 
@@ -37,7 +37,7 @@ function userClient(accessToken) {
 // ── Sign up ──────────────────────────────────────────────────
 // Creates the auth user, then the account, then links them.
 
-async function signUp({ email, password, name, organization }) {
+async function signUp({ email, password, name, organization, termsAcceptedAt }) {
   const auth = authClient();
 
   const { data, error } = await auth.auth.signUp({
@@ -58,7 +58,7 @@ async function signUp({ email, password, name, organization }) {
   // the new user has no session yet when email confirmation is on.
   const { data: account, error: acctErr } = await admin
     .from('accounts')
-    .insert([{ name: organization, plan: 'trial', status: 'active' }])
+    .insert([{ name: organization, plan: 'trial', status: 'active', terms_accepted_at: termsAcceptedAt || null }])
     .select()
     .single();
 
@@ -81,7 +81,7 @@ async function signUp({ email, password, name, organization }) {
     console.error('ACCOUNT LINK FAILED', email, linkErr.message);
     return { error: 'Your login was created but the account setup failed. Please contact support.' };
   }
-  sendSignupNotice({ account, user: { email, name: name || null } }).catch(() => {});
+
   return { user: data.user, account, needsConfirmation: !data.session };
 }
 

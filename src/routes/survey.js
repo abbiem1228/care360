@@ -2,7 +2,7 @@ const express  = require('express');
 const router   = express.Router();
 const supabase = require('../db/client');
 const { SECTIONS, SCALE_LABELS } = require('../questions');
-const { sendAdminNotice } = require('../email');
+const { sendAdminNotice, resolveNotifyEmail } = require('../email');
 
 // GET /survey/:token
 router.get('/:token', async (req, res) => {
@@ -146,11 +146,12 @@ router.post('/:token', async (req, res) => {
       const outstanding = (allRaters || []).filter(r => !r.completed_at).length;
       if (outstanding === 0) {
         const { data: full } = await supabase.from('leaders')
-          .select('id, name, title, completion_notified_at, cycles(name)')
+          .select('id, name, title, account_id, completion_notified_at, cycles(name)')
           .eq('id', leaderId).single();
         if (full && !full.completion_notified_at) {
           await supabase.from('leaders').update({ completion_notified_at: new Date().toISOString() }).eq('id', leaderId);
-          await sendAdminNotice({ leader: full, cycle: full.cycles, raters: allRaters, reason: 'complete' });
+          const notifyTo = await resolveNotifyEmail(supabase, full.account_id);
+          await sendAdminNotice({ leader: full, cycle: full.cycles, raters: allRaters, reason: 'complete', to: notifyTo });
         }
       }
     } catch (e) {

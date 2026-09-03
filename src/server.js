@@ -69,19 +69,23 @@ function errorPage(msg) {
 
 // ── Hourly check for cycles that have passed their close date ──
 const supabase = require('./db/client');
-const { sendAdminNotice, sendRaterReminder } = require('./email');
+const { sendAdminNotice, sendRaterReminder, resolveNotifyEmail } = require('./email');
+
 async function checkClosedCycles() {
   try {
     const now = new Date().toISOString();
     const { data: cycles } = await supabase
       .from('cycles')
-      .select('id, name, status, closes_at, closed_notified_at')
+      .select('id, name, account_id, status, closes_at, closed_notified_at')
       .lt('closes_at', now)
       .eq('status', 'active')
       .is('closed_notified_at', null);
+
     if (!cycles || !cycles.length) return;
 
     for (const cycle of cycles) {
+      const notifyTo = await resolveNotifyEmail(supabase, cycle.account_id);
+
       const { data: leaders } = await supabase
         .from('leaders')
         .select('id, name, title, completion_notified_at')
@@ -95,10 +99,10 @@ async function checkClosedCycles() {
           .eq('leader_id', leader.id);
         if (!raters || !raters.length) continue;
         await supabase.from('leaders').update({ completion_notified_at: new Date().toISOString() }).eq('id', leader.id);
-        await sendAdminNotice({ leader, cycle, raters, reason: 'closed' });
+        await sendAdminNotice({ leader, cycle, raters, reason: 'closed', to: notifyTo });
       }
 
-        await supabase.from('cycles').update({ closed_notified_at: new Date().toISOString(), status: 'closed' }).eq('id', cycle.id);
+      await supabase.from('cycles').update({ closed_notified_at: new Date().toISOString(), status: 'closed' }).eq('id', cycle.id);
       console.log(`Closed-cycle notice sent for ${cycle.name}`);
     }
   } catch (e) {
@@ -106,7 +110,6 @@ async function checkClosedCycles() {
   }
 }
 
-// ── Remind raters two days before close ──
 async function sendReminders() {
   try {
     const now  = new Date();
@@ -150,6 +153,8 @@ async function sendReminders() {
   }
 }
 
+setInterval(checkClosedCycles, 60 * 60 * 1000);
+setTimeout(checkClosedCycles, 30 * 1000);
 setInterval(sendReminders, 60 * 60 * 1000);
 setTimeout(sendReminders, 45 * 1000);
 setInterval(checkClosedCycles, 60 * 60 * 1000);

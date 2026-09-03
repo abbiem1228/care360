@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CARE 360 — In Good Company</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#30383B;
+    --cream:#F7F3EA;
+    --clay:#A9633D;
+    --sage:#7C8863;
+    --sand:#D9CBB2;
+    --ochre:#C08A3E;
+    --ink-70: rgba(48,56,59,0.7);
+    --ink-50: rgba(48,56,59,0.5);
+    --ink-15: rgba(48,56,59,0.15);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Noto Serif', serif;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'EB Garamond', serif;
+    font-weight:500;
+    line-height:1.15;
+    margin:0;
+    letter-spacing:0.1px;
+  }
+  .ui{ font-family:'Noto Sans', sans-serif; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 40px; }
+  @media (max-width:720px){ .wrap{ padding:0 22px; } }
+
+  .eyebrow{
+    font-family:'Noto Sans', sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--clay);
+    display:block;
+    margin-bottom:14px;
+  }
+
+  /* ---------- NAV ---------- */
+  header.site{
+    padding:26px 0;
+    border-bottom:1px solid var(--ink-15);
+  }
+  header.site .wrap{ display:flex; align-items:center; justify-content:space-between; }
+  .logo-mark{ display:flex; align-items:center; gap:12px; }
+  .logo-mark img.mark{ width:34px; height:auto; flex:none; display:block; }
+  .logo-mark .word{ font-family:'EB Garamond', serif; font-size:19px; }
+  .logo-mark .word b{ font-style:normal; font-weight:600; }
+  .product-tag{
+    font-family:'Noto Sans',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    color:var(--ink-70);
+    border-left:1px solid var(--ink-15);
+    padding-left:12px;
+    margin-left:2px;
+  }
+  nav.links{ display:flex; align-items:center; gap:34px; }
+  nav.links a.navlink{
+    font-family:'Noto Sans',sans-serif;
+    font-size:14.5px;
+    color:var(--ink-70);
+  }
+  nav.links a.navlink:hover{ color:var(--ink); }
+  .btn{
+    font-family:'Noto Sans',sans-serif;
+    font-size:14.5px;
+    font-weight:600;
+    padding:11px 22px;
+    border-radius:3px;
+    display:inline-block;
+    border:1px solid var(--ink);
+    transition:background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .btn-solid{ background:var(--ink); color:var(--cream); }
+  .btn-solid:hover{ background:var(--clay); border-color:var(--clay); }
+  .btn-outline{ background:transparent; color:var(--ink); border-color:var(--ink-15); }
+  .btn-outline:hover{ border-color:var(--ink); }
+  @media (max-width:820px){ nav.links a.navlink{ display:none; } }
+
+  /* ---------- HERO ---------- */
+  .hero{ padding:100px 0 0; }
+  .hero .wrap{ position:relative; padding-bottom:26px; }
+  .hero-copy{ max-width:600px; }
+  @media (max-width:1040px){ .hero{ padding:56px 0 0; } .hero .wrap{ padding-bottom:0; } }
+
+  .hero h1{ font-size:58px; max-width:600px; }
+  @media (max-width:520px){ .hero h1{ font-size:36px; } }
+  .hero p.lede{
+    margin-top:22px;
+    font-size:19px;
+    color:var(--ink-70);
+    max-width:480px;
+  }
+  .hero .cta-row{ display:flex; gap:16px; margin-top:34px; align-items:center; flex-wrap:wrap; }
+  .hero .microcopy{
+    font-family:'Noto Sans',sans-serif;
+    font-size:13px;
+    color:var(--ink-50);
+  }
+
+  /* Hero visual: floats over the whitespace to the right of the headline, bleeding
+     slightly past the section's bottom edge rather than sitting in its own boxed column */
+  .hero-visual{ position:absolute; top:-14px; right:0; width:380px; }
+  @media (max-width:1040px){ .hero-visual{ position:static; width:320px; margin:48px auto 0; } }
+  .paper-stack{ position:relative; max-width:380px; margin:0 auto 22px; }
+  .paper-stack .sheet{
+    position:absolute; inset:0;
+    background:#fff;
+    border:1px solid var(--ink-15);
+    border-radius:3px;
+  }
+  .paper-stack .sheet.back{ transform:rotate(-6deg); z-index:1; box-shadow:0 10px 24px rgba(48,56,59,0.08); }
+  .paper-stack .sheet.mid{ transform:rotate(3deg); z-index:1; box-shadow:0 12px 28px rgba(48,56,59,0.10); }
+  .visual-caption{
+    text-align:center; font-family:'Noto Sans',sans-serif; font-size:14px;
+    color:var(--ink-70);
+    margin-top:30px;
+    padding:0 20px;
+  }
+  .report-card{
+    position:relative;
+    z-index:2;
+    background:#fff;
+    border:1px solid var(--ink-15);
+    border-radius:4px;
+    padding:26px 28px 24px;
+    transform:rotate(-1deg);
+    box-shadow:0 18px 36px rgba(48,56,59,0.14);
+  }
+  .report-card .rc-top{ display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--ink-15); padding-bottom:12px; margin-bottom:16px; }
+  .report-card .rc-top .rc-name{ font-family:'EB Garamond',serif; font-size:20px; }
+  .report-card .rc-top .rc-tag{ font-family:'Noto Sans',sans-serif; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-50); }
+  .care-bars{ display:flex; flex-direction:column; gap:11px; }
+  .care-bar-row{ display:grid; grid-template-columns:112px 1fr 32px; align-items:center; gap:10px; }
+  .care-bar-row .label{ font-family:'Noto Sans',sans-serif; font-size:12.5px; color:var(--ink-70); }
+  .care-bar-row .track{ height:8px; background:var(--sand); border-radius:6px; overflow:hidden; }
+  .care-bar-row .fill{
+    height:100%; border-radius:6px; width:0;
+    animation:fillGrow 1.4s cubic-bezier(.22,.61,.36,1) forwards;
+    animation-delay:var(--d, 0s);
+  }
+  @keyframes fillGrow{ to{ width:var(--w); } }
+  .care-bar-row .num{ font-family:'Noto Sans',sans-serif; font-size:12.5px; color:var(--ink); text-align:right; }
+  .rc-quote{
+    margin-top:16px; padding-top:14px; border-top:1px solid var(--ink-15);
+    font-family:'Noto Serif',serif; font-style:italic; font-size:13.5px; color:var(--ink-70);
+  }
+
+
+  /* ---------- SECTION SHELL ---------- */
+  section{ padding:78px 0; }
+  .rule-top{ border-top:1px solid var(--ink-15); }
+  .section-head{ max-width:620px; margin-bottom:48px; }
+  .section-head h2{ font-size:36px; }
+  .section-head p{ color:var(--ink-70); margin-top:14px; font-size:17.5px; }
+
+  /* ---------- DIFFERENTIATORS ---------- */
+  .diff-lead{
+    background:var(--ink);
+    color:var(--cream);
+    border-radius:4px;
+    padding:34px 38px;
+    margin-bottom:44px;
+    display:flex;
+    gap:26px;
+    align-items:flex-start;
+  }
+  @media (max-width:680px){ .diff-lead{ flex-direction:column; gap:14px; padding:26px 24px; } }
+  .diff-lead .mark{ font-family:'EB Garamond',serif; font-size:38px; font-style:italic; line-height:1; color:var(--ochre); flex:none; }
+  .diff-lead h3{ font-family:'EB Garamond',serif; font-size:24px; font-weight:500; color:var(--cream); }
+  .diff-lead p{ margin-top:8px; color:rgba(247,243,234,0.78); font-size:16.5px; max-width:640px; }
+
+  .diff-list{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:8px; }
+  @media (max-width:700px){ .diff-list{ grid-template-columns:1fr; } }
+  .diff-item{
+    background:#fff;
+    border:1px solid var(--ink-15);
+    border-radius:10px;
+    padding:26px 26px 24px;
+    box-shadow:0 10px 24px rgba(48,56,59,0.06);
+  }
+  .diff-item:last-child{ grid-column:1 / -1; display:flex; align-items:center; gap:24px; }
+  .diff-item:last-child .badge{ flex:none; }
+  .diff-item:last-child .body{ flex:1; }
+  @media (max-width:560px){ .diff-item:last-child{ flex-direction:column; align-items:flex-start; gap:12px; } }
+  .diff-item .badge{
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Noto Sans',sans-serif; font-weight:700; font-size:14px; color:#fff;
+    margin-bottom:16px;
+  }
+  .diff-item:last-child .badge{ margin-bottom:0; }
+  .diff-item:nth-child(1) .badge{ background:var(--clay); }
+  .diff-item:nth-child(2) .badge{ background:var(--sage); }
+  .diff-item:nth-child(3) .badge{ background:var(--ochre); }
+  .diff-item:nth-child(4) .badge{ background:var(--clay); }
+  .diff-item:nth-child(5) .badge{ background:var(--sage); }
+  .diff-item h4{ font-family:'EB Garamond',serif; font-size:19px; font-weight:500; }
+  .diff-item p{ color:var(--ink-70); margin-top:6px; font-size:14.5px; max-width:420px; }
+
+  /* ---------- WALKTHROUGH ---------- */
+  .tour{ display:grid; grid-template-columns:0.62fr 1.38fr; gap:46px; align-items:start; }
+  @media (max-width:900px){ .tour{ grid-template-columns:1fr; } }
+  .tour-steps{ display:flex; flex-direction:column; }
+  .tour-step{
+    text-align:left; width:100%; background:none; border:none; cursor:pointer;
+    padding:18px 0 18px 22px; border-left:2px solid var(--ink-15);
+    font-family:inherit; color:inherit;
+  }
+  .tour-step .n{ font-family:'Noto Sans',sans-serif; font-size:12px; color:var(--ink-50); letter-spacing:0.06em; }
+  .tour-step h4{ font-family:'EB Garamond',serif; font-size:19px; margin-top:4px; }
+  .tour-step p{ font-size:14.5px; color:var(--ink-70); margin-top:6px; max-width:320px; display:none; }
+  .tour-step.active{ border-left-color:var(--clay); }
+  .tour-step.active .n{ color:var(--clay); }
+  .tour-step.active p{ display:block; }
+
+  .tour-stage{
+    background:#fff;
+    border:1px solid var(--ink-15);
+    border-radius:2px;
+    overflow:visible;
+    position:relative;
+    margin-top:14px;
+  }
+  .tour-stage .folder-tab{
+    position:absolute;
+    top:-32px; left:24px;
+    height:32px;
+    display:flex; align-items:center;
+    background:var(--sand);
+    border:1px solid var(--ink-15);
+    border-bottom:none;
+    border-radius:5px 5px 0 0;
+    padding:0 16px;
+    font-family:'Noto Sans',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-70);
+    letter-spacing:0.02em;
+  }
+  .tour-stage .screen{ padding:38px 34px 34px; min-height:340px; display:none; }
+  .tour-stage .screen.active{ display:block; }
+
+  /* Screen 1: invite */
+  .invite-row{
+    display:flex; align-items:center; gap:14px; padding:14px 16px; border:1px solid var(--ink-15); border-radius:5px; margin-bottom:10px;
+  }
+  .invite-row.play{ animation:rowIn 0.5s ease-out forwards; animation-delay:var(--d,0s); }
+  @keyframes rowIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+  .invite-row .avatar{ width:34px; height:34px; border-radius:50%; background:var(--sage); flex:none; }
+  .invite-row .who{ font-family:'Noto Sans',sans-serif; font-size:14px; }
+  .invite-row .who small{ display:block; color:var(--ink-50); font-size:12px; }
+  .invite-row .status{ margin-left:auto; font-family:'Noto Sans',sans-serif; font-size:12px; padding:4px 10px; border-radius:12px; display:flex; align-items:center; gap:8px; }
+  .status.sent{ background:var(--sand); color:var(--ink-70); }
+  .status .ping{ position:relative; width:7px; height:7px; flex:none; }
+  .status .ping::before{ content:""; position:absolute; inset:0; border-radius:50%; background:var(--clay); }
+  .status .ping::after{
+    content:""; position:absolute; inset:-5px; border-radius:50%;
+    border:1.5px solid var(--clay);
+    animation:pingRing 1.6s ease-out infinite;
+  }
+  @keyframes pingRing{ 0%{ transform:scale(0.5); opacity:0.9; } 100%{ transform:scale(2.2); opacity:0; } }
+  .status.done{ background:var(--sage); color:#fff; }
+  .status.pending{ background:transparent; color:var(--ink-50); border:1px dashed var(--ink-15); }
+
+  /* Screen 2: report */
+  .rep-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px; }
+  .rep-head h5{ font-family:'EB Garamond',serif; font-size:22px; font-weight:500; }
+  .rep-head span{ font-family:'Noto Sans',sans-serif; font-size:12px; color:var(--ink-50); }
+  .insight-box{ background:var(--cream); border-left:3px solid var(--ochre); padding:14px 18px; font-size:14.5px; color:var(--ink-70); font-style:italic; margin-bottom:18px; }
+
+  /* Screen 3: action plan */
+  .slide-mock{ border:1px solid var(--ink-15); border-radius:4px; padding:22px 24px; background:linear-gradient(180deg, #fff 0%, var(--cream) 100%); }
+  .slide-mock .tag{ font-family:'Noto Sans',sans-serif; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--sage); }
+  .slide-mock h5{ font-family:'EB Garamond',serif; font-size:22px; margin-top:6px; }
+  .slide-mock ul{ margin:16px 0 0; padding-left:18px; font-size:14.5px; color:var(--ink-70); }
+  .slide-mock li{ margin-bottom:8px; }
+
+  /* Screen 4: dashboard */
+  .dash-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+  .dash-stat{ border:1px solid var(--ink-15); border-radius:5px; padding:16px; }
+  .dash-stat .num{ font-family:'EB Garamond',serif; font-size:28px; }
+  .dash-stat .lab{ font-family:'Noto Sans',sans-serif; font-size:12px; color:var(--ink-50); margin-top:2px; }
+
+  /* ---------- FRAMEWORK ---------- */
+  /* ---------- FRAMEWORK (nested inside How it works) ---------- */
+  .fw-divider{
+    margin-top:64px;
+    padding-top:22px;
+    border-top:1px solid var(--ink-15);
+    font-family:'Noto Sans',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-50);
+  }
+  .framework{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:22px; }
+  .fw-item{ background:#fff; border:1px solid var(--ink-15); border-radius:6px; padding:22px 20px; }
+  @media (max-width:920px){
+    .framework{ grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width:520px){ .framework{ grid-template-columns:1fr; } }
+  .fw-item .letter{ font-family:'EB Garamond',serif; font-size:32px; color:var(--sage); font-style:italic; letter-spacing:-1px; }
+  .fw-item h4{ font-family:'EB Garamond',serif; font-size:18px; margin-top:8px; }
+  .fw-item p{ font-size:13.5px; color:var(--ink-70); margin-top:6px; }
+
+  /* Leadership Effectiveness: the composite of the four above, styled as the same
+     card language but set apart with a clay border so it reads as the synthesis */
+  .fw-le{
+    margin-top:14px;
+    background:#fff;
+    border:1.5px solid var(--clay);
+    border-radius:6px;
+    padding:24px 26px;
+    display:flex;
+    align-items:center;
+    gap:28px;
+    flex-wrap:wrap;
+  }
+  .fw-le .tag-col{ flex:none; min-width:200px; }
+  .fw-le .tag{
+    font-family:'Noto Sans',sans-serif; font-size:11px; font-weight:700;
+    letter-spacing:0.09em; text-transform:uppercase; color:var(--clay);
+    display:block; margin-bottom:6px;
+  }
+  .fw-le h4{ font-family:'EB Garamond',serif; font-size:19px; }
+  .fw-le p{ font-size:13.5px; color:var(--ink-70); margin:0; flex:1; min-width:220px; }
+
+  /* ---------- PRICING ---------- */
+  .price-toggle-row{ display:flex; align-items:center; margin-bottom:44px; flex-wrap:wrap; gap:6px; }
+  .price-toggle{ display:inline-flex; border:1px solid var(--ink-15); border-radius:20px; padding:3px; }
+  .price-toggle button{
+    font-family:'Noto Sans',sans-serif; font-size:13.5px; font-weight:600; padding:8px 18px;
+    border-radius:16px; border:none; background:none; cursor:pointer; color:var(--ink-70);
+  }
+  .price-toggle button.active{ background:var(--ink); color:var(--cream); }
+  .save-note{ font-family:'Noto Sans',sans-serif; font-size:13px; color:var(--sage); margin-left:14px; }
+
+  .plans{ display:grid; grid-template-columns:repeat(4,1fr); gap:0; border-top:1px solid var(--ink-15); border-left:1px solid var(--ink-15); }
+  @media (max-width:980px){ .plans{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:560px){ .plans{ grid-template-columns:1fr; } }
+  .plan{ border-right:1px solid var(--ink-15); border-bottom:1px solid var(--ink-15); padding:30px 26px; position:relative; }
+  .plan.featured{ background:#fff; }
+  .plan .flag{
+    position:absolute; top:0; left:0; right:0;
+    background:var(--clay); color:#fff;
+    font-family:'Noto Sans',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.06em;
+    text-align:center; padding:6px 0; text-transform:uppercase;
+  }
+  .plan.featured{ padding-top:56px; }
+  .plan h4{ font-family:'EB Garamond',serif; font-size:22px; }
+  .plan .blurb{ font-size:13.5px; color:var(--ink-70); margin-top:6px; min-height:34px; }
+  .plan .price{ font-family:'EB Garamond',serif; font-size:38px; margin-top:18px; }
+  .plan .price sup{ font-family:'Noto Sans',sans-serif; font-size:14px; font-weight:600; }
+  .plan .price small{ font-family:'Noto Sans',sans-serif; font-size:13px; color:var(--ink-50); font-weight:400; }
+  .plan .price.custom{ font-size:22px; }
+  .plan ul{ list-style:none; margin:20px 0 0; padding:0; font-family:'Noto Sans',sans-serif; font-size:13.5px; color:var(--ink-70); }
+  .plan li{ padding:7px 0; border-top:1px solid var(--ink-15); }
+  .plan li:first-child{ border-top:none; }
+  .plan .btn{ width:100%; text-align:center; margin-top:22px; }
+
+  .plans-foot{
+    font-family:'Noto Sans',sans-serif; font-size:14px; color:var(--ink-70);
+    border:1px solid var(--ink-15); border-top:none; padding:18px 26px; background:var(--sand);
+  }
+  .plans-foot strong{ color:var(--ink); }
+
+
+  /* ---------- CLOSER ---------- */
+  .closer{ background:var(--ink); color:var(--cream); text-align:left; }
+  .closer .wrap{ display:flex; justify-content:space-between; align-items:center; gap:30px; flex-wrap:wrap; }
+  .closer h2{ font-size:34px; color:var(--cream); max-width:480px; }
+  .closer .btn-solid{ background:var(--ochre); border-color:var(--ochre); color:var(--ink); }
+  .closer .btn-solid:hover{ background:var(--clay); border-color:var(--clay); color:#fff; }
+
+  footer.site{ padding:30px 0 40px; }
+  footer.site .wrap{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  footer.site .word{ font-family:'EB Garamond',serif; font-size:15px; color:var(--ink-70); }
+  footer.site .fine{ font-family:'Noto Sans',sans-serif; font-size:12.5px; color:var(--ink-50); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <div class="logo-mark">
+      <img class="mark" src="data:image/png;base64,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" alt="In Good Company mark">
+      <span class="word">in good <b>company</b>.</span>
+      <span class="product-tag">CARE&nbsp;360</span>
+    </div>
+    <nav class="links">
+      <a class="navlink" href="#how">How it works</a>
+      <a class="navlink" href="#pricing">Pricing</a>
+      <a class="btn btn-outline" href="https://care360.ingoodcocollective.com/plans">Start free trial</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-copy">
+      <span class="eyebrow">Real 360 feedback, without the red tape</span>
+      <h1>See how your leaders actually show up. Then help them grow.</h1>
+      <p class="lede">Good 360 feedback already exists, it's just been built for big companies with big HR budgets and someone whose full-time job is running these programs. CARE 360 gives small and growing companies the same caliber of report and the same real plan for what to do next, without the sales calls, the annual contract, or the per-report bill.</p>
+    </div>
+    <div class="hero-visual">
+      <div class="paper-stack">
+        <div class="sheet back"></div>
+        <div class="sheet mid"></div>
+        <div class="report-card">
+          <div class="rc-top">
+            <span class="rc-name">Jordan Ellis</span>
+            <span class="rc-tag">CARE Report</span>
+          </div>
+          <div class="care-bars">
+            <div class="care-bar-row"><span class="label">Connect</span><div class="track"><div class="fill" style="--w:82%; --d:0.05s; background:var(--clay)"></div></div><span class="num">4.1</span></div>
+            <div class="care-bar-row"><span class="label">Accountable</span><div class="track"><div class="fill" style="--w:70%; --d:0.2s; background:var(--sage)"></div></div><span class="num">3.5</span></div>
+            <div class="care-bar-row"><span class="label">Reach</span><div class="track"><div class="fill" style="--w:64%; --d:0.35s; background:var(--ochre)"></div></div><span class="num">3.2</span></div>
+            <div class="care-bar-row"><span class="label">Empower</span><div class="track"><div class="fill" style="--w:88%; --d:0.5s; background:var(--clay)"></div></div><span class="num">4.4</span></div>
+            <div class="care-bar-row"><span class="label">Leadership Eff.</span><div class="track"><div class="fill" style="--w:76%; --d:0.65s; background:var(--sage)"></div></div><span class="num">3.8</span></div>
+          </div>
+          <div class="rc-quote">"Jordan's clearest strength is how she empowers her team to make decisions without her in the room."</div>
+        </div>
+      </div>
+      <div class="visual-caption">One of the pages inside a CARE report, generated the moment the survey closes.</div>
+    </div>
+  </div>
+</section>
+
+<section class="rule-top">
+  <div class="wrap">
+    <span class="eyebrow">Why teams switch to CARE 360</span>
+    <div class="diff-lead">
+      <span class="mark">∞</span>
+      <div>
+        <h3>Unlimited surveys and reports. Every plan, no exceptions.</h3>
+        <p>Run a 360 for one leader or fifty this month. No per-report charges, no credit packs to track, no usage math to explain to finance. That's the whole idea behind making development attainable at every level, not a line item people have to ration.</p>
+      </div>
+    </div>
+    <div class="diff-list">
+      <div class="diff-item">
+        <span class="badge">01</span>
+        <h4>Ask what actually matters to you</h4>
+        <p>Add your own custom questions alongside the CARE framework, so the survey reflects your organization's own language and priorities, not just a generic template.</p>
+      </div>
+      <div class="diff-item">
+        <span class="badge">02</span>
+        <h4>A report people actually read</h4>
+        <p>Written narrative feedback, not just a page of bar charts. Every Full 360 Report names real strengths and real risks, in plain language.</p>
+      </div>
+      <div class="diff-item">
+        <span class="badge">03</span>
+        <h4>Runs itself</h4>
+        <p>Automatic rater reminders, deadline tracking, and auto-close on the survey date. Nobody has to chase anyone down.</p>
+      </div>
+      <div class="diff-item">
+        <span class="badge">04</span>
+        <h4>A plan, not just a score</h4>
+        <p>Every report ships with a Leadership Action Plan, a ready-to-use slide deck the leader can walk into their next 1:1 with.</p>
+      </div>
+      <div class="diff-item">
+        <span class="badge">05</span>
+        <div class="body">
+          <h4>Priced for the whole organization</h4>
+          <p>Plans scale by company size, not by how many 360s you happen to run this year. Growing teams and lean HR functions can both afford it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="rule-top">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>Built on the CARE framework, from invite to action plan.</h2>
+      <p>Every survey measures the same five dimensions of how a leader actually operates day to day. Click through what a leader and their raters experience.</p>
+    </div>
+    <div class="tour">
+      <div class="tour-steps">
+        <button class="tour-step active" data-step="1">
+          <span class="n">01</span>
+          <h4>Invite raters</h4>
+          <p>Add a leader, choose their raters, set a close date. CARE 360 handles the rest.</p>
+        </button>
+        <button class="tour-step" data-step="2">
+          <span class="n">02</span>
+          <h4>Feedback comes in</h4>
+          <p>Raters get reminders automatically. You can see who's responded at a glance.</p>
+        </button>
+        <button class="tour-step" data-step="3">
+          <span class="n">03</span>
+          <h4>Your report writes itself</h4>
+          <p>Once the survey closes, a full narrative report is ready, scored across Connect, Accountable, Reach, and Empower.</p>
+        </button>
+        <button class="tour-step" data-step="4">
+          <span class="n">04</span>
+          <h4>The Action Plan ships</h4>
+          <p>A Leadership Action Plan deck, built from the report, ready for the leader's next conversation.</p>
+        </button>
+      </div>
+      <div class="tour-stage">
+        <div class="folder-tab" id="folder-tab-label">Rater tracking</div>
+
+        <div class="screen active" data-screen="1">
+          <div class="invite-row" style="--d:0.05s"><div class="avatar"></div><div class="who">Jordan Ellis<small>Self-assessment</small></div><div class="status done">Complete</div></div>
+          <div class="invite-row" style="--d:0.15s"><div class="avatar" style="background:var(--clay)"></div><div class="who">Priya N.<small>Direct report</small></div><div class="status done">Complete</div></div>
+          <div class="invite-row" style="--d:0.25s"><div class="avatar" style="background:var(--ochre)"></div><div class="who">Marcus T.<small>Peer</small></div><div class="status sent"><span class="ping"></span>Reminder sent</div></div>
+          <div class="invite-row" style="--d:0.35s"><div class="avatar" style="background:var(--sand)"></div><div class="who">Dana K.<small>Manager</small></div><div class="status pending">Invited</div></div>
+        </div>
+
+        <div class="screen" data-screen="2">
+          <div class="dash-grid">
+            <div class="dash-stat"><div class="num">6/8</div><div class="lab">Raters responded</div></div>
+            <div class="dash-stat"><div class="num">3</div><div class="lab">Days until close</div></div>
+            <div class="dash-stat"><div class="num">2</div><div class="lab">Reminders auto-sent</div></div>
+          </div>
+          <div class="insight-box">Reminder emails go out automatically two days before the deadline. Late responses are blocked once the survey closes.</div>
+        </div>
+
+        <div class="screen" data-screen="3">
+          <div class="rep-head"><h5>Jordan Ellis — CARE Report</h5><span>Generated on close</span></div>
+          <div class="insight-box">"Across raters, Empower is Jordan's clearest strength. Reach is the area most worth developing next, particularly in cross-team visibility."</div>
+          <div class="care-bars">
+            <div class="care-bar-row"><span class="label">Connect</span><div class="track"><div class="fill" style="--w:82%; --d:0.05s; background:var(--clay)"></div></div><span class="num">4.1</span></div>
+            <div class="care-bar-row"><span class="label">Empower</span><div class="track"><div class="fill" style="--w:88%; --d:0.2s; background:var(--sage)"></div></div><span class="num">4.4</span></div>
+          </div>
+        </div>
+
+        <div class="screen" data-screen="4">
+          <div class="slide-mock">
+            <span class="tag">Leadership Action Plan</span>
+            <h5>Jordan Ellis — Next 90 Days</h5>
+            <ul>
+              <li>Lean into Empower: delegate one recurring decision to a direct report this month.</li>
+              <li>Build Reach: join one cross-team planning meeting outside your own function.</li>
+              <li>Check in with your manager on progress at the 45-day mark.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="fw-divider">
+      <span>The five dimensions every report measures</span>
+    </div>
+    <div class="framework">
+      <div class="fw-item"><span class="letter">C</span><h4>Connect</h4><p>How a leader builds trust and relationships across their team.</p></div>
+      <div class="fw-item"><span class="letter">A</span><h4>Accountable</h4><p>How a leader owns outcomes and follows through.</p></div>
+      <div class="fw-item"><span class="letter">R</span><h4>Reach</h4><p>How a leader extends influence beyond their own team.</p></div>
+      <div class="fw-item"><span class="letter">E</span><h4>Empower</h4><p>How a leader develops others and shares ownership.</p></div>
+    </div>
+    <div class="fw-le">
+      <div class="tag-col">
+        <span class="tag">The composite score</span>
+        <h4>Leadership Effectiveness</h4>
+      </div>
+      <p>The four scores combined: an overall read on how the leader is landing.</p>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="rule-top">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Pricing</span>
+      <h2>One price. Unlimited use.</h2>
+      <p>Every plan includes unlimited leaders, unlimited raters, and unlimited Full 360 Reports. No per-report charges, ever.</p>
+    </div>
+
+    <div class="price-toggle-row">
+      <div class="price-toggle">
+        <button id="btn-monthly" class="active">Monthly</button>
+        <button id="btn-annual">Annual</button>
+      </div>
+      <span class="save-note" id="save-note" style="display:none;">Two months free on annual billing</span>
+    </div>
+
+    <div class="plans">
+      <div class="plan">
+        <h4>Free trial</h4>
+        <div class="blurb">Run one complete 360, start to finish.</div>
+        <div class="price">$0</div>
+        <ul>
+          <li>One leader</li>
+          <li>Unlimited raters on that leader</li>
+          <li>The Full 360 Report and PDF</li>
+          <li>Automatic reminders and deadlines</li>
+          <li>Leadership Action Plan template</li>
+        </ul>
+        <a class="btn btn-outline" href="https://care360.ingoodcocollective.com/plans">Start free trial</a>
+      </div>
+
+      <div class="plan featured">
+        <div class="flag">Most popular</div>
+        <h4>Starter</h4>
+        <div class="blurb">For organizations up to 250 employees.</div>
+        <div class="price"><span class="m-price">$149</span><small class="m-suffix">/mo</small></div>
+        <ul>
+          <li>Unlimited leaders and surveys</li>
+          <li>Unlimited raters</li>
+          <li>The Full 360 Report and PDF</li>
+          <li>Automatic reminders and deadlines</li>
+          <li>Leadership Action Plan template</li>
+          <li>Email support</li>
+        </ul>
+        <a class="btn btn-solid" href="https://care360.ingoodcocollective.com/plans">Choose Starter</a>
+      </div>
+
+      <div class="plan">
+        <h4>Growth</h4>
+        <div class="blurb">For organizations up to 750 employees.</div>
+        <div class="price"><span class="m-price">$299</span><small class="m-suffix">/mo</small></div>
+        <ul>
+          <li>Everything in Starter</li>
+          <li>Higher usage for larger teams</li>
+          <li>Priority support</li>
+          <li>Onboarding walkthrough</li>
+        </ul>
+        <a class="btn btn-outline" href="https://care360.ingoodcocollective.com/plans">Choose Growth</a>
+      </div>
+
+      <div class="plan">
+        <h4>Enterprise</h4>
+        <div class="blurb">For organizations over 750 employees.</div>
+        <div class="price custom">Custom</div>
+        <ul>
+          <li>Everything in Growth</li>
+          <li>Volume pricing</li>
+          <li>Dedicated onboarding</li>
+        </ul>
+        <a class="btn btn-outline" href="mailto:care360@ingoodcocollective.com?subject=CARE%20360%20Enterprise">Talk to us</a>
+      </div>
+    </div>
+    <div class="plans-foot">
+      <strong>Community pricing</strong> is available for nonprofits, schools, and government agencies, at a discount off the matching plan. <a href="mailto:care360@ingoodcocollective.com?subject=CARE%20360%20Community%20pricing" style="text-decoration:underline;">Apply for Community pricing</a>.
+    </div>
+  </div>
+</section>
+
+<section class="closer rule-top">
+  <div class="wrap">
+    <h2>Give your leaders feedback they can actually use.</h2>
+    <a class="btn btn-solid" href="https://care360.ingoodcocollective.com/plans">Start your free trial</a>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span class="word">in good company.</span>
+    <span class="fine">CARE 360 by In Good Company Collective &nbsp;·&nbsp; ingoodcocollective.com</span>
+  </div>
+</footer>
+
+<script>
+  // Product tour
+  const steps = document.querySelectorAll('.tour-step');
+  const screens = document.querySelectorAll('.screen');
+  const folderTab = document.getElementById('folder-tab-label');
+  const tabLabels = { '1': 'Rater tracking', '2': 'Survey status', '3': 'Your report', '4': 'Action plan' };
+
+  function playRowAnimations(screen){
+    const rows = screen.querySelectorAll('.invite-row');
+    rows.forEach(row => {
+      row.classList.remove('play');
+      void row.offsetWidth; // force reflow so the animation restarts
+      row.classList.add('play');
+    });
+  }
+
+  steps.forEach(step => {
+    step.addEventListener('click', () => {
+      steps.forEach(s => s.classList.remove('active'));
+      screens.forEach(s => s.classList.remove('active'));
+      step.classList.add('active');
+      const activeScreen = document.querySelector('.screen[data-screen="' + step.dataset.step + '"]');
+      activeScreen.classList.add('active');
+      folderTab.textContent = tabLabels[step.dataset.step];
+      playRowAnimations(activeScreen);
+    });
+  });
+
+  // Replay the rater-tracking entrance animation once the walkthrough actually
+  // scrolls into view, rather than on page load where it's easy to miss.
+  const tourEl = document.querySelector('.tour');
+  if (tourEl && 'IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting){
+          const activeScreen = document.querySelector('.screen.active');
+          if (activeScreen) playRowAnimations(activeScreen);
+          io.disconnect();
+        }
+      });
+    }, { threshold: 0.4 });
+    io.observe(tourEl);
+  }
+
+  // Pricing toggle
+  const btnMonthly = document.getElementById('btn-monthly');
+  const btnAnnual = document.getElementById('btn-annual');
+  const saveNote = document.getElementById('save-note');
+  const prices = { starter: { m: 149, a: 1490 }, growth: { m: 299, a: 2990 } };
+
+  function setBilling(annual){
+    btnMonthly.classList.toggle('active', !annual);
+    btnAnnual.classList.toggle('active', annual);
+    saveNote.style.display = annual ? 'inline' : 'none';
+
+    document.querySelectorAll('.plan').forEach(plan => {
+      const priceEl = plan.querySelector('.m-price');
+      const suffixEl = plan.querySelector('.m-suffix');
+      if (!priceEl) return;
+      const name = plan.querySelector('h4').textContent.trim().toLowerCase();
+      const data = prices[name];
+      if (!data) return;
+      priceEl.textContent = annual ? '$' + data.a.toLocaleString() : '$' + data.m;
+      suffixEl.textContent = annual ? '/yr' : '/mo';
+    });
+  }
+  btnMonthly.addEventListener('click', () => setBilling(false));
+  btnAnnual.addEventListener('click', () => setBilling(true));
+</script>
+
+</body>
+</html>

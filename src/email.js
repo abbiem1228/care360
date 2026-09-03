@@ -78,9 +78,9 @@ const GROUP_LABELS = {
   direct_report: 'Direct Report', skip_level: 'Skip-Level'
 };
 
-async function sendAdminNotice({ leader, cycle, raters, reason }) {
-  const to = process.env.ADMIN_EMAIL;
-  if (!to) { console.log('ADMIN_EMAIL not set, skipping notification'); return; }
+async function sendAdminNotice({ leader, cycle, raters, reason, to: overrideTo }) {
+    const to = overrideTo || process.env.ADMIN_EMAIL;
+  if (!to) { console.log('No recipient available, skipping notification'); return; }
 
   const done  = raters.filter(r => r.completed_at).length;
   const total = raters.length;
@@ -257,4 +257,20 @@ async function sendSignupNotice({ account, user }) {
     console.error('Signup notice failed:', e.message);
   }
 }
-module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice };
+async function resolveNotifyEmail(supabase, accountId) {
+  if (!accountId) return process.env.ADMIN_EMAIL || null;
+  try {
+    const { data } = await supabase
+      .from('account_users')
+      .select('email')
+      .eq('account_id', accountId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return (data && data.email) || process.env.ADMIN_EMAIL || null;
+  } catch (e) {
+    console.error('Could not resolve account owner email:', e.message);
+    return process.env.ADMIN_EMAIL || null;
+  }
+}
+module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice, resolveNotifyEmail };

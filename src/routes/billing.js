@@ -45,12 +45,9 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
   }
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
           const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       allow_promotion_codes: true,
-      line_items: [{ price: priceId, quantity: 1 }],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${APP_URL}/billing/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${APP_URL}/plans`,

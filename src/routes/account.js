@@ -10,7 +10,7 @@ router.get('/signin', (req, res) => res.send(signinPage()));
 // ── Sign up ───────────────────────────────────────────────────
 
 router.post('/signup', async (req, res) => {
-  const { name, email, password, organization } = req.body;
+  const { name, email, password, organization, agree_terms } = req.body;
 
   if (!email || !password || !organization) {
     return res.send(signupPage('Please fill in every required field.', req.body));
@@ -18,12 +18,16 @@ router.post('/signup', async (req, res) => {
   if (password.length < 8) {
     return res.send(signupPage('Please choose a password of at least 8 characters.', req.body));
   }
+  if (agree_terms !== 'on') {
+    return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body));
+  }
 
   const result = await signUp({
     email: email.trim().toLowerCase(),
     password,
     name: (name || '').trim(),
-    organization: organization.trim()
+    organization: organization.trim(),
+    termsAcceptedAt: new Date().toISOString()
   });
 
   if (result.error) return res.send(signupPage(result.error, req.body));
@@ -90,6 +94,10 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
 .err{background:#FFF0EE;color:#A94442;border:1px solid #FDDDD9;border-radius:6px;padding:11px 14px;font-size:13px;margin-bottom:18px;line-height:1.6}
 .foot{text-align:center;margin-top:24px;font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:0.5px}
 .trial{background:var(--cream);border-left:4px solid var(--sage);border-radius:0 6px 6px 0;padding:12px 15px;font-size:12.5px;color:#4A5154;line-height:1.65;margin-bottom:22px}
+.terms-check{margin-bottom:20px}
+.terms-label{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--grey);line-height:1.6;cursor:pointer}
+.terms-label input{margin-top:3px;flex-shrink:0;width:15px;height:15px;accent-color:var(--clay);cursor:pointer}
+.terms-label a{color:var(--clay);font-weight:600}
 </style>`;
 
 function shell(title, inner) {
@@ -134,6 +142,12 @@ function signupPage(error, prev) {
       <div class="group">
         <label class="label">Password *</label>
         <input class="control" type="password" name="password" required placeholder="At least 8 characters"/>
+      </div>
+      <div class="group terms-check">
+        <label class="terms-label">
+          <input type="checkbox" name="agree_terms" required/>
+          <span>I agree to the <a href="https://ingoodcocollective.com/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="https://ingoodcocollective.com/privacy" target="_blank" rel="noopener">Privacy Policy</a></span>
+        </label>
       </div>
       <button class="btn" type="submit">Create my account</button>
     </form>

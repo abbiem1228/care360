@@ -37,7 +37,7 @@ const PLANS = {
       'Email support'
     ],
     cta: 'Choose Starter',
-        href: '/billing/checkout?plan=starter',
+    href: '/signup?plan=starter',
     style: 'featured'
   },
   growth: {
@@ -53,7 +53,7 @@ const PLANS = {
       'Onboarding walkthrough'
     ],
     cta: 'Choose Growth',
-    href: '/billing/checkout?plan=growth',
+    href: '/signup?plan=growth',
     style: 'plain'
   },
   community: {
@@ -99,7 +99,7 @@ function money(n) {
   return '$' + n.toLocaleString('en-US');
 }
 
-function planCard(p, annual) {
+function planCard(p, annual, loggedIn) {
   let price, sub;
 
   if (p.monthly === 0) {
@@ -116,7 +116,21 @@ function planCard(p, annual) {
     sub   = 'per month';
   }
 
-  const href = p.href + (annual && (p.key === 'starter' || p.key === 'growth') ? '&billing=annual' : '');
+  // A brand new visitor needs an account before Stripe has anywhere to
+  // attach a subscription, so paid plans route through signup first,
+  // which then carries them straight into checkout right after. An
+  // already logged-in visitor (upgrading from trial) skips straight
+  // to checkout, since creating a second account for them would be wrong.
+  const isPaid = p.key === 'starter' || p.key === 'growth';
+  let href;
+  if (isPaid) {
+    const billingParam = annual ? '&billing=annual' : '';
+    href = loggedIn
+      ? `/billing/checkout?plan=${p.key}${billingParam}`
+      : `/signup?plan=${p.key}${billingParam}`;
+  } else {
+    href = p.href;
+  }
 
   return `
   <div class="plan plan-${p.style}">
@@ -134,6 +148,7 @@ function planCard(p, annual) {
 
 function plansPage(annual, req) {
   const signedIn = !!req.isAdmin;
+  const loggedIn = signedIn;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -215,13 +230,13 @@ a{text-decoration:none}
   <div class="save">${annual ? 'Two months free on annual billing' : ''}</div>
 
   <div class="grid">
-    ${planCard(PLANS.trial, annual)}
-    ${planCard(PLANS.starter, annual)}
-    ${planCard(PLANS.growth, annual)}
+    ${planCard(PLANS.trial, annual, loggedIn)}
+    ${planCard(PLANS.starter, annual, loggedIn)}
+    ${planCard(PLANS.growth, annual, loggedIn)}
   </div>
   <div class="grid-2">
-    ${planCard(PLANS.community, annual)}
-    ${planCard(PLANS.enterprise, annual)}
+    ${planCard(PLANS.community, annual, loggedIn)}
+    ${planCard(PLANS.enterprise, annual, loggedIn)}
   </div>
 
   <div class="foot">

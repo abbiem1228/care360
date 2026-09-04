@@ -544,6 +544,7 @@ function cycleDetailPage(cycle, leaders, req) {
       </div>
       <div class="actions-row">
         ${statusBtns.map(([s,l]) => `<form method="POST" action="/admin/cycles/${cycle.id}/status" style="display:inline"><input type="hidden" name="status" value="${s}"/><button class="btn ${s==='active'?'btn-sage':s==='closed'?'btn-red':'btn-ghost'}" type="submit">${l}</button></form>`).join('')}
+        ${cycle.status === 'draft' ? `<a href="/admin/cycles/${cycle.id}/custom-questions" class="btn btn-ghost">Custom Questions</a>` : ''}
         <a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">+ Add Leader</a>
       </div>
     </div>

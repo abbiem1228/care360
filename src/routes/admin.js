@@ -358,6 +358,7 @@ function adminShell(title, content, req) {
       <div class="nav-avatar">${initial}</div>
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
+      ${acct && acct.plan === 'trial' ? `<a href="/plans" class="nav-link" style="color:#F0C987;font-weight:700">Upgrade</a>` : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>

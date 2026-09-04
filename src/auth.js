@@ -17,6 +17,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const admin = require('./db/client');
+const { sendSignupNotice } = require('./email');
 
 const URL  = process.env.SUPABASE_URL;
 const ANON = process.env.SUPABASE_ANON_KEY;
@@ -81,6 +82,12 @@ async function signUp({ email, password, name, organization, termsAcceptedAt }) 
     console.error('ACCOUNT LINK FAILED', email, linkErr.message);
     return { error: 'Your login was created but the account setup failed. Please contact support.' };
   }
+
+  // Fire and forget. A failed notification email should never block
+  // someone from actually completing signup.
+  sendSignupNotice({ account, user: { email, name: name || null } }).catch(e => {
+    console.error('Signup notice failed:', e.message);
+  });
 
   return { user: data.user, account, needsConfirmation: !data.session };
 }

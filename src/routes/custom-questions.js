@@ -53,11 +53,13 @@ router.post('/cycles/:cycleId/custom-questions/draft', requireAuth, async (req, 
   const raterTexts = [].concat(req.body.rater_text || [])
     .map(t => (t || '').trim())
     .slice(0, MAX_QUESTIONS);
+  const draftLabel = (req.body.custom_questions_label || '').trim().slice(0, 60);
+  const cycleForRender = { ...cycle, custom_questions_label: draftLabel };
 
   const filled = raterTexts.filter(Boolean);
 
   if (!filled.length) {
-    return res.send(page(cycle, [], null, 'Write at least one question before drafting the self-assessment versions.', raterTexts));
+    return res.send(page(cycleForRender, [], null, 'Write at least one question before drafting the self-assessment versions.', raterTexts));
   }
 
   try {
@@ -84,10 +86,10 @@ Respond with exactly ${filled.length} lines, one per question, in the same order
     let li = 0;
     raterTexts.forEach(t => selfTexts.push(t ? (lines[li++] || '') : ''));
 
-    res.send(page(cycle, [], null, null, raterTexts, selfTexts));
+    res.send(page(cycleForRender, [], null, null, raterTexts, selfTexts));
   } catch (e) {
     console.error('CUSTOM QUESTION DRAFT FAILED', e.message);
-    res.send(page(cycle, [], null, 'Could not draft the self-assessment wording just now. You can write it yourself below, or try again.', raterTexts));
+    res.send(page(cycleForRender, [], null, 'Could not draft the self-assessment wording just now. You can write it yourself below, or try again.', raterTexts));
   }
 });
 
@@ -99,13 +101,14 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
 
   const raterTexts = [].concat(req.body.rater_text || []).map(t => (t || '').trim());
   const selfTexts  = [].concat(req.body.self_text  || []).map(t => (t || '').trim());
+  const label      = (req.body.custom_questions_label || '').trim().slice(0, 60);
 
   // Check every submitted question against its own real position BEFORE
   // any filtering happens, since a half-filled question (rater text with
   // no self text yet) must be caught here, not silently dropped.
   const hasUnpaired = raterTexts.slice(0, MAX_QUESTIONS).some((t, i) => t && !selfTexts[i]);
   if (hasUnpaired) {
-    return res.send(page(cycle, [], null, 'Every question needs a self-assessment version before saving. Draft it or write your own for each one.', raterTexts, selfTexts));
+    return res.send(page({ ...cycle, custom_questions_label: label }, [], null, 'Every question needs a self-assessment version before saving. Draft it or write your own for each one.', raterTexts, selfTexts));
   }
 
   const rows = [];
@@ -122,9 +125,17 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
     const { error } = await db(req).from('custom_questions').insert(rows);
     if (error) {
       console.error('CUSTOM QUESTION SAVE FAILED', error.message);
-      return res.send(page(cycle, [], null, 'Something went wrong saving these questions. Please try again.', raterTexts, selfTexts));
+      return res.send(page({ ...cycle, custom_questions_label: label }, [], null, 'Something went wrong saving these questions. Please try again.', raterTexts, selfTexts));
     }
   }
+
+  // The label lives on the cycle itself (Group-level), not on individual
+  // questions, so it is saved even when rows are empty. Blank clears it
+  // back to the default "Additional Feedback" shown everywhere it's read.
+  const { error: labelError } = await db(req).from('cycles')
+    .update({ custom_questions_label: label || null })
+    .eq('id', cycle.id);
+  if (labelError) console.error('CUSTOM QUESTIONS LABEL SAVE FAILED', labelError.message);
 
   res.redirect(`/admin/cycles/${cycle.id}`);
 });
@@ -169,6 +180,7 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
 .form-control{width:100%;padding:9px 12px;border:1.5px solid var(--sand);border-radius:6px;font-size:13.5px;font-family:inherit;color:var(--ink);background:white;resize:vertical}
 .form-control:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 3px rgba(169,99,61,0.12)}
 .form-hint{font-size:11px;color:var(--grey);margin-top:4px}
+.label-card{margin-bottom:18px}
 .self-block{margin-top:12px;padding-top:12px;border-top:1px dashed var(--sand)}
 .self-badge{display:inline-block;font-size:9.5px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:0.6px;background:#EEF5EE;padding:2px 8px;border-radius:10px;margin-bottom:6px}
 .actions-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
@@ -200,8 +212,13 @@ function shell(title, content) {
 <div class="admin-main">${content}</div></body></html>`;
 }
 
+function escapeAttr(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
 function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, locked) {
   locked = !!locked;
+  const label = cycle.custom_questions_label || '';
 
   // Figure out what to show in each of the 5 rows: a draft in progress
   // beats saved data, saved data beats a blank row.
@@ -235,6 +252,11 @@ function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, 
     <div class="page-title">${cycle.name}</div>
     <div class="page-sub">Custom questions</div>
     <div class="callout callout-sand">This Group is ${cycle.status}, so its custom questions are locked and cannot be changed. This keeps every rater answering the exact same wording.</div>
+    <div class="card label-card">
+      <label class="form-label">Section label</label>
+      <input class="form-control" value="${escapeAttr(label || 'Additional Feedback')}" readonly>
+      <div class="form-hint">This is how the section is titled on the survey and in the report.</div>
+    </div>
     <div class="card">${rowsHtml || '<p style="color:var(--grey);font-size:13px">No custom questions were added to this Group.</p>'}</div>
     <a href="/admin/cycles/${cycle.id}" class="btn btn-ghost">Back to Group</a>
   ` : `
@@ -248,6 +270,11 @@ function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, 
     ${error ? `<div class="callout callout-err">${error}</div>` : ''}
 
     <form method="POST" action="/admin/cycles/${cycle.id}/custom-questions${anyRaterText && !allPaired ? '' : ''}" id="cq-form">
+      <div class="card label-card">
+        <label class="form-label">Section label</label>
+        <input class="form-control" type="text" name="custom_questions_label" maxlength="60" value="${escapeAttr(label)}" placeholder="Additional Feedback">
+        <div class="form-hint">Shown as the section title on the survey and in the report, in the client's own language. Leave blank to use "Additional Feedback."</div>
+      </div>
       <div class="card">
         ${rowsHtml}
         <div class="form-hint">Leave a question blank to skip it. Empty rows are not saved.</div>

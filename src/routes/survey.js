@@ -9,7 +9,7 @@ router.get('/:token', async (req, res) => {
   try {
     const { data: rater, error } = await supabase
       .from('raters')
-      .select('*, leaders(name, title, cycle_id, cycles(name, status, opens_at, closes_at))')
+      .select('*, leaders(name, title, cycle_id, cycles(name, status, opens_at, closes_at, custom_questions_label))')
       .eq('token', req.params.token)
       .single();
 
@@ -37,7 +37,7 @@ router.get('/:token', async (req, res) => {
       .eq('cycle_id', rater.leaders.cycle_id)
       .order('position');
 
-    res.send(surveyPage(rater, SECTIONS, isSelf, SCALE_LABELS, customQuestions || []));
+    res.send(surveyPage(rater, SECTIONS, isSelf, SCALE_LABELS, customQuestions || [], cycle.custom_questions_label));
 
   } catch (err) {
     console.error(err);
@@ -166,7 +166,7 @@ router.post('/:token', async (req, res) => {
 });
 
 // ── SURVEY PAGE ───────────────────────────────────────────────────────────────
-function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions) {
+function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions, customLabel) {
   const leaderName = rater.leaders.name;
   const groupLabel = {
     self: 'Self Assessment', supervisor: 'Supervisor', peer: 'Peer',
@@ -216,7 +216,7 @@ function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions) {
   const customSectionHTML = customQuestions.length ? `
     <div class="survey-section" id="section-custom">
       <div class="section-badge">Additional Questions</div>
-      <h2 class="section-title">A Few More Questions</h2>
+      <h2 class="section-title">${customLabel || 'A Few More Questions'}</h2>
       <p class="section-subtitle">These questions were added specifically for this survey, alongside the standard CARE questions above.</p>
       <div class="questions">
         ${customQuestions.map((q, i) => {

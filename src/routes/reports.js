@@ -18,7 +18,7 @@ function requireAuth(req, res, next) {
 router.get('/generate/:leaderId', requireAuth, async (req, res) => {
   const { leaderId } = req.params;
   try {
-    const { data: leader } = await db(req).from('leaders').select('*, cycles(name)').eq('id', leaderId).maybeSingle();
+    const { data: leader } = await db(req).from('leaders').select('*, cycles(name, custom_questions_label)').eq('id', leaderId).maybeSingle();
     if (!leader) return res.status(404).send('Leader not found');
     const { data: responses } = await supabase.from('responses').select('*').eq('leader_id', leaderId);
     const { data: openTexts } = await supabase.from('open_text').select('*, raters(rater_group)').eq('leader_id', leaderId);
@@ -40,6 +40,12 @@ router.get('/generate/:leaderId', requireAuth, async (req, res) => {
 
     let customSection = null;
     if (customQuestions && customQuestions.length) {
+      // A Group can label this section in its own language (e.g. a
+      // client's own value, or a partner's named framework like
+      // "Courage"). Falls back to the generic default wherever it's
+      // read if the admin never set one.
+      const customLabel = leader.cycles?.custom_questions_label || 'Additional Feedback';
+
       const questionIds = customQuestions.map(q => q.id);
       const { data: customResponses } = await supabase
         .from('custom_responses').select('*, raters(rater_group)').eq('leader_id', leaderId).in('question_id', questionIds);
@@ -48,9 +54,9 @@ router.get('/generate/:leaderId', requireAuth, async (req, res) => {
 
       const customScores    = buildCustomScoreData(customResponses);
       const customCommentData = buildCustomCommentData(customComments);
-      const customNarrative = await generateCustomNarrative(leader, customQuestions, customScores, customCommentData);
+      const customNarrative = await generateCustomNarrative(leader, customQuestions, customScores, customCommentData, customLabel);
 
-      customSection = { questions: customQuestions, scores: customScores, comments: customCommentData, narrative: customNarrative };
+      customSection = { questions: customQuestions, scores: customScores, comments: customCommentData, narrative: customNarrative, label: customLabel };
     }
 
     const reportHtml = buildReportHtml(leader, scoreData, narrative, commentData, customSection);
@@ -397,7 +403,7 @@ One specific sentence naming the single most important pattern across all the da
 // so the model should never be handed CARE's language while writing
 // about it, or it risks quietly borrowing that framing.
 // ═══════════════════════════════════════════════════════════════
-async function generateCustomNarrative(leader, customQuestions, customScores, customComments) {
+async function generateCustomNarrative(leader, customQuestions, customScores, customComments, customLabel) {
   const groups = ['self','supervisor','peer','direct_report','skip_level'];
 
   const scoreSummary = Object.entries(customScores)
@@ -409,9 +415,11 @@ async function generateCustomNarrative(leader, customQuestions, customScores, cu
     ? customComments.map(c => `[${c.group}] ${c.text}`).join('\n')
     : '(none)';
 
+  const label = customLabel || 'Additional Feedback';
+
   const prompt = `You are a skilled leadership development coach writing one short section of a 360 feedback report for ${leader.name}${leader.title ? ', ' + leader.title : ''}.
 
-This section covers a small set of custom questions written specifically for this organization. They are separate from the leader's core leadership assessment and have no established framework behind them. Write about them on their own terms, using only what is actually here. Do not invent a framework or theme that connects them unless the data itself clearly shows one.
+This section covers a small set of custom questions written specifically for this organization. The organization has titled this section "${label}." You may refer to it by that name in your writing where it reads naturally. Do not treat the title itself as evidence of a framework, methodology, or set of sub-dimensions beyond what the questions and data actually show. Write about the questions on their own terms, using only what is actually here. Do not invent a framework or theme that connects them unless the data itself clearly shows one.
 
 QUESTIONS ASKED:
 ${questionList}
@@ -522,7 +530,7 @@ function buildReportHtml(leader, scoreData, narrative, commentData, customSectio
     // clearly labeled, using its own combined score. It is appended
     // after the five CARE sections rather than mixed in, so the labels
     // alone make clear it did not come from the CARE instrument.
-    if (customSection) sects.push({ title: 'Additional Feedback', scores: customSection.scores });
+    if (customSection) sects.push({ title: customSection.label || 'Additional Feedback', scores: customSection.scores });
     const LBL=178,BSTRT=184,BMAX=270,PPU=BMAX/5,VW=540;
     const BH=13,GAP=4,CGAP=18;
     const totalH=4+sects.length*(18+groups.length*(BH+GAP)+CGAP)+30;
@@ -602,7 +610,7 @@ function buildReportHtml(leader, scoreData, narrative, commentData, customSectio
     <div class="section page-break-before">
       <div class="section-header">
         <div class="section-num">Additional Questions</div>
-        <h2>Additional Feedback</h2>
+        <h2>${customSection.label || 'Additional Feedback'}</h2>
         <div class="section-sub">A small set of questions added specifically for this Group, separate from the CARE assessment above.</div>
       </div>
       <div class="chart-wrap">${barChart(customSection.scores)}</div>

@@ -140,6 +140,21 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
   res.redirect(`/admin/cycles/${cycle.id}`);
 });
 
+// ── Update just the section label, independent of the lock ────
+// The lock protects question wording, since raters may have already
+// answered it. The label is a display title no rater ever saw, so
+// it stays editable even after the questions themselves are locked.
+router.post('/cycles/:cycleId/custom-questions/label', requireAuth, async (req, res) => {
+  const { data: cycle } = await db(req).from('cycles').select('id').eq('id', req.params.cycleId).maybeSingle();
+  if (!cycle) return res.redirect('/admin');
+
+  const label = (req.body.custom_questions_label || '').trim().slice(0, 60);
+  const { error } = await db(req).from('cycles').update({ custom_questions_label: label || null }).eq('id', cycle.id);
+  if (error) console.error('CUSTOM QUESTIONS LABEL SAVE FAILED', error.message);
+
+  res.redirect(`/admin/cycles/${cycle.id}/custom-questions`);
+});
+
 // ── Remove all custom questions from a Group ──────────────────
 router.post('/cycles/:cycleId/custom-questions/clear', requireAuth, async (req, res) => {
   const { data: cycle } = await db(req).from('cycles').select('id, status').eq('id', req.params.cycleId).maybeSingle();
@@ -251,12 +266,15 @@ function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, 
   const body = locked ? `
     <div class="page-title">${cycle.name}</div>
     <div class="page-sub">Custom questions</div>
-    <div class="callout callout-sand">This Group is ${cycle.status}, so its custom questions are locked and cannot be changed. This keeps every rater answering the exact same wording.</div>
-    <div class="card label-card">
-      <label class="form-label">Section label</label>
-      <input class="form-control" value="${escapeAttr(label || 'Additional Feedback')}" readonly>
-      <div class="form-hint">This is how the section is titled on the survey and in the report.</div>
-    </div>
+    <div class="callout callout-sand">This Group is ${cycle.status}, so its question wording is locked and cannot be changed. This keeps every rater answering the exact same questions. The section label is just a display title, so it stays editable.</div>
+    <form method="POST" action="/admin/cycles/${cycle.id}/custom-questions/label">
+      <div class="card label-card">
+        <label class="form-label">Section label</label>
+        <input class="form-control" type="text" name="custom_questions_label" maxlength="60" value="${escapeAttr(label)}" placeholder="Additional Feedback">
+        <div class="form-hint">Shown as the section title on the survey and in the report, in the client's own language. Leave blank to use "Additional Feedback."</div>
+      </div>
+      <button class="btn btn-primary" type="submit">Save label</button>
+    </form>
     <div class="card">${rowsHtml || '<p style="color:var(--grey);font-size:13px">No custom questions were added to this Group.</p>'}</div>
     <a href="/admin/cycles/${cycle.id}" class="btn btn-ghost">Back to Group</a>
   ` : `

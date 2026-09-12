@@ -2,8 +2,118 @@ const express = require('express');
 const router  = express.Router();
 
 // Prices live here and nowhere else. Change them in one place.
-// Annual is ten months for twelve, so two months free.
-const PLANS = {
+// Annual is ten months for twelve, so two months free, matching the
+// real Stripe prices exactly (see PRICE_MAP in routes/billing.js).
+const PRODUCTS = {
+  care360: {
+    label: 'CARE 360',
+    tagline: 'Unlimited 360 surveys for your organization, with the full AI report, automatic reminders and the action plan template on every plan.',
+    tiers: {
+      starter: {
+        name: 'Starter',
+        blurb: 'For organizations up to 250 employees.',
+        monthly: 149,
+        annual: 1490,
+        features: [
+          'Unlimited leaders and surveys',
+          'Unlimited raters',
+          'The full AI report and PDF',
+          'Automatic reminders and deadlines',
+          'Leadership Action Plan template',
+          'Email support'
+        ],
+        style: 'featured'
+      },
+      growth: {
+        name: 'Growth',
+        blurb: 'For organizations up to 750 employees.',
+        monthly: 299,
+        annual: 2990,
+        features: [
+          'Everything in Starter',
+          'Higher usage for larger teams',
+          'Priority support',
+          'Onboarding walkthrough'
+        ],
+        style: 'plain'
+      }
+    }
+  },
+  element_profile: {
+    label: 'Element Profile',
+    tagline: 'The full behavioral talent assessment suite: the six Elements, archetype reports, and role and team comparisons.',
+    tiers: {
+      starter: {
+        name: 'Starter',
+        blurb: 'For organizations up to 250 employees.',
+        monthly: 199,
+        annual: 2030,
+        features: [
+          'Unlimited people assessed',
+          'Full archetype report for every person',
+          'Role and target-profile comparison reports',
+          'Team creation and management',
+          'Email support'
+        ],
+        style: 'featured'
+      },
+      growth: {
+        name: 'Growth',
+        blurb: 'For organizations up to 750 employees.',
+        monthly: 349,
+        annual: 3560,
+        features: [
+          'Everything in Starter',
+          'Higher usage for larger teams',
+          'Priority support',
+          'Onboarding walkthrough'
+        ],
+        style: 'plain'
+      }
+    }
+  },
+  bundle: {
+    label: 'Bundle',
+    tagline: 'CARE 360 and Element Profile together, on one subscription.',
+    tiers: {
+      starter: {
+        name: 'Starter Bundle',
+        blurb: 'CARE 360 Starter and Element Profile Starter, together.',
+        monthly: 248,
+        annual: 2320,
+        features: [
+          'Everything in CARE 360 Starter',
+          'Everything in Element Profile Starter',
+          'One login, one subscription',
+          'Save $100 a month versus buying separately',
+          'Email support'
+        ],
+        style: 'featured'
+      },
+      growth: {
+        name: 'Growth Bundle',
+        blurb: 'CARE 360 Growth and Element Profile Growth, together.',
+        monthly: 548,
+        annual: 5350,
+        features: [
+          'Everything in CARE 360 Growth',
+          'Everything in Element Profile Growth',
+          'One login, one subscription',
+          'Save $100 a month versus buying separately',
+          'Priority support'
+        ],
+        style: 'plain'
+      }
+    }
+  }
+};
+
+// The trial, Community and Enterprise cards only ever meant CARE 360:
+// there is no Element Profile or Bundle equivalent defined anywhere
+// yet, so they only render on the CARE 360 tab, same as they always
+// have. Extending them to the other two products is a real content
+// decision for later, not assumed here.
+const SPECIAL_PLANS = {
   trial: {
     key: 'trial',
     name: 'Free trial',
@@ -19,41 +129,7 @@ const PLANS = {
       'Leadership Action Plan template'
     ],
     cta: 'Start free trial',
-    href: '/signup?plan=trial',
-    style: 'plain'
-  },
-  starter: {
-    key: 'starter',
-    name: 'Starter',
-    blurb: 'For organizations up to 250 employees.',
-    monthly: 149,
-    annual: 1490,
-    features: [
-      'Unlimited leaders and surveys',
-      'Unlimited raters',
-      'The full AI report and PDF',
-      'Automatic reminders and deadlines',
-      'Leadership Action Plan template',
-      'Email support'
-    ],
-    cta: 'Choose Starter',
-    href: '/signup?plan=starter',
-    style: 'featured'
-  },
-  growth: {
-    key: 'growth',
-    name: 'Growth',
-    blurb: 'For organizations up to 750 employees.',
-    monthly: 299,
-    annual: 2990,
-    features: [
-      'Everything in Starter',
-      'Higher usage for larger teams',
-      'Priority support',
-      'Onboarding walkthrough'
-    ],
-    cta: 'Choose Growth',
-    href: '/signup?plan=growth',
+    href: '/signup?tier=trial',
     style: 'plain'
   },
   community: {
@@ -91,50 +167,28 @@ const PLANS = {
 };
 
 router.get('/', (req, res) => {
-  const annual = req.query.billing === 'annual';
-  res.send(plansPage(annual, req));
+  const annual  = req.query.billing === 'annual';
+  const product = PRODUCTS[req.query.product] ? req.query.product : 'care360';
+  res.send(plansPage(annual, product, req));
 });
 
 function money(n) {
   return '$' + n.toLocaleString('en-US');
 }
 
-function planCard(p, annual, loggedIn) {
+function specialCard(p, annual, loggedIn) {
   let price, sub;
 
   if (p.monthly === 0) {
     price = 'Free';
     sub   = p.priceNote || '';
-  } else if (p.monthly === null) {
+  } else {
     price = p.priceNote || 'Custom';
     sub   = '';
-  } else if (annual) {
-    price = money(p.annual);
-    sub   = 'per year, two months free';
-  } else {
-    price = money(p.monthly);
-    sub   = 'per month';
-  }
-
-  // A brand new visitor needs an account before Stripe has anywhere to
-  // attach a subscription, so paid plans route through signup first,
-  // which then carries them straight into checkout right after. An
-  // already logged-in visitor (upgrading from trial) skips straight
-  // to checkout, since creating a second account for them would be wrong.
-  const isPaid = p.key === 'starter' || p.key === 'growth';
-  let href;
-  if (isPaid) {
-    const billingParam = annual ? '&billing=annual' : '';
-    href = loggedIn
-      ? `/billing/checkout?plan=${p.key}${billingParam}`
-      : `/signup?plan=${p.key}${billingParam}`;
-  } else {
-    href = p.href;
   }
 
   return `
   <div class="plan plan-${p.style}">
-    ${p.style === 'featured' ? '<div class="plan-tag">Most popular</div>' : ''}
     <div class="plan-name">${p.name}</div>
     <div class="plan-blurb">${p.blurb}</div>
     <div class="plan-price">${price}</div>
@@ -142,17 +196,52 @@ function planCard(p, annual, loggedIn) {
     <ul class="plan-features">
       ${p.features.map(f => `<li>${f}</li>`).join('')}
     </ul>
-    <a class="plan-btn ${p.style === 'featured' ? 'plan-btn-primary' : ''}" href="${href}">${p.cta}</a>
+    <a class="plan-btn" href="${p.href}">${p.cta}</a>
   </div>`;
 }
 
-function plansPage(annual, req) {
+// A brand new visitor needs an account before Stripe has anywhere to
+// attach a subscription, so a purchase routes through signup first,
+// which then carries them straight into checkout right after. An
+// already logged-in visitor (buying a second product, or a higher
+// tier) skips straight to checkout, since creating a second account
+// for them would be wrong.
+function productTierCard(productKey, tierKey, tier, annual, loggedIn) {
+  const price = annual ? money(tier.annual) : money(tier.monthly);
+  const sub   = annual ? 'per year, two months free' : 'per month';
+
+  const billingParam = annual ? '&billing=annual' : '';
+  const href = loggedIn
+    ? `/billing/checkout?products=${productKey}&tier=${tierKey}${billingParam}`
+    : `/signup?products=${productKey}&tier=${tierKey}${billingParam}`;
+
+  return `
+  <div class="plan plan-${tier.style}">
+    ${tier.style === 'featured' ? '<div class="plan-tag">Most popular</div>' : ''}
+    <div class="plan-name">${tier.name}</div>
+    <div class="plan-blurb">${tier.blurb}</div>
+    <div class="plan-price">${price}</div>
+    <div class="plan-sub">${sub}</div>
+    <ul class="plan-features">
+      ${tier.features.map(f => `<li>${f}</li>`).join('')}
+    </ul>
+    <a class="plan-btn ${tier.style === 'featured' ? 'plan-btn-primary' : ''}" href="${href}">Choose ${tier.name}</a>
+  </div>`;
+}
+
+function plansPage(annual, product, req) {
   const signedIn = !!req.isAdmin;
   const loggedIn = signedIn;
+  const p = PRODUCTS[product];
+  const billingSuffix = annual ? '&billing=annual' : '';
+
+  const productToggle = Object.keys(PRODUCTS).map(key => `
+    <a class="product-opt ${key === product ? 'on' : ''}" href="/plans?product=${key}${billingSuffix}">${PRODUCTS[key].label}</a>
+  `).join('');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Plans — CARE 360</title>
+<title>${p.label} plans — CARE 360</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -172,6 +261,11 @@ a{text-decoration:none}
 .head{text-align:center;margin-bottom:30px}
 .h1{font-family:'EB Garamond',serif;font-size:36px;font-weight:600;margin-bottom:10px}
 .lede{font-size:15px;color:var(--grey);line-height:1.7;max-width:560px;margin:0 auto}
+
+.product-toggle{display:flex;justify-content:center;margin-bottom:18px}
+.product-toggle-inner{display:inline-flex;background:white;border:1.5px solid var(--sand);border-radius:999px;padding:4px}
+.product-opt{padding:8px 22px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey)}
+.product-opt.on{background:var(--clay);color:white}
 
 .toggle{display:flex;justify-content:center;margin-bottom:12px}
 .toggle-inner{display:inline-flex;background:white;border:1.5px solid var(--sand);border-radius:999px;padding:4px}
@@ -217,27 +311,32 @@ a{text-decoration:none}
 
 <div class="wrap">
   <div class="head">
-    <div class="h1">CARE 360 plans</div>
-    <p class="lede">Unlimited 360 surveys for your organization, with the full AI report, automatic reminders and the action plan template on every plan.</p>
+    <div class="h1">${p.label} plans</div>
+    <p class="lede">${p.tagline}</p>
+  </div>
+
+  <div class="product-toggle">
+    <div class="product-toggle-inner">${productToggle}</div>
   </div>
 
   <div class="toggle">
     <div class="toggle-inner">
-      <a class="toggle-opt ${annual ? '' : 'on'}" href="/plans">Monthly</a>
-      <a class="toggle-opt ${annual ? 'on' : ''}" href="/plans?billing=annual">Annual</a>
+      <a class="toggle-opt ${annual ? '' : 'on'}" href="/plans?product=${product}">Monthly</a>
+      <a class="toggle-opt ${annual ? 'on' : ''}" href="/plans?product=${product}&billing=annual">Annual</a>
     </div>
   </div>
   <div class="save">${annual ? 'Two months free on annual billing' : ''}</div>
 
-  <div class="grid">
-    ${planCard(PLANS.trial, annual, loggedIn)}
-    ${planCard(PLANS.starter, annual, loggedIn)}
-    ${planCard(PLANS.growth, annual, loggedIn)}
+  <div class="grid" style="${product === 'care360' ? '' : 'grid-template-columns:repeat(2,1fr);max-width:760px;margin-left:auto;margin-right:auto'}">
+    ${product === 'care360' ? specialCard(SPECIAL_PLANS.trial, annual, loggedIn) : ''}
+    ${productTierCard(product, 'starter', p.tiers.starter, annual, loggedIn)}
+    ${productTierCard(product, 'growth', p.tiers.growth, annual, loggedIn)}
   </div>
+  ${product === 'care360' ? `
   <div class="grid-2">
-    ${planCard(PLANS.community, annual, loggedIn)}
-    ${planCard(PLANS.enterprise, annual, loggedIn)}
-  </div>
+    ${specialCard(SPECIAL_PLANS.community, annual, loggedIn)}
+    ${specialCard(SPECIAL_PLANS.enterprise, annual, loggedIn)}
+  </div>` : ''}
 
   <div class="foot">
     Every plan includes unlimited raters and unlimited reports. No per-report charges.<br/>
@@ -249,4 +348,5 @@ a{text-decoration:none}
 }
 
 module.exports = router;
-module.exports.PLANS = PLANS;
+module.exports.PRODUCTS = PRODUCTS;
+module.exports.SPECIAL_PLANS = SPECIAL_PLANS;

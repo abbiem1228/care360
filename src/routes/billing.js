@@ -7,25 +7,31 @@ const supabase = require('../db/client');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
-// Maps a plan + billing period to the actual Stripe price to charge.
-// Nothing else in the app needs to know these IDs.
-//
-// Bundle is tiered the same way CARE 360 itself already is (Starter,
-// Growth), rather than one flat option: Starter Bundle and Growth
-// Bundle are their own real Stripe products, each with their own
-// monthly/annual price. Element Profile's own Starter/Growth prices
-// exist in Stripe too (see .env), but aren't listed here yet, since
-// nothing in this app sells Element Profile on its own today; that
-// purchase page is separate, not-yet-built work (see
-// docs/element-profile-merge-plan.md).
+// Maps a product + tier + billing period to the actual Stripe price to
+// charge. Nothing else in the app needs to know these IDs. All three
+// products are tiered the same consistent way (Starter, Growth): each
+// is its own real Stripe product family, each tier with its own
+// monthly/annual price.
 const PRICE_MAP = {
-  starter: {
-    monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-    annual:  process.env.STRIPE_PRICE_STARTER_ANNUAL
+  care360: {
+    starter: {
+      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
+      annual:  process.env.STRIPE_PRICE_STARTER_ANNUAL
+    },
+    growth: {
+      monthly: process.env.STRIPE_PRICE_GROWTH_MONTHLY,
+      annual:  process.env.STRIPE_PRICE_GROWTH_ANNUAL
+    }
   },
-  growth: {
-    monthly: process.env.STRIPE_PRICE_GROWTH_MONTHLY,
-    annual:  process.env.STRIPE_PRICE_GROWTH_ANNUAL
+  element_profile: {
+    starter: {
+      monthly: process.env.STRIPE_PRICE_ELEMENT_STARTER_MONTHLY,
+      annual:  process.env.STRIPE_PRICE_ELEMENT_STARTER_ANNUAL
+    },
+    growth: {
+      monthly: process.env.STRIPE_PRICE_ELEMENT_GROWTH_MONTHLY,
+      annual:  process.env.STRIPE_PRICE_ELEMENT_GROWTH_ANNUAL
+    }
   },
   bundle: {
     starter: {
@@ -39,33 +45,34 @@ const PRICE_MAP = {
   }
 };
 
+const ALL_PRODUCTS = ['care360', 'element_profile', 'bundle'];
+const ALL_TIERS     = ['starter', 'growth'];
+
 // Reverse of PRICE_MAP: a Stripe price ID back to what it entitles.
-// Starter and Growth both map to 'care360', matching what checkout
-// already grants. Both bundle tiers map to 'bundle', the one case the
-// subscription.updated webhook handler actually needs this for, since
-// that price change is the only one that grants a product the account
-// didn't already have.
+// Used by the checkout.session.completed and customer.subscription.updated
+// webhook handlers, the only two places that ever need to go from "a
+// price changed" to "what does the account actually have now."
 const PRICE_TO_PRODUCTS = {};
-if (PRICE_MAP.starter.monthly) PRICE_TO_PRODUCTS[PRICE_MAP.starter.monthly] = 'care360';
-if (PRICE_MAP.starter.annual)  PRICE_TO_PRODUCTS[PRICE_MAP.starter.annual]  = 'care360';
-if (PRICE_MAP.growth.monthly)  PRICE_TO_PRODUCTS[PRICE_MAP.growth.monthly]  = 'care360';
-if (PRICE_MAP.growth.annual)   PRICE_TO_PRODUCTS[PRICE_MAP.growth.annual]   = 'care360';
-for (const tier of ['starter', 'growth']) {
-  if (PRICE_MAP.bundle[tier].monthly) PRICE_TO_PRODUCTS[PRICE_MAP.bundle[tier].monthly] = 'bundle';
-  if (PRICE_MAP.bundle[tier].annual)  PRICE_TO_PRODUCTS[PRICE_MAP.bundle[tier].annual]  = 'bundle';
+for (const products of ALL_PRODUCTS) {
+  for (const tier of ALL_TIERS) {
+    if (PRICE_MAP[products][tier].monthly) PRICE_TO_PRODUCTS[PRICE_MAP[products][tier].monthly] = products;
+    if (PRICE_MAP[products][tier].annual)  PRICE_TO_PRODUCTS[PRICE_MAP[products][tier].annual]  = products;
+  }
 }
 
-// A price ID back to its tier (starter/growth). Only CARE 360's own
-// prices are listed here today, for the same reason PRICE_MAP has no
-// element_profile entry yet: nothing sells Element Profile on its own
-// yet, so no subscription can currently be on one of those prices.
-// The upgrade-to-bundle route uses this to pick the matching bundle
-// tier, never guessing at a tier the account isn't actually on.
+// A price ID back to its tier (starter/growth), for care360 and
+// element_profile prices only, never bundle: bundle prices are the
+// destination of an upgrade, not a tier an account could already be
+// on. Now that Element Profile can be bought on its own, an
+// Element-Profile-only subscription can genuinely upgrade to the
+// Bundle too, same as a CARE 360 one, so its prices belong here.
 const PRICE_TO_TIER = {};
-if (PRICE_MAP.starter.monthly) PRICE_TO_TIER[PRICE_MAP.starter.monthly] = 'starter';
-if (PRICE_MAP.starter.annual)  PRICE_TO_TIER[PRICE_MAP.starter.annual]  = 'starter';
-if (PRICE_MAP.growth.monthly)  PRICE_TO_TIER[PRICE_MAP.growth.monthly]  = 'growth';
-if (PRICE_MAP.growth.annual)   PRICE_TO_TIER[PRICE_MAP.growth.annual]   = 'growth';
+for (const products of ['care360', 'element_profile']) {
+  for (const tier of ALL_TIERS) {
+    if (PRICE_MAP[products][tier].monthly) PRICE_TO_TIER[PRICE_MAP[products][tier].monthly] = tier;
+    if (PRICE_MAP[products][tier].annual)  PRICE_TO_TIER[PRICE_MAP[products][tier].annual]  = tier;
+  }
+}
 
 function requireAuth(req, res, next) {
   if (req.isAdmin) return next();
@@ -73,15 +80,19 @@ function requireAuth(req, res, next) {
 }
 
 // ── Start checkout ───────────────────────────────────────────
-// Called when a signed in user clicks Upgrade to Starter/Growth.
+// Called when a signed in user picks a plan from /plans: tier is
+// strictly which tier (starter/growth), products is strictly which
+// product(s) that tier buys (care360/element_profile/bundle). Neither
+// one implies the other.
 // GET, not POST, so the plans page can link straight to it.
 // This router is mounted AFTER the session middleware, so req.isAdmin
 // and req.accountId are already set by the time this runs.
 
 checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
-  const plan    = req.query.plan;
-  const billing = req.query.billing === 'annual' ? 'annual' : 'monthly';
-  const priceId = PRICE_MAP[plan] && PRICE_MAP[plan][billing];
+  const tier     = req.query.tier;
+  const products = req.query.products;
+  const billing  = req.query.billing === 'annual' ? 'annual' : 'monthly';
+  const priceId  = PRICE_MAP[products] && PRICE_MAP[products][tier] && PRICE_MAP[products][tier][billing];
 
   if (!priceId) {
     return res.status(400).send('Unknown plan. <a href="/plans">Back to plans</a>');
@@ -100,7 +111,7 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
       cancel_url:  `${APP_URL}/plans`,
       customer_email: req.session ? req.session.email : undefined,
       client_reference_id: req.accountId,
-      metadata: { account_id: req.accountId, plan }
+      metadata: { account_id: req.accountId, tier, products }
     });
 
     res.redirect(session.url);
@@ -248,26 +259,34 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
     if (event.type === 'checkout.session.completed') {
       const session   = event.data.object;
       const accountId = session.client_reference_id;
-      const plan      = session.metadata && session.metadata.plan;
-      // Not sent by checkout yet (that's the next piece of work, not
-      // this one), so this defaults to 'care360' since that is the
-      // only product real checkout sessions represent today. Once
-      // checkout creation starts sending this, it flows through
-      // unchanged, no second edit needed here.
+      const tier      = session.metadata && session.metadata.tier;
       const products  = (session.metadata && session.metadata.products) || 'care360';
 
-      if (accountId && plan) {
+      if (accountId && tier) {
         // stripe_subscription_id no longer written here: an account
         // can hold more than one active subscription (see
         // account_subscriptions, schema/007), so a single column on
         // accounts can't represent that. plan/status/stripe_customer_id
         // stay here unchanged; those are still meaningfully singular
-        // per account today.
-        await supabase.from('accounts').update({
-          plan,
+        // per account today. plan is set to the tier: it has never
+        // meant "which product," only "which tier," and that stays
+        // true now that a tier can attach to any of the three products.
+        //
+        // has_care360/has_element_profile are set here for the first
+        // time: per the merge plan, buying the bundle (or either
+        // product alone) at signup provisions the matching flags
+        // immediately, additive only, same as every other entitlement
+        // write in this app.
+        const entitlements = {};
+        if (products === 'care360' || products === 'bundle')         entitlements.has_care360 = true;
+        if (products === 'element_profile' || products === 'bundle') entitlements.has_element_profile = true;
+
+        const { data: account } = await supabase.from('accounts').update({
+          plan: tier,
           status: 'active',
-          stripe_customer_id: session.customer
-        }).eq('id', accountId);
+          stripe_customer_id: session.customer,
+          ...entitlements
+        }).eq('id', accountId).select().maybeSingle();
 
         if (session.subscription) {
           await supabase.from('account_subscriptions').insert({
@@ -277,7 +296,26 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
             status: 'active'
           });
         }
-        console.log(`Account ${accountId} upgraded to ${plan}`);
+
+        // First time this account has Element Profile access: it needs
+        // the organizations row it never had. Same pattern as the
+        // upgrade-to-bundle path, just reached from signup instead.
+        if ((products === 'element_profile' || products === 'bundle') && account) {
+          const { data: existingOrg } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('account_id', accountId)
+            .maybeSingle();
+
+          if (!existingOrg) {
+            await supabase.from('organizations').insert({
+              account_id: accountId,
+              name: account.name
+            });
+          }
+        }
+
+        console.log(`Account ${accountId} purchased ${products} at ${tier}`);
       }
     }
 
@@ -319,9 +357,14 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
 
         if (subscriptionRow) {
           // Additive only, same as every other entitlement write in this
-          // app: an upgrade only ever turns a flag on, never off.
-          const entitlements = { has_care360: true };
-          if (products === 'bundle') entitlements.has_element_profile = true;
+          // app: a price change only ever turns a flag on, never off.
+          // Now that Element Profile can be bought and changed on its
+          // own, this can genuinely fire with products === 'element_profile'
+          // too (e.g. a tier change via Stripe's own customer portal),
+          // not just 'bundle', so has_care360 is no longer unconditional.
+          const entitlements = {};
+          if (products === 'care360' || products === 'bundle')         entitlements.has_care360 = true;
+          if (products === 'element_profile' || products === 'bundle') entitlements.has_element_profile = true;
 
           const { data: account } = await supabase
             .from('accounts')
@@ -333,7 +376,7 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
           // First time this account has gained Element Profile access this
           // way: it needs the organizations row it never had, so upgrading
           // is more than just an entitlement flag flip.
-          if (products === 'bundle' && account) {
+          if ((products === 'element_profile' || products === 'bundle') && account) {
             const { data: existingOrg } = await supabase
               .from('organizations')
               .select('id')

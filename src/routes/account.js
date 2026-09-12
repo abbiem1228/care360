@@ -7,14 +7,28 @@ const COOKIE_OPTS = {
   secure: process.env.NODE_ENV === 'production'
 };
 
-const PAID_PLANS = ['starter', 'growth'];
+// plan is strictly a tier (starter/growth); products is strictly which
+// product(s) that tier buys (care360/element_profile/bundle). Neither
+// one means anything about the other, same split PRICE_MAP and
+// account_subscriptions.products already use.
+const TIERS    = ['starter', 'growth'];
+const PRODUCTS = ['care360', 'element_profile', 'bundle'];
+
+const PRODUCT_LABELS = { care360: 'CARE 360', element_profile: 'Element Profile', bundle: 'Bundle' };
+const TIER_LABELS     = { starter: 'Starter', growth: 'Growth' };
+
+function purchaseLabel(tier, products) {
+  if (products === 'bundle') return tier === 'growth' ? 'Growth Bundle' : 'Starter Bundle';
+  return `${PRODUCT_LABELS[products]} ${TIER_LABELS[tier]}`;
+}
 
 // ── Pages ─────────────────────────────────────────────────────
 
 router.get('/signup', (req, res) => {
-  const plan    = PAID_PLANS.includes(req.query.plan) ? req.query.plan : 'trial';
-  const billing = req.query.billing === 'annual' ? 'annual' : 'monthly';
-  res.send(signupPage(null, {}, plan, billing));
+  const tier     = TIERS.includes(req.query.tier) ? req.query.tier : null;
+  const products = PRODUCTS.includes(req.query.products) ? req.query.products : 'care360';
+  const billing  = req.query.billing === 'annual' ? 'annual' : 'monthly';
+  res.send(signupPage(null, {}, tier, products, billing));
 });
 
 router.get('/signin', (req, res) => res.send(signinPage()));
@@ -23,17 +37,18 @@ router.get('/signin', (req, res) => res.send(signinPage()));
 
 router.post('/signup', async (req, res) => {
   const { name, email, password, organization, agree_terms } = req.body;
-  const plan    = PAID_PLANS.includes(req.body.plan) ? req.body.plan : 'trial';
-  const billing = req.body.billing === 'annual' ? 'annual' : 'monthly';
+  const tier     = TIERS.includes(req.body.tier) ? req.body.tier : null;
+  const products = PRODUCTS.includes(req.body.products) ? req.body.products : 'care360';
+  const billing  = req.body.billing === 'annual' ? 'annual' : 'monthly';
 
   if (!email || !password || !organization) {
-    return res.send(signupPage('Please fill in every required field.', req.body, plan, billing));
+    return res.send(signupPage('Please fill in every required field.', req.body, tier, products, billing));
   }
   if (password.length < 8) {
-    return res.send(signupPage('Please choose a password of at least 8 characters.', req.body, plan, billing));
+    return res.send(signupPage('Please choose a password of at least 8 characters.', req.body, tier, products, billing));
   }
   if (agree_terms !== 'on') {
-    return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body, plan, billing));
+    return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body, tier, products, billing));
   }
 
   const result = await signUp({
@@ -44,21 +59,22 @@ router.post('/signup', async (req, res) => {
     termsAcceptedAt: new Date().toISOString()
   });
 
-  if (result.error) return res.send(signupPage(result.error, req.body, plan, billing));
+  if (result.error) return res.send(signupPage(result.error, req.body, tier, products, billing));
 
-  // A paid plan was chosen. Remember it across the email confirmation
-  // gap in a short-lived signed cookie, so the moment this person
-  // actually signs in for the first time, they land directly in
-  // checkout for the plan they picked rather than a trial dashboard.
-  if (plan !== 'trial') {
-    res.cookie('pendingPlan', JSON.stringify({ plan, billing }), { ...COOKIE_OPTS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  // A paid tier was chosen. Remember it and which product it buys
+  // across the email confirmation gap in a short-lived signed cookie,
+  // so the moment this person actually signs in for the first time,
+  // they land directly in checkout for what they picked rather than a
+  // trial dashboard.
+  if (tier) {
+    res.cookie('pendingPurchase', JSON.stringify({ tier, products, billing }), { ...COOKIE_OPTS, maxAge: 7 * 24 * 60 * 60 * 1000 });
   }
 
   if (result.needsConfirmation) {
     return res.send(messagePage(
       'Check your email',
-      plan !== 'trial'
-        ? `We have sent a confirmation link to <strong>${email.trim()}</strong>. Click it, then sign in below, and you will be taken straight to checkout to finish setting up your ${plan === 'starter' ? 'Starter' : 'Growth'} plan.`
+      tier
+        ? `We have sent a confirmation link to <strong>${email.trim()}</strong>. Click it, then sign in below, and you will be taken straight to checkout to finish setting up your ${purchaseLabel(tier, products)} plan.`
         : `We have sent a confirmation link to <strong>${email.trim()}</strong>. Click it to activate your account, then sign in.`,
       'Go to sign in', '/signin'
     ));
@@ -66,8 +82,8 @@ router.post('/signup', async (req, res) => {
 
   // No confirmation required, a session already exists.
   setSessionCookies(res, result.session);
-  if (plan !== 'trial') {
-    return res.redirect(`/billing/checkout?plan=${plan}&billing=${billing}`);
+  if (tier) {
+    return res.redirect(`/billing/checkout?tier=${tier}&products=${products}&billing=${billing}`);
   }
   return res.redirect('/admin');
 });
@@ -83,16 +99,17 @@ router.post('/signin', async (req, res) => {
 
   setSessionCookies(res, result.session);
 
-  // If this person signed up for a paid plan but had to confirm their
+  // If this person signed up for a paid tier but had to confirm their
   // email first, this is the moment that gets honored: send them
   // straight into checkout instead of the dashboard, then forget it.
-  const pending = req.signedCookies && req.signedCookies.pendingPlan;
+  const pending = req.signedCookies && req.signedCookies.pendingPurchase;
   if (pending) {
-    res.clearCookie('pendingPlan');
+    res.clearCookie('pendingPurchase');
     try {
-      const { plan, billing } = JSON.parse(pending);
-      if (PAID_PLANS.includes(plan)) {
-        return res.redirect(`/billing/checkout?plan=${plan}&billing=${billing || 'monthly'}`);
+      const { tier, products, billing } = JSON.parse(pending);
+      if (TIERS.includes(tier)) {
+        const resolvedProducts = PRODUCTS.includes(products) ? products : 'care360';
+        return res.redirect(`/billing/checkout?tier=${tier}&products=${resolvedProducts}&billing=${billing || 'monthly'}`);
       }
     } catch (e) { /* malformed cookie, fall through to normal redirect */ }
   }
@@ -105,7 +122,7 @@ router.post('/signin', async (req, res) => {
 router.get('/signout', (req, res) => {
   clearSessionCookies(res);
   res.clearCookie('adminAuth');
-  res.clearCookie('pendingPlan');
+  res.clearCookie('pendingPurchase');
   res.redirect('/signin');
 });
 
@@ -165,24 +182,26 @@ function shell(title, inner) {
 </div></body></html>`;
 }
 
-function signupPage(error, prev, plan, billing) {
+function signupPage(error, prev, tier, products, billing) {
   const v = prev || {};
-  plan    = PAID_PLANS.includes(plan) ? plan : 'trial';
-  billing = billing === 'annual' ? 'annual' : 'monthly';
+  tier     = TIERS.includes(tier) ? tier : null;
+  products = PRODUCTS.includes(products) ? products : 'care360';
+  billing  = billing === 'annual' ? 'annual' : 'monthly';
 
-  const planLabel = plan === 'starter' ? 'Starter' : plan === 'growth' ? 'Growth' : null;
+  const label = tier ? purchaseLabel(tier, products) : null;
 
-  const contextBlock = planLabel
-    ? `<div class="plan-badge">You are signing up for <strong>${planLabel}</strong>${billing === 'annual' ? ', billed annually' : ''}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
+  const contextBlock = label
+    ? `<div class="plan-badge">You are signing up for <strong>${label}</strong>${billing === 'annual' ? ', billed annually' : ''}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
     : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.</div>`;
 
-  return shell(planLabel ? `Sign up for ${planLabel}` : 'Start your free trial', `
-    <div class="title">${planLabel ? `Set up your ${planLabel} account` : 'Start your free trial'}</div>
-    <div class="sub">${planLabel ? 'Create your login, then continue to payment.' : 'Run one full 360 at no cost, from invitations through to the finished report.'}</div>
+  return shell(label ? `Sign up for ${label}` : 'Start your free trial', `
+    <div class="title">${label ? `Set up your ${label} account` : 'Start your free trial'}</div>
+    <div class="sub">${label ? 'Create your login, then continue to payment.' : 'Run one full 360 at no cost, from invitations through to the finished report.'}</div>
     ${error ? `<div class="err">${error}</div>` : ''}
     ${contextBlock}
     <form method="POST" action="/signup">
-      <input type="hidden" name="plan" value="${plan}"/>
+      <input type="hidden" name="tier" value="${tier || ''}"/>
+      <input type="hidden" name="products" value="${products}"/>
       <input type="hidden" name="billing" value="${billing}"/>
       <div class="group">
         <label class="label">Organization *</label>
@@ -207,7 +226,7 @@ function signupPage(error, prev, plan, billing) {
           <span>I agree to the <a href="https://ingoodcocollective.com/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="https://ingoodcocollective.com/privacy" target="_blank" rel="noopener">Privacy Policy</a></span>
         </label>
       </div>
-      <button class="btn" type="submit">${planLabel ? `Continue to payment` : 'Create my account'}</button>
+      <button class="btn" type="submit">${label ? `Continue to payment` : 'Create my account'}</button>
     </form>
     <div class="alt">Already have an account? <a href="/signin">Sign in</a></div>`);
 }

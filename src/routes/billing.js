@@ -128,28 +128,71 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
       const session   = event.data.object;
       const accountId = session.client_reference_id;
       const plan      = session.metadata && session.metadata.plan;
+      // Not sent by checkout yet (that's the next piece of work, not
+      // this one), so this defaults to 'care360' since that is the
+      // only product real checkout sessions represent today. Once
+      // checkout creation starts sending this, it flows through
+      // unchanged, no second edit needed here.
+      const products  = (session.metadata && session.metadata.products) || 'care360';
 
       if (accountId && plan) {
+        // stripe_subscription_id no longer written here: an account
+        // can hold more than one active subscription (see
+        // account_subscriptions, schema/007), so a single column on
+        // accounts can't represent that. plan/status/stripe_customer_id
+        // stay here unchanged; those are still meaningfully singular
+        // per account today.
         await supabase.from('accounts').update({
           plan,
           status: 'active',
-          stripe_customer_id: session.customer,
-          stripe_subscription_id: session.subscription
+          stripe_customer_id: session.customer
         }).eq('id', accountId);
+
+        if (session.subscription) {
+          await supabase.from('account_subscriptions').insert({
+            account_id: accountId,
+            stripe_subscription_id: session.subscription,
+            products,
+            status: 'active'
+          });
+        }
         console.log(`Account ${accountId} upgraded to ${plan}`);
       }
     }
 
     if (event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;
-      await supabase.from('accounts').update({ status: 'canceled' }).eq('stripe_subscription_id', sub.id);
+      const { data: subscriptionRow } = await supabase
+        .from('account_subscriptions')
+        .update({ status: 'canceled', updated_at: new Date().toISOString() })
+        .eq('stripe_subscription_id', sub.id)
+        .select()
+        .maybeSingle();
+
+      // accounts.status still gets updated too, unchanged from today's
+      // behavior, looked up via the new table instead of the old
+      // column. It has the same one-value-for-possibly-several-
+      // subscriptions shape of gap as stripe_subscription_id did, just
+      // not fixed as part of this change.
+      if (subscriptionRow) {
+        await supabase.from('accounts').update({ status: 'canceled' }).eq('id', subscriptionRow.account_id);
+      }
       console.log(`Subscription ${sub.id} canceled`);
     }
 
     if (event.type === 'invoice.payment_failed') {
       const inv = event.data.object;
       if (inv.subscription) {
-        await supabase.from('accounts').update({ status: 'past_due' }).eq('stripe_subscription_id', inv.subscription);
+        const { data: subscriptionRow } = await supabase
+          .from('account_subscriptions')
+          .update({ status: 'past_due', updated_at: new Date().toISOString() })
+          .eq('stripe_subscription_id', inv.subscription)
+          .select()
+          .maybeSingle();
+
+        if (subscriptionRow) {
+          await supabase.from('accounts').update({ status: 'past_due' }).eq('id', subscriptionRow.account_id);
+        }
         console.log(`Subscription ${inv.subscription} marked past due`);
       }
     }

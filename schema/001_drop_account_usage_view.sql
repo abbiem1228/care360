@@ -1,0 +1,31 @@
+-- Drops account_usage, a view that aggregated every account's name,
+-- plan, status, and survey/leader/report counts into one cross-tenant
+-- rollup (see schema/000_care360_actual_state.sql for its original
+-- definition, captured before this drop).
+--
+-- Found during a read-only schema investigation on 2026-09-12: the view
+-- had no security_invoker setting, so it ran with its owner's
+-- privileges and did not inherit the RLS policies on the tables it
+-- read from, and both anon and authenticated held a direct SELECT
+-- grant on it. In combination, any signed-in CARE 360 customer, or an
+-- unauthenticated caller with only the public anon key, could read
+-- every other account's usage data through it, not just their own.
+--
+-- Before dropping, the entire application codebase (src/ and public/)
+-- was searched for any reference to account_usage: none exists.
+-- src/routes/hq.js, the only feature that legitimately needs
+-- cross-account visibility, computes the same rollup independently in
+-- application code via the service-role client and never queried this
+-- view. No client-side code queries Supabase directly at all. Confirmed
+-- empirically after the drop, not just inferred: hq.js's own queries
+-- against accounts/account_users/cycles/leaders/reports still run
+-- successfully with this view gone.
+--
+-- Applied directly against the live database on 2026-09-12, ahead of
+-- this file: this migration documents that change in CARE 360's new
+-- schema/ history rather than leaving it undocumented, the same gap
+-- schema/000 was written to close for everything that came before it.
+-- Safe to run again on a database that still has the view (drops it),
+-- and safe to run on one that doesn't (no-op).
+
+drop view if exists account_usage;

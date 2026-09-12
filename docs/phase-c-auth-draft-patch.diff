@@ -1,0 +1,77 @@
+# Phase C step 11 draft patch (docs/element-profile-merge-plan.md)
+#
+# Applied against Element Profile's server/auth.js on 2026-09-12 to
+# actually verify Phase B's feature testing (role creation and AI draft,
+# review/approval, one-live-profile enforcement, the person-vs-role
+# comparison report and its caching) through the real running
+# application, not re-implemented logic. Element Profile's app could
+# not authenticate against CARE 360's merged project at all without it:
+# attachOrganization queried account_users expecting this project's own,
+# now-retired shape (a direct organization_id column and a nested
+# `organizations` relation). CARE 360's real account_users is keyed by
+# account_id instead, so that query failed outright.
+#
+# This patch was applied, used to verify every Phase B feature test,
+# then reverted (confirmed via `git diff`, zero changes) since Phase C
+# has not been reached yet and Element Profile's production app must
+# keep pointing at its own project until the real cutover. Preserved
+# here as the actual first draft of that step, not applied to anything,
+# so it does not need to be rediscovered when Phase C is actually built.
+#
+# Applies cleanly to Element Profile's server/auth.js as of the same
+# commit this session was working from. Apply with, from that repo's
+# root:
+#   git apply docs/phase-c-auth-draft-patch.diff
+# (path relative to this file's location once copied over, or adjust
+# accordingly).
+
+diff --git a/server/auth.js b/server/auth.js
+index 817475a..4cea44e 100644
+--- a/server/auth.js
++++ b/server/auth.js
+@@ -146,23 +146,36 @@ async function getSession(req, res) {
+   return null;
+ }
+
++// Phase C step 11 of docs/element-profile-merge-plan.md (CARE 360
++// repo): resolves account_id -> accounts -> organizations instead of
++// the old direct account_users(organization_id) shape, since this
++// project's own account_users is retired in favor of CARE 360's real
++// one once both live in the same project.
+ async function attachOrganization(user, accessToken) {
+-  const { data: link } = await admin
++  const { data: accountUser } = await admin
+     .from('account_users')
+-    .select('*, organizations(*)')
++    .select('*')
+     .eq('auth_user_id', user.id)
+-    .single();
++    .maybeSingle();
++
++  if (!accountUser) return null;
++
++  const { data: organization } = await admin
++    .from('organizations')
++    .select('*')
++    .eq('account_id', accountUser.account_id)
++    .maybeSingle();
+
+-  if (!link) return null;
++  if (!organization) return null;
+
+   return {
+     user,
+     accessToken,
+-    organizationId: link.organization_id,
+-    organization: link.organizations,
+-    name: link.name,
+-    email: link.email,
+-    role: link.role,
++    organizationId: organization.id,
++    organization,
++    name: accountUser.name,
++    email: accountUser.email,
++    role: accountUser.role,
+     db: userClient(accessToken),
+   };
+ }

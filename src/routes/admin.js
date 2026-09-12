@@ -251,6 +251,7 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
 .nav-brand{color:white;font-weight:600;font-size:15px;font-family:'EB Garamond',serif;letter-spacing:0.3px}
 .nav-link{color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;transition:color 0.15s}
 .nav-link:hover{color:white;text-decoration:none}
+.nav-link-btn{background:none;border:none;font-family:inherit;padding:0;cursor:pointer}
 .nav-spacer{flex:1}
 .nav-user{display:flex;align-items:center;gap:9px;color:rgba(255,255,255,0.6);font-size:13px}
 .nav-acct{color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -344,6 +345,18 @@ function adminShell(title, content, req) {
   const plan     = acct ? acct.plan : '';
   const initial  = acctName ? acctName.trim().charAt(0).toUpperCase() : 'A';
 
+  // Entitlement-aware reminder: only when the account genuinely has
+  // exactly one of the two products, read straight from its real,
+  // current has_care360/has_element_profile flags. No dismissal state
+  // to track, it just stops rendering the moment both are true.
+  const missingElementProfile = !!(acct && acct.has_care360 && !acct.has_element_profile);
+  const missingCare360        = !!(acct && acct.has_element_profile && !acct.has_care360);
+  const bundleReminder = missingElementProfile
+    ? 'Upgrade to the Bundle and get Element Profile too'
+    : missingCare360
+      ? 'Upgrade to the Bundle and get CARE 360 too'
+      : null;
+
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${title} — CARE 360</title>${CSS}</head><body>
   <nav class="admin-nav">
@@ -359,6 +372,10 @@ function adminShell(title, content, req) {
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
       ${acct && acct.plan === 'trial' ? `<a href="/plans" class="nav-link" style="color:#F0C987;font-weight:700">Upgrade</a>` : ''}
+      ${bundleReminder ? `
+      <form method="POST" action="/billing/upgrade-to-bundle" style="display:inline">
+        <button type="submit" class="nav-link nav-link-btn" style="color:#F0C987;font-weight:700">${bundleReminder}</button>
+      </form>` : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>

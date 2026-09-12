@@ -18,6 +18,8 @@ You said `accounts` "gains" the two entitlement flags "already anticipated in th
 
 ## The auth-identity problem, the single biggest risk in this plan
 
+**Confirmed with the project owner: no real customer currently has accounts in both products, only the owner's own testing.** This means Phase D's reconciliation step (16-17 below) will only ever need to handle a small, known set of accounts, not ambiguous real-customer matching, when the actual migration happens. The mechanical risk described below (Supabase Auth being project-scoped) is unchanged and the spike is still needed, but the scale of what it has to reconcile is far smaller than "real customer data" implies.
+
 Supabase Auth users are **project-scoped**. `auth.users` in Element Profile's project and `auth.users` in CARE 360's project are two entirely separate tables with no relationship. Moving to "one shared home" doesn't just mean moving rows between Postgres tables — it means every Element Profile admin's actual login has to be re-created inside CARE 360's project, and reconciled against whether that same person already has a CARE 360 login (same email, different `auth.users` row, different `account_users` row, today).
 
 This needs its own spike before Phase D below can be scheduled for real: confirming exactly how Supabase's Admin API handles re-creating a user with a known password hash versus forcing a reset, and building the actual email-matching logic that decides "this Element Profile admin already has a CARE 360 account" vs. "this is a brand new tenant." I'm calling this out prominently because it's easy to plan the schema side of this migration cleanly and then discover the auth side blocks the whole cutover.

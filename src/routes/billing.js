@@ -164,6 +164,20 @@ checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {
     return res.redirect('/signin');
   }
 
+  // Fails fast, before touching Supabase or Stripe at all: if the
+  // bundle prices for either tier aren't configured in this
+  // environment (e.g. STRIPE_PRICE_BUNDLE_* not yet set here), this is
+  // not a customer's mistake and not a server error to hide behind a
+  // generic message. Say so plainly.
+  const bundleConfigured =
+    PRICE_MAP.bundle.starter.monthly && PRICE_MAP.bundle.starter.annual &&
+    PRICE_MAP.bundle.growth.monthly  && PRICE_MAP.bundle.growth.annual;
+
+  if (!bundleConfigured) {
+    console.error('Upgrade to bundle: bundle prices are not configured in this environment');
+    return res.status(400).send('Bundle upgrades aren\'t available yet. <a href="/admin">Back to dashboard</a>');
+  }
+
   try {
     const { data: activeSubs, error } = await supabase
       .from('account_subscriptions')
@@ -192,7 +206,7 @@ checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {
 
     if (!bundlePriceId) {
       console.error(`Upgrade to bundle: no bundle price configured for tier ${currentTier}, interval ${currentInterval}`);
-      return res.status(500).send('Something went wrong starting the upgrade. <a href="/admin">Back to dashboard</a>');
+      return res.status(400).send('Bundle upgrades aren\'t available yet. <a href="/admin">Back to dashboard</a>');
     }
 
     await stripe.subscriptions.update(subscription.id, {

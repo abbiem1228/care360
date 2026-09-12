@@ -9,6 +9,15 @@ const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
 // Maps a plan + billing period to the actual Stripe price to charge.
 // Nothing else in the app needs to know these IDs.
+//
+// Bundle is tiered the same way CARE 360 itself already is (Starter,
+// Growth), rather than one flat option: Starter Bundle and Growth
+// Bundle are their own real Stripe products, each with their own
+// monthly/annual price. Element Profile's own Starter/Growth prices
+// exist in Stripe too (see .env), but aren't listed here yet, since
+// nothing in this app sells Element Profile on its own today; that
+// purchase page is separate, not-yet-built work (see
+// docs/element-profile-merge-plan.md).
 const PRICE_MAP = {
   starter: {
     monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
@@ -17,8 +26,46 @@ const PRICE_MAP = {
   growth: {
     monthly: process.env.STRIPE_PRICE_GROWTH_MONTHLY,
     annual:  process.env.STRIPE_PRICE_GROWTH_ANNUAL
+  },
+  bundle: {
+    starter: {
+      monthly: process.env.STRIPE_PRICE_BUNDLE_STARTER_MONTHLY,
+      annual:  process.env.STRIPE_PRICE_BUNDLE_STARTER_ANNUAL
+    },
+    growth: {
+      monthly: process.env.STRIPE_PRICE_BUNDLE_GROWTH_MONTHLY,
+      annual:  process.env.STRIPE_PRICE_BUNDLE_GROWTH_ANNUAL
+    }
   }
 };
+
+// Reverse of PRICE_MAP: a Stripe price ID back to what it entitles.
+// Starter and Growth both map to 'care360', matching what checkout
+// already grants. Both bundle tiers map to 'bundle', the one case the
+// subscription.updated webhook handler actually needs this for, since
+// that price change is the only one that grants a product the account
+// didn't already have.
+const PRICE_TO_PRODUCTS = {};
+if (PRICE_MAP.starter.monthly) PRICE_TO_PRODUCTS[PRICE_MAP.starter.monthly] = 'care360';
+if (PRICE_MAP.starter.annual)  PRICE_TO_PRODUCTS[PRICE_MAP.starter.annual]  = 'care360';
+if (PRICE_MAP.growth.monthly)  PRICE_TO_PRODUCTS[PRICE_MAP.growth.monthly]  = 'care360';
+if (PRICE_MAP.growth.annual)   PRICE_TO_PRODUCTS[PRICE_MAP.growth.annual]   = 'care360';
+for (const tier of ['starter', 'growth']) {
+  if (PRICE_MAP.bundle[tier].monthly) PRICE_TO_PRODUCTS[PRICE_MAP.bundle[tier].monthly] = 'bundle';
+  if (PRICE_MAP.bundle[tier].annual)  PRICE_TO_PRODUCTS[PRICE_MAP.bundle[tier].annual]  = 'bundle';
+}
+
+// A price ID back to its tier (starter/growth). Only CARE 360's own
+// prices are listed here today, for the same reason PRICE_MAP has no
+// element_profile entry yet: nothing sells Element Profile on its own
+// yet, so no subscription can currently be on one of those prices.
+// The upgrade-to-bundle route uses this to pick the matching bundle
+// tier, never guessing at a tier the account isn't actually on.
+const PRICE_TO_TIER = {};
+if (PRICE_MAP.starter.monthly) PRICE_TO_TIER[PRICE_MAP.starter.monthly] = 'starter';
+if (PRICE_MAP.starter.annual)  PRICE_TO_TIER[PRICE_MAP.starter.annual]  = 'starter';
+if (PRICE_MAP.growth.monthly)  PRICE_TO_TIER[PRICE_MAP.growth.monthly]  = 'growth';
+if (PRICE_MAP.growth.annual)   PRICE_TO_TIER[PRICE_MAP.growth.annual]   = 'growth';
 
 function requireAuth(req, res, next) {
   if (req.isAdmin) return next();
@@ -100,6 +147,66 @@ checkoutRouter.get('/portal', requireAuth, async (req, res) => {
   }
 });
 
+// ── Upgrade to the Bundle ────────────────────────────────────
+// The only in-dashboard way an account ever gains its second product.
+// Changes the price on the account's existing subscription to the
+// bundle price matching its current billing interval, never the
+// opposite interval (see docs/element-profile-merge-plan.md for why:
+// crossing intervals reshapes the whole billing period and produces a
+// much larger prorated charge). This route only triggers the change.
+// It writes nothing to Supabase, same discipline as checkout: the
+// customer.subscription.updated webhook below is what actually updates
+// account_subscriptions and the entitlement flags, once Stripe
+// confirms the change really happened.
+
+checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {
+  if (!req.accountId) {
+    return res.redirect('/signin');
+  }
+
+  try {
+    const { data: activeSubs, error } = await supabase
+      .from('account_subscriptions')
+      .select('stripe_subscription_id')
+      .eq('account_id', req.accountId)
+      .eq('status', 'active');
+
+    if (error) throw error;
+
+    if (!activeSubs || activeSubs.length !== 1) {
+      console.error(`Upgrade to bundle: expected exactly one active subscription for account ${req.accountId}, found ${activeSubs ? activeSubs.length : 0}`);
+      return res.status(400).send('Could not find a single active subscription to upgrade. <a href="/admin">Back to dashboard</a>');
+    }
+
+    const subscription     = await stripe.subscriptions.retrieve(activeSubs[0].stripe_subscription_id);
+    const currentPriceId   = subscription.items.data[0].price.id;
+    const currentInterval  = subscription.items.data[0].price.recurring.interval;
+    const currentTier      = PRICE_TO_TIER[currentPriceId];
+
+    if (!currentTier) {
+      console.error(`Upgrade to bundle: unrecognized current price ${currentPriceId} for account ${req.accountId}, cannot determine tier`);
+      return res.status(400).send('Could not determine your current plan. <a href="/admin">Back to dashboard</a>');
+    }
+
+    const bundlePriceId = currentInterval === 'year' ? PRICE_MAP.bundle[currentTier].annual : PRICE_MAP.bundle[currentTier].monthly;
+
+    if (!bundlePriceId) {
+      console.error(`Upgrade to bundle: no bundle price configured for tier ${currentTier}, interval ${currentInterval}`);
+      return res.status(500).send('Something went wrong starting the upgrade. <a href="/admin">Back to dashboard</a>');
+    }
+
+    await stripe.subscriptions.update(subscription.id, {
+      items: [{ id: subscription.items.data[0].id, price: bundlePriceId }],
+      proration_behavior: 'create_prorations'
+    });
+
+    res.redirect('/billing/checkout/success');
+  } catch (e) {
+    console.error('Upgrade to bundle failed:', e.message);
+    res.status(500).send('Something went wrong starting the upgrade. <a href="/admin">Back to dashboard</a>');
+  }
+});
+
 // ── Stripe webhook ───────────────────────────────────────────
 // This is the only place that actually changes an account's plan.
 // Never trust the browser redirect alone, since a closed tab or a
@@ -178,6 +285,57 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
         await supabase.from('accounts').update({ status: 'canceled' }).eq('id', subscriptionRow.account_id);
       }
       console.log(`Subscription ${sub.id} canceled`);
+    }
+
+    if (event.type === 'customer.subscription.updated') {
+      const sub        = event.data.object;
+      const newPriceId = sub.items.data[0].price.id;
+      const products    = PRICE_TO_PRODUCTS[newPriceId];
+
+      // An unrecognized price isn't this app's concern (Stripe fires
+      // this event for plenty of changes that aren't a price swap we
+      // originated), so only act when the new price is one we know.
+      if (products) {
+        const { data: subscriptionRow } = await supabase
+          .from('account_subscriptions')
+          .update({ products, status: 'active', updated_at: new Date().toISOString() })
+          .eq('stripe_subscription_id', sub.id)
+          .select()
+          .maybeSingle();
+
+        if (subscriptionRow) {
+          // Additive only, same as every other entitlement write in this
+          // app: an upgrade only ever turns a flag on, never off.
+          const entitlements = { has_care360: true };
+          if (products === 'bundle') entitlements.has_element_profile = true;
+
+          const { data: account } = await supabase
+            .from('accounts')
+            .update(entitlements)
+            .eq('id', subscriptionRow.account_id)
+            .select()
+            .maybeSingle();
+
+          // First time this account has gained Element Profile access this
+          // way: it needs the organizations row it never had, so upgrading
+          // is more than just an entitlement flag flip.
+          if (products === 'bundle' && account) {
+            const { data: existingOrg } = await supabase
+              .from('organizations')
+              .select('id')
+              .eq('account_id', account.id)
+              .maybeSingle();
+
+            if (!existingOrg) {
+              await supabase.from('organizations').insert({
+                account_id: account.id,
+                name: account.name
+              });
+            }
+          }
+        }
+        console.log(`Subscription ${sub.id} price changed, now entitles: ${products}`);
+      }
     }
 
     if (event.type === 'invoice.payment_failed') {

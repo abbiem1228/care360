@@ -166,14 +166,11 @@ const SPECIAL_PLANS = {
   }
 };
 
-// TEMPORARY: Element Profile and Bundle aren't purchasable yet, their
-// real Stripe prices don't exist in production (Railway has none of
-// the STRIPE_PRICE_ELEMENT_*/STRIPE_PRICE_BUNDLE_* variables set).
-// This hides those two tabs from the live page without touching any
-// of the underlying checkout/webhook code, which stays fully built
-// and tested. Flip back to true the moment real pricing exists and
-// those variables are set.
-const SHOW_ALL_PRODUCTS = false;
+// Element Profile and Bundle are now purchasable: their real,
+// live-mode Stripe prices exist and Railway has all eight
+// STRIPE_PRICE_ELEMENT_*/STRIPE_PRICE_BUNDLE_* variables set,
+// confirmed directly against a freshly restarted production process.
+const SHOW_ALL_PRODUCTS = true;
 
 router.get('/', (req, res) => {
   const annual  = req.query.billing === 'annual';

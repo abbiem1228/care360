@@ -16,6 +16,14 @@ You said `accounts` "gains" the two entitlement flags "already anticipated in th
 
 **I'm planning to drop them from `organizations`** once the `account_id` link exists, rather than keep both. Two independent booleans claiming to answer the same question ("does this client have Element Profile?") is exactly the kind of drift this whole investigation was started to close, not reopen. If you'd rather keep `organizations.has_element_profile` as a local cache for some reason, say so and I'll adjust the sequence below — it's a one-step change either way.
 
+## Two more decisions
+
+**Linking a second product to an existing account happens from inside an authenticated session, via an "Add [Product]" action, never through the public signup page.** An account already signed in to either product gets a real, in-app action, "Add Element Profile" on CARE 360's side, "Add CARE 360" on Element Profile's side, that links a new `organizations` row (or the CARE 360 equivalent) to their existing `account_id` directly. This replaces the "does this signup email already match an existing account" branching Phase C step 12 originally described, and it's a better answer, not just a simpler one: there's nothing to match, because the person is already authenticated as that account. Public signup only ever creates a brand new account; adding a second product to an existing one is always a distinct, in-session action, never a signup-time guess.
+
+**Both products show a small, persistent, entitlement-aware reminder, visible only to an account missing one of the two products, and it disappears entirely once an account has both.** A quiet banner pointing toward the "Add [Product]" action above, shown to a CARE 360 account where `has_element_profile = false`, and to an Element Profile account whose linked account has `has_care360 = false`. The moment both flags are true, it simply stops rendering. No dismissal state to track, no separate table.
+
+The data this needs already exists, live, as of this morning's Phase A work: `has_care360` and `has_element_profile` on `accounts` (`schema/002`) are exactly the two booleans this reminder reads. That has a real, asymmetric consequence for build order: **CARE 360's half of this ("Add Element Profile") is buildable right now, today, independent of every later phase** — it already knows, for every real account, whether `has_element_profile` is true or false. Element Profile's half ("Add CARE 360") can't exist until an organization is actually linked to an account, which depends on Phase C's "Add [Product]" action existing first (or Phase D's migration, for accounts migrated with the link already in place).
+
 ## The auth-identity problem, the single biggest risk in this plan
 
 **Confirmed with the project owner: no real customer currently has accounts in both products, only the owner's own testing.** This means Phase D's reconciliation step (16-17 below) will only ever need to handle a small, known set of accounts, not ambiguous real-customer matching, when the actual migration happens. The mechanical risk described below (Supabase Auth being project-scoped) is unchanged and the spike is still needed, but the scale of what it has to reconcile is far smaller than "real customer data" implies.
@@ -50,30 +58,31 @@ This runs entirely inside CARE 360's real project, using the same throwaway-acco
 
 Not schema, but load-bearing and must land in the same deploy as the cutover, not before or after:
 
-11. Rewrite Element Profile's session-attachment logic (its `auth.js`-equivalent) to resolve `organizationId` via `account_users → accounts → organizations`, not the old direct `account_users(organization_id)` shape.
-12. Rewrite the signup flow to branch on whether the signing-up email already has a CARE 360 `account_users` row: if yes, link a new `organizations` row to their existing `account_id` instead of creating a new `accounts` row. This is a real product decision about what "signing up for Element Profile" means for an existing CARE 360 customer, not just a code change — worth your explicit sign-off on the UX before it's built, separate from this schema plan.
-13. Point Element Profile's Railway environment (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`) at CARE 360's project. This is the actual cutover moment and must happen atomically with deploying steps 11-12's code, and only after real data (Phase D) is already in place, not before.
+11. Rewrite Element Profile's session-attachment logic (its `auth.js`-equivalent) to resolve `organizationId` via `account_users → accounts → organizations`, not the old direct `account_users(organization_id)` shape. A draft of exactly this change already exists (`docs/phase-c-auth-draft-patch.diff`), applied and verified once during Phase B testing, then reverted since Phase C hadn't been reached yet.
+12. Build the "Add [Product]" action described above: reachable only from inside an authenticated session, never the public signup page. On Element Profile's side, it links a new `organizations` row to the current session's existing `account_id`. Public signup is untouched, it only ever creates a brand new account; this resolves what was previously an open UX question about email-matching at signup time, since there's no matching left to do.
+13. Build the entitlement-aware reminder described above. CARE 360's half can be built and shipped independently, right now, ahead of the rest of this plan, since the data it needs (`has_element_profile` on `accounts`) already exists live. Element Profile's half depends on step 12 existing first.
+14. Point Element Profile's Railway environment (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`) at CARE 360's project. This is the actual cutover moment and must happen atomically with deploying steps 11-13's code, and only after real data (Phase D) is already in place, not before.
 
 **Phase D — Real data migration, the only phase that touches real accounts**
 
 Only begins after Phase B has passed cleanly and the auth-identity spike from earlier has a confirmed mechanism.
 
-14. Maintenance window: Element Profile's current app goes read-only.
-15. Export every row from every Element Profile table in its own (old) project.
-16. For each real `organizations` row: resolve its `account_id` — match against an existing CARE 360 `accounts` row by a human-reviewed signal (likely organization name or admin email domain, since no existing key links these today), or create a fresh `accounts` row if there's no match. **This step is a reconciliation exercise, not a script** — flag every ambiguous match for a human to confirm rather than guessing.
-17. Migrate every affected admin's Supabase Auth identity into CARE 360's project per whatever mechanism the auth spike settled on, reusing an existing CARE 360 login where the email already matches one.
-18. Insert `organizations`, then `people`, then everything else, in FK-dependency order, preserving every UUID exactly as-is (all PKs are `gen_random_uuid()`, so this is safe).
-19. Verify row counts match old vs. new, table by table.
-20. Execute Phase C (cutover + code deploy) as one atomic step.
-21. Smoke-test with one real admin login immediately after.
-22. Keep the old Element Profile Supabase project fully intact and untouched for a real retention window (30 days, minimum) as a cold rollback, not deleted the moment the new one looks fine.
+15. Maintenance window: Element Profile's current app goes read-only.
+16. Export every row from every Element Profile table in its own (old) project.
+17. For each real `organizations` row: resolve its `account_id` — match against an existing CARE 360 `accounts` row by a human-reviewed signal (likely organization name or admin email domain, since no existing key links these today), or create a fresh `accounts` row if there's no match. **This step is a reconciliation exercise, not a script** — flag every ambiguous match for a human to confirm rather than guessing. This is a one-time historical migration step, distinct from step 12's ongoing "Add [Product]" action: it exists only because these specific rows predate that action existing at all.
+18. Migrate every affected admin's Supabase Auth identity into CARE 360's project per whatever mechanism the auth spike settled on, reusing an existing CARE 360 login where the email already matches one.
+19. Insert `organizations`, then `people`, then everything else, in FK-dependency order, preserving every UUID exactly as-is (all PKs are `gen_random_uuid()`, so this is safe).
+20. Verify row counts match old vs. new, table by table.
+21. Execute Phase C (cutover + code deploy) as one atomic step.
+22. Smoke-test with one real admin login immediately after.
+23. Keep the old Element Profile Supabase project fully intact and untouched for a real retention window (30 days, minimum) as a cold rollback, not deleted the moment the new one looks fine.
 
 **Phase E — Cleanup, only after the retention window passes with no issues**
 
-23. Drop `organizations.has_care360`/`has_element_profile` (per the decision flagged above).
-24. Mark Element Profile's own `schema/` folder as historical in its own README; CARE 360's `schema/` folder is canonical from here forward for both products.
-25. Decommission the old Element Profile Supabase project.
+24. Drop `organizations.has_care360`/`has_element_profile` (per the decision flagged above).
+25. Mark Element Profile's own `schema/` folder as historical in its own README; CARE 360's `schema/` folder is canonical from here forward for both products.
+26. Decommission the old Element Profile Supabase project.
 
 ## Where I'd want your explicit go-ahead again before touching anything
 
-Phase A is genuinely additive and safe to schedule whenever you want — I'd treat that as the first thing to actually execute, separately from everything after it. Phase B needs nothing from you beyond "proceed." Phase C step 12 needs a real product decision on the existing-customer signup UX before it's built. Phase D needs the auth-migration spike resolved first, and needs its own explicit go-ahead the same way dropping `account_usage` did, since it's the only phase touching real customer data and real logins.
+Phase A is genuinely additive and safe to schedule whenever you want — I'd treat that as the first thing to actually execute, separately from everything after it. Phase B needs nothing from you beyond "proceed." Phase C steps 12-13 no longer need a product decision before they're built, that's resolved above, they just need building. Phase D needs the auth-migration spike resolved first, and needs its own explicit go-ahead the same way dropping `account_usage` did, since it's the only phase touching real customer data and real logins.

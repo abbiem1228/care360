@@ -47,7 +47,10 @@ async function signUp({ email, password, name, organization, termsAcceptedAt }) 
     options: { data: { full_name: name || null } }
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('SIGNUP FAILED', email, error.message);
+    return { error: error.message };
+  }
 
   // Supabase returns a user with an empty identities array when the
   // email is already registered, rather than an error.

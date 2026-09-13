@@ -179,6 +179,28 @@ function clearSessionCookies(res) {
   res.clearCookie('sbRefresh');
 }
 
+// ── Cross-app handoff (CARE 360 <-> Element Profile) ───────────
+// A short-lived, single-use token minted through Supabase's own
+// magic-link mechanism, never a custom token scheme: the sending app
+// generates one via the admin API, the receiving app redeems it once
+// via verifyOtp for a real session, same as an ordinary sign-in minus
+// the password, since the person is already signed in on the other
+// app under the same real identity. Supabase itself enforces
+// single-use and a short expiry; neither app tracks or expires these.
+
+async function generateHandoffToken(email) {
+  const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+  if (error) return { error: error.message };
+  return { token: data.properties.hashed_token };
+}
+
+async function redeemHandoffToken(token) {
+  const auth = authClient();
+  const { data, error } = await auth.auth.verifyOtp({ token_hash: token, type: 'magiclink' });
+  if (error || !data.session) return { error: error ? error.message : 'That link is invalid or has expired.' };
+  return { session: data.session, user: data.user };
+}
+
 module.exports = {
   authClient,
   userClient,
@@ -186,5 +208,7 @@ module.exports = {
   signIn,
   getSession,
   setSessionCookies,
-  clearSessionCookies
+  clearSessionCookies,
+  generateHandoffToken,
+  redeemHandoffToken
 };

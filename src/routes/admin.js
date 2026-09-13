@@ -3,6 +3,9 @@ const router   = express.Router();
 const supabase = require('../db/client');
 const { nanoid } = require('nanoid');
 const { sendRaterInvite, sendTeammateInvite } = require('../email');
+const { generateHandoffToken } = require('../auth');
+
+const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.ingoodcocollective.com';
 
 // Every query below runs on the signed in user's own connection, so the
 // database refuses to return another account's rows. The shared service
@@ -78,6 +81,26 @@ router.post('/team/invites', requireAuth, async (req, res) => {
   }
 
   res.redirect('/admin/team');
+});
+
+// ── Cross-app handoff to Element Profile ────────────────────────
+// Only reachable when the account genuinely has both products, same
+// entitlement check as the "Upgrade to the Bundle" reminder. Mints a
+// short-lived, single-use Supabase magic-link token for this exact
+// person's real email and hands it to Element Profile, which redeems
+// it for a real session there, no second password.
+router.get('/handoff/element-profile', requireAuth, async (req, res) => {
+  if (!req.account || !req.account.has_care360 || !req.account.has_element_profile) {
+    return res.redirect('/admin');
+  }
+
+  const { token, error } = await generateHandoffToken(req.session.email);
+  if (error) {
+    console.error('Element Profile handoff failed:', error);
+    return res.status(500).send('Could not open Element Profile right now. <a href="/admin">Back to dashboard</a>');
+  }
+
+  res.redirect(`${ELEMENT_PROFILE_URL}/handoff?token=${encodeURIComponent(token)}`);
 });
 
 // ── Groups ────────────────────────────────────────────────────
@@ -397,6 +420,12 @@ function adminShell(title, content, req) {
       ? 'Upgrade to the Bundle and get CARE 360 too'
       : null;
 
+  // Same entitlement check as the reminder above, just the other
+  // direction: once an account genuinely has both products, it can
+  // cross straight into Element Profile instead of being reminded to
+  // buy it.
+  const hasBothProducts = !!(acct && acct.has_care360 && acct.has_element_profile);
+
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${title} — CARE 360</title>${CSS}</head><body>
   <nav class="admin-nav">
@@ -417,6 +446,7 @@ function adminShell(title, content, req) {
       <form method="POST" action="/billing/upgrade-to-bundle" style="display:inline">
         <button type="submit" class="nav-link nav-link-btn" style="color:#F0C987;font-weight:700">${bundleReminder}</button>
       </form>` : ''}
+      ${hasBothProducts ? `<a href="/admin/handoff/element-profile" class="nav-link">Go to Element Profile</a>` : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>

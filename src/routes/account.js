@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { signUp, signIn, setSessionCookies, clearSessionCookies, authClient } = require('../auth');
+const { signUp, signIn, setSessionCookies, clearSessionCookies, authClient, redeemHandoffToken } = require('../auth');
 const supabase = require('../db/client');
 
 const COOKIE_OPTS = {
@@ -32,7 +32,10 @@ router.get('/signup', (req, res) => {
   res.send(signupPage(null, {}, tier, products, billing));
 });
 
-router.get('/signin', (req, res) => res.send(signinPage()));
+router.get('/signin', (req, res) => {
+  const error = req.query.handoff === 'failed' ? 'That link has expired or has already been used. Please sign in.' : null;
+  res.send(signinPage(error));
+});
 
 // ── Sign up ───────────────────────────────────────────────────
 
@@ -213,6 +216,27 @@ router.post('/invite/:token', async (req, res) => {
   }
 
   setSessionCookies(res, data.session);
+  res.redirect('/admin');
+});
+
+// ── Cross-app handoff from Element Profile ──────────────────────
+// Public: reached with a short-lived, single-use Supabase magic-link
+// token minted by Element Profile for this same real person. Redeems
+// it for a real session here, exactly like an ordinary sign-in minus
+// the password. A stale or already-used token fails cleanly, same as
+// Supabase's own single-use enforcement already guarantees.
+
+router.get('/handoff', async (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.redirect('/signin');
+
+  const { session, error } = await redeemHandoffToken(token);
+  if (error || !session) {
+    console.error('CARE 360 handoff failed:', error);
+    return res.redirect('/signin?handoff=failed');
+  }
+
+  setSessionCookies(res, session);
   res.redirect('/admin');
 });
 

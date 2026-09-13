@@ -19,21 +19,33 @@ function requireOwner(req, res, next) {
 }
 
 router.get('/', requireOwner, async (req, res) => {
-  const [{ data: accounts }, { data: users }, { data: cycles }, { data: leaders }, { data: reports }] =
-    await Promise.all([
-      supabase.from('accounts').select('*').order('created_at', { ascending: false }),
-      supabase.from('account_users').select('account_id, email, name, created_at'),
-      supabase.from('cycles').select('id, account_id, client_name, status'),
-      supabase.from('leaders').select('id, account_id, created_at'),
-      supabase.from('reports').select('id, account_id, generated_at')
-    ]);
+  const [
+    { data: accounts }, { data: users }, { data: cycles }, { data: leaders }, { data: reports },
+    { data: organizations }, { data: elementTeams }, { data: people }, { data: elementSessions }, { data: elementRoles }
+  ] = await Promise.all([
+    supabase.from('accounts').select('*').order('created_at', { ascending: false }),
+    supabase.from('account_users').select('account_id, email, name, created_at'),
+    supabase.from('cycles').select('id, account_id, client_name, status'),
+    supabase.from('leaders').select('id, account_id, created_at'),
+    supabase.from('reports').select('id, account_id, generated_at'),
+    // Element Profile's tables key off organization_id, not account_id
+    // directly the way cycles/leaders/reports do, so organizations is
+    // queried purely as the bridge used to credit each org's activity
+    // back to the account that owns it, below.
+    supabase.from('organizations').select('id, account_id'),
+    supabase.from('element_teams').select('id, organization_id'),
+    supabase.from('people').select('id, organization_id'),
+    supabase.from('element_sessions').select('id, organization_id, completed_at').not('completed_at', 'is', null),
+    supabase.from('element_roles').select('id, organization_id')
+  ]);
 
   const byAccount = {};
   (accounts || []).forEach(a => {
     byAccount[a.id] = {
       ...a,
       users: [], surveys: 0, activeSurveys: 0, leaders: 0, reports: 0,
-      orgs: new Set(), lastActivity: null
+      orgs: new Set(), lastActivity: null,
+      epTeams: 0, epPeople: 0, epAssessments: 0, epRoles: 0
     };
   });
 
@@ -53,6 +65,29 @@ router.get('/', requireOwner, async (req, res) => {
     const a = byAccount[r.account_id]; if (!a) return;
     a.reports++;
     if (r.generated_at && (!a.lastActivity || r.generated_at > a.lastActivity)) a.lastActivity = r.generated_at;
+  });
+
+  // Bridges organization_id -> account_id for the four Element Profile
+  // aggregations below. An account with more than one organizations row
+  // (none do today) would simply sum across all of them.
+  const orgToAccount = {};
+  (organizations || []).forEach(o => { orgToAccount[o.id] = o.account_id; });
+
+  (elementTeams || []).forEach(t => {
+    const a = byAccount[orgToAccount[t.organization_id]]; if (!a) return;
+    a.epTeams++;
+  });
+  (people || []).forEach(p => {
+    const a = byAccount[orgToAccount[p.organization_id]]; if (!a) return;
+    a.epPeople++;
+  });
+  (elementSessions || []).forEach(s => {
+    const a = byAccount[orgToAccount[s.organization_id]]; if (!a) return;
+    a.epAssessments++;
+  });
+  (elementRoles || []).forEach(r => {
+    const a = byAccount[orgToAccount[r.organization_id]]; if (!a) return;
+    a.epRoles++;
   });
 
   const rows = Object.values(byAccount);
@@ -98,21 +133,37 @@ function flagsFor(r) {
   return out;
 }
 
+// Driven only by the account's real has_care360/has_element_profile
+// flags, not the legacy accounts.plan column (which was never reliably
+// updated once Element Profile got its own subscriptions).
+function productFor(r) {
+  if (r.has_care360 && r.has_element_profile) return ['bundle', 'Bundle'];
+  if (r.has_care360)                          return ['care360', 'CARE 360'];
+  if (r.has_element_profile)                  return ['element', 'Element Profile'];
+  return ['none', 'None'];
+}
+
 function hqPage(d) {
   const rows = d.rows.map(r => {
     const flags = flagsFor(r).map(([k, label]) => `<span class="flag flag-${k}">${label}</span>`).join(' ');
     const email = r.users.length ? r.users[0].email : '<span style="color:#c9c9c9">no user</span>';
+    const [productKey, productLabel] = productFor(r);
     return `<tr>
       <td>
         <div class="acct">${r.name}</div>
         <div class="acct-email">${email}</div>
       </td>
+      <td><span class="product product-${productKey}">${productLabel}</span></td>
       <td><span class="plan plan-${r.plan}">${r.plan}</span></td>
       <td>${fmt(r.created_at)}</td>
       <td class="num">${r.surveys}</td>
       <td class="num">${r.leaders}</td>
       <td class="num">${r.orgs.size}</td>
       <td class="num">${r.reports}</td>
+      <td class="num">${r.epTeams}</td>
+      <td class="num">${r.epPeople}</td>
+      <td class="num">${r.epAssessments}</td>
+      <td class="num">${r.epRoles}</td>
       <td>${ago(r.lastActivity)}</td>
       <td>${flags || ''}</td>
     </tr>`;
@@ -158,6 +209,11 @@ tr:hover td{background:var(--cream)}
 .plan-growth{background:#FBF5EC;color:#8B6914}
 .plan-community{background:#EDF1F5;color:#3D5A7A}
 .plan-enterprise{background:var(--ink);color:white}
+.product{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.product-bundle{background:var(--ink);color:white}
+.product-care360{background:#EDF1F5;color:#3D5A7A}
+.product-element{background:#F4F0FA;color:#6B4FA0}
+.product-none{background:#F0EDE8;color:#8a8a8a}
 .flag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;white-space:nowrap;margin-bottom:3px}
 .flag-over{background:#FDECEA;color:#A94442}
 .flag-near{background:#FBF5EC;color:#8B6914}
@@ -193,8 +249,9 @@ tr:hover td{background:var(--cream)}
     <div class="card-title">All accounts</div>
     <table>
       <thead><tr>
-        <th>Account</th><th>Plan</th><th>Signed up</th>
+        <th>Account</th><th>Product</th><th>Plan</th><th>Signed up</th>
         <th class="num">Surveys</th><th class="num">Leaders</th><th class="num">Orgs</th><th class="num">Reports</th>
+        <th class="num">EP Teams</th><th class="num">EP People</th><th class="num">EP Assessments</th><th class="num">EP Roles</th>
         <th>Last activity</th><th>Flags</th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -204,7 +261,8 @@ tr:hover td{background:var(--cream)}
       <strong>Not started</strong> is a trial that signed up but never added a leader. Worth a follow up email.<br/>
       <strong>Ran a report</strong> is a trial that completed a full 360. The best conversion conversation you will get.<br/>
       <strong>Near band</strong> means 80% of the expected leader count for the plan. <strong>Over band</strong> means past it.<br/>
-      <strong>Multiple orgs</strong> means the account is running 360s for more than ${ORG_CEILING - 1} client organizations, which usually means a consultancy on the wrong plan.
+      <strong>Multiple orgs</strong> means the account is running 360s for more than ${ORG_CEILING - 1} client organizations, which usually means a consultancy on the wrong plan.<br/>
+      <strong>Product</strong> is read straight from the account's real has_care360/has_element_profile flags, not the Plan badge: <strong>Bundle</strong> has both, <strong>CARE 360</strong> and <strong>Element Profile</strong> have just the one. The four EP columns are that product's real team, people, completed-assessment, and role counts, zero for any account that doesn't have it.
     </div>
   </div>
 </div>

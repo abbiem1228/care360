@@ -23,6 +23,48 @@ function purchaseLabel(tier, products) {
   return `${PRODUCT_LABELS[products]} ${TIER_LABELS[tier]}`;
 }
 
+// Same env var and default already used for the handoff redirect
+// (src/routes/admin.js), not a second, separately-configured URL.
+const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.ingoodcocollective.com';
+
+const CARE360_TERMS_URL    = 'https://ingoodcocollective.com/terms';
+const CARE360_PRIVACY_URL  = 'https://ingoodcocollective.com/privacy';
+const ELEMENT_TERMS_URL    = `${ELEMENT_PROFILE_URL}/terms`;
+const ELEMENT_PRIVACY_URL  = `${ELEMENT_PROFILE_URL}/privacy`;
+
+// A Bundle customer is agreeing to two distinct products' real terms,
+// not one document that happens to cover both, so it gets two separate
+// checkboxes rather than one checkbox glossing over two agreements.
+// care360-only and element_profile-only each still get a single
+// checkbox, just pointed at whichever product's real documents apply.
+function termsCheckboxBlock(products) {
+  if (products === 'bundle') {
+    return `
+      <div class="group terms-check">
+        <label class="terms-label">
+          <input type="checkbox" name="agree_terms_care360" required/>
+          <span>I agree to CARE 360's <a href="${CARE360_TERMS_URL}" target="_blank" rel="noopener">Terms of Service</a> and <a href="${CARE360_PRIVACY_URL}" target="_blank" rel="noopener">Privacy Policy</a></span>
+        </label>
+        <label class="terms-label" style="margin-top:8px">
+          <input type="checkbox" name="agree_terms_element" required/>
+          <span>I agree to Element Profile's <a href="${ELEMENT_TERMS_URL}" target="_blank" rel="noopener">Terms of Service</a> and <a href="${ELEMENT_PRIVACY_URL}" target="_blank" rel="noopener">Privacy Policy</a></span>
+        </label>
+      </div>`;
+  }
+
+  const termsUrl   = products === 'element_profile' ? ELEMENT_TERMS_URL   : CARE360_TERMS_URL;
+  const privacyUrl = products === 'element_profile' ? ELEMENT_PRIVACY_URL : CARE360_PRIVACY_URL;
+  const productName = products === 'element_profile' ? 'Element Profile' : 'CARE 360';
+
+  return `
+      <div class="group terms-check">
+        <label class="terms-label">
+          <input type="checkbox" name="agree_terms" required/>
+          <span>I agree to ${productName}'s <a href="${termsUrl}" target="_blank" rel="noopener">Terms of Service</a> and <a href="${privacyUrl}" target="_blank" rel="noopener">Privacy Policy</a></span>
+        </label>
+      </div>`;
+}
+
 // ── Pages ─────────────────────────────────────────────────────
 
 router.get('/signup', (req, res) => {
@@ -51,7 +93,11 @@ router.post('/signup', async (req, res) => {
   if (password.length < 8) {
     return res.send(signupPage('Please choose a password of at least 8 characters.', req.body, tier, products, billing));
   }
-  if (agree_terms !== 'on') {
+  if (products === 'bundle') {
+    if (req.body.agree_terms_care360 !== 'on' || req.body.agree_terms_element !== 'on') {
+      return res.send(signupPage('Please agree to both CARE 360\'s and Element Profile\'s Terms of Service and Privacy Policy to create a Bundle account.', req.body, tier, products, billing));
+    }
+  } else if (agree_terms !== 'on') {
     return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body, tier, products, billing));
   }
 
@@ -334,12 +380,7 @@ function signupPage(error, prev, tier, products, billing) {
         <label class="label">Password *</label>
         <input class="control" type="password" name="password" required placeholder="At least 8 characters"/>
       </div>
-      <div class="group terms-check">
-        <label class="terms-label">
-          <input type="checkbox" name="agree_terms" required/>
-          <span>I agree to the <a href="https://ingoodcocollective.com/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="https://ingoodcocollective.com/privacy" target="_blank" rel="noopener">Privacy Policy</a></span>
-        </label>
-      </div>
+      ${termsCheckboxBlock(products)}
       <button class="btn" type="submit">${label ? `Continue to payment` : 'Create my account'}</button>
     </form>
     <div class="alt">Already have an account? <a href="/signin">Sign in</a></div>`);

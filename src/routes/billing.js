@@ -3,6 +3,9 @@ const webhookRouter  = express.Router();
 const checkoutRouter = express.Router();
 const Stripe  = require('stripe');
 const supabase = require('../db/client');
+const {
+  CARE360_TERMS_URL, CARE360_PRIVACY_URL, ELEMENT_TERMS_URL, ELEMENT_PRIVACY_URL
+} = require('./account');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
@@ -79,6 +82,23 @@ function requireAuth(req, res, next) {
   res.redirect('/signin');
 }
 
+// Same product-aware logic as the signup checkbox (src/routes/account.js):
+// a Bundle purchase is agreeing to two distinct products' real terms, so
+// the consent message names and links both, not one document covering
+// both. Stripe's own consent_collection.terms_of_service checkbox is
+// what's actually shown on Stripe's page; this message is only the text
+// next to it, so it also states plainly which document(s) the checkbox
+// covers for whichever purchase this session actually is.
+function termsConsentMessage(products) {
+  if (products === 'element_profile') {
+    return `I agree to Element Profile's [Terms of Service](${ELEMENT_TERMS_URL}) and [Privacy Policy](${ELEMENT_PRIVACY_URL}).`;
+  }
+  if (products === 'bundle') {
+    return `I agree to CARE 360's [Terms of Service](${CARE360_TERMS_URL}) and [Privacy Policy](${CARE360_PRIVACY_URL}), and to Element Profile's [Terms of Service](${ELEMENT_TERMS_URL}) and [Privacy Policy](${ELEMENT_PRIVACY_URL}).`;
+  }
+  return `I agree to CARE 360's [Terms of Service](${CARE360_TERMS_URL}) and [Privacy Policy](${CARE360_PRIVACY_URL}).`;
+}
+
 // ── Start checkout ───────────────────────────────────────────
 // Called when a signed in user picks a plan from /plans: tier is
 // strictly which tier (starter/growth), products is strictly which
@@ -111,7 +131,9 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
       cancel_url:  `${APP_URL}/plans`,
       customer_email: req.session ? req.session.email : undefined,
       client_reference_id: req.accountId,
-      metadata: { account_id: req.accountId, tier, products }
+      metadata: { account_id: req.accountId, tier, products },
+      consent_collection: { terms_of_service: 'required' },
+      custom_text: { terms_of_service_acceptance: { message: termsConsentMessage(products) } }
     });
 
     res.redirect(session.url);
@@ -170,9 +192,79 @@ checkoutRouter.get('/portal', requireAuth, async (req, res) => {
 // account_subscriptions and the entitlement flags, once Stripe
 // confirms the change really happened.
 
+// The one new product an "Upgrade to Bundle" click actually adds, for
+// whichever account is asking: an account only ever sees this option
+// (src/routes/admin.js's bundleReminder) when it genuinely has exactly
+// one of the two products already, so exactly one is missing.
+function missingProduct(account) {
+  if (account && account.has_care360 && !account.has_element_profile) return 'element_profile';
+  if (account && account.has_element_profile && !account.has_care360) return 'care360';
+  return null;
+}
+
+function upgradeConfirmPage(products, error) {
+  const isElement = products === 'element_profile';
+  const productName = isElement ? 'Element Profile' : 'CARE 360';
+  const termsUrl    = isElement ? ELEMENT_TERMS_URL   : CARE360_TERMS_URL;
+  const privacyUrl  = isElement ? ELEMENT_PRIVACY_URL : CARE360_PRIVACY_URL;
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Add ${productName} — CARE 360</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#F7F4EF;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px}
+    .card{background:#fff;border-radius:10px;padding:40px;max-width:460px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08);border-top:4px solid #A9633D}
+    h2{color:#30383B;font-size:20px;margin:0 0 10px}
+    p{color:#595959;font-size:14px;line-height:1.6;margin:0 0 20px}
+    .err{background:#FFF7F6;border:1px solid #FDDDD9;color:#A94442;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:18px}
+    .terms-label{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;color:#30383B;margin-bottom:22px}
+    .terms-label input{margin-top:3px}
+    .terms-label a{color:#A9633D}
+    .actions{display:flex;gap:10px}
+    button{font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;border-radius:6px;border:none;padding:11px 20px}
+    .primary{background:#30383B;color:#fff;flex:1}
+    .ghost{background:#EDE8DF;color:#30383B;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+  </style></head>
+  <body><div class="card">
+    <h2>Add ${productName} to your account</h2>
+    <p>Your subscription will switch to the Bundle price for your current tier and billing interval, prorated for the rest of this period. This also means agreeing to ${productName}'s own terms, since you haven't had ${productName} on this account before.</p>
+    ${error ? `<div class="err">${error}</div>` : ''}
+    <form method="POST" action="/billing/upgrade-to-bundle">
+      <label class="terms-label">
+        <input type="checkbox" name="agree_terms" required/>
+        <span>I agree to ${productName}'s <a href="${termsUrl}" target="_blank" rel="noopener">Terms of Service</a> and <a href="${privacyUrl}" target="_blank" rel="noopener">Privacy Policy</a></span>
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit">Add ${productName}</button>
+        <a class="ghost" href="/admin">Cancel</a>
+      </div>
+    </form>
+  </div></body></html>`;
+}
+
+checkoutRouter.get('/upgrade-to-bundle', requireAuth, (req, res) => {
+  const products = missingProduct(req.account);
+  if (!products) {
+    return res.status(400).send('Your account already has both products, or we could not tell which one you\'re adding. <a href="/admin">Back to dashboard</a>');
+  }
+  res.send(upgradeConfirmPage(products));
+});
+
 checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {
   if (!req.accountId) {
     return res.redirect('/signin');
+  }
+
+  // Same server-side gate as every other real purchase path in this
+  // app: the confirmation page's checkbox is required in the browser,
+  // but this never trusts that alone, the same discipline as the
+  // signup checkboxes above.
+  const products = missingProduct(req.account);
+  if (!products) {
+    return res.status(400).send('Your account already has both products, or we could not tell which one you\'re adding. <a href="/admin">Back to dashboard</a>');
+  }
+  if (req.body.agree_terms !== 'on') {
+    return res.send(upgradeConfirmPage(products, `Please agree to ${products === 'element_profile' ? 'Element Profile' : 'CARE 360'}'s Terms of Service and Privacy Policy to add it to your account.`));
   }
 
   // Fails fast, before touching Supabase or Stripe at all: if the

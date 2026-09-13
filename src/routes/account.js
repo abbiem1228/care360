@@ -438,3 +438,10 @@ function inviteAcceptPage(invite, error) {
 }
 
 module.exports = router;
+// Exposed so billing.js can point Stripe Checkout's own terms
+// consent at the exact same real URLs, per product, instead of a
+// second, separately-maintained copy.
+module.exports.CARE360_TERMS_URL   = CARE360_TERMS_URL;
+module.exports.CARE360_PRIVACY_URL = CARE360_PRIVACY_URL;
+module.exports.ELEMENT_TERMS_URL   = ELEMENT_TERMS_URL;
+module.exports.ELEMENT_PRIVACY_URL = ELEMENT_PRIVACY_URL;

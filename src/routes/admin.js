@@ -462,10 +462,7 @@ function adminShell(title, content, req) {
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
       ${acct && acct.plan === 'trial' ? `<a href="/plans" class="nav-link" style="color:#F0C987;font-weight:700">Upgrade</a>` : ''}
-      ${bundleReminder ? `
-      <form method="POST" action="/billing/upgrade-to-bundle" style="display:inline">
-        <button type="submit" class="nav-link nav-link-btn" style="color:#F0C987;font-weight:700">${bundleReminder}</button>
-      </form>` : ''}
+      ${bundleReminder ? `<a href="/billing/upgrade-to-bundle" class="nav-link" style="color:#F0C987;font-weight:700">${bundleReminder}</a>` : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>

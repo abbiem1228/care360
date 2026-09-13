@@ -273,4 +273,48 @@ async function resolveNotifyEmail(supabase, accountId) {
     return process.env.ADMIN_EMAIL || null;
   }
 }
-module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice, resolveNotifyEmail };
+async function sendTeammateInvite(invite, inviterName, accountName) {
+  const inviteUrl = `${APP_URL}/invite/${invite.token}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/></head>
+<body style="font-family:Arial,sans-serif;background:#F7F4EF;margin:0;padding:40px 20px">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+
+  <div style="background:#30383B;padding:28px 36px">
+    <div style="color:#D9CBB2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">In Good Company Collective</div>
+    <div style="color:#fff;font-size:20px;font-weight:bold">CARE 360 Leadership Survey</div>
+  </div>
+
+  <div style="padding:36px">
+    <p style="color:#30383B;font-size:14px;margin-bottom:16px">Hi${invite.name ? ` ${invite.name}` : ''},</p>
+    <p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:24px">${inviterName} has invited you to join <strong>${accountName}</strong> on CARE 360.</p>
+
+    <div style="text-align:center;margin-bottom:28px">
+      <a href="${inviteUrl}" style="display:inline-block;background:#A9633D;color:#fff;padding:14px 40px;border-radius:6px;font-size:15px;font-weight:bold;text-decoration:none">
+        Accept invitation
+      </a>
+    </div>
+
+    <p style="color:#bbb;font-size:11px;margin-top:24px;border-top:1px solid #EDE8DF;padding-top:16px">
+      If the button does not work, copy and paste this link:<br/>
+      <span style="color:#A9633D">${inviteUrl}</span>
+    </p>
+  </div>
+
+  <div style="background:#F7F4EF;padding:16px 36px;text-align:center">
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; CARE 360 Leadership Survey</p>
+    <p style="color:#bbb;font-size:10px;margin:4px 0 0">Thoughtful &nbsp;·&nbsp; Innovative &nbsp;·&nbsp; Human</p>
+  </div>
+</div>
+</body>
+</html>`;
+
+  const text = `Hi${invite.name ? ` ${invite.name}` : ''},\n\n${inviterName} has invited you to join ${accountName} on CARE 360.\n\nAccept your invitation here:\n${inviteUrl}\n\nIn Good Company Collective`;
+
+  await resend.emails.send({ from: FROM, to: invite.email, subject: `You have been invited to join ${accountName} on CARE 360`, html, text });
+}
+
+module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice, sendTeammateInvite, resolveNotifyEmail };

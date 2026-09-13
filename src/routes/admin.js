@@ -2,7 +2,7 @@ const express  = require('express');
 const router   = express.Router();
 const supabase = require('../db/client');
 const { nanoid } = require('nanoid');
-const { sendRaterInvite } = require('../email');
+const { sendRaterInvite, sendTeammateInvite } = require('../email');
 
 // Every query below runs on the signed in user's own connection, so the
 // database refuses to return another account's rows. The shared service
@@ -38,6 +38,46 @@ router.get('/logout', (req, res) => { res.clearCookie('adminAuth'); res.redirect
 router.get('/', requireAuth, async (req, res) => {
   const { data: cycles } = await db(req).from('cycles').select('*').order('created_at', { ascending: false });
   res.send(dashboardPage(cycles || [], req));
+});
+
+// ── Team ──────────────────────────────────────────────────────
+// Real teammate invites: a second real login on the same account,
+// distinct from the legacy shared password and from rater invites
+// (which invite someone to give feedback, not to join the account).
+router.get('/team', requireAuth, async (req, res) => {
+  const { data: teammates } = await db(req).from('account_users').select('*').order('created_at', { ascending: true });
+  const { data: invites }   = await db(req).from('account_invites').select('*').is('accepted_at', null).order('created_at', { ascending: false });
+  res.send(teamPage(teammates || [], invites || [], req));
+});
+
+router.post('/team/invites', requireAuth, async (req, res) => {
+  const email = (req.body.email || '').trim().toLowerCase();
+  const name  = (req.body.name || '').trim();
+
+  if (!email) return res.redirect('/admin/team');
+
+  const inviteRow = {
+    account_id: req.accountId,
+    email,
+    name: name || null,
+    token: nanoid(24),
+    invited_by: req.session ? req.session.user.id : null,
+  };
+
+  const { error } = await db(req).from('account_invites').insert([inviteRow]);
+  if (error) {
+    console.error('INVITE CREATE FAILED', error.message);
+    return res.redirect('/admin/team');
+  }
+
+  try {
+    const inviterName = (req.session && req.session.name) || 'A teammate';
+    await sendTeammateInvite(inviteRow, inviterName, req.account ? req.account.name : 'CARE 360');
+  } catch (e) {
+    console.error('Teammate invite email failed:', e.message);
+  }
+
+  res.redirect('/admin/team');
 });
 
 // ── Groups ────────────────────────────────────────────────────
@@ -365,6 +405,7 @@ function adminShell(title, content, req) {
       <span class="nav-brand">in good company.</span>
     </div>
     <a href="/admin" class="nav-link">Groups</a>
+    <a href="/admin/team" class="nav-link">Team</a>
     <a href="/guide" class="nav-link">How it works</a>
     <div class="nav-spacer"></div>
     <div class="nav-user">
@@ -464,6 +505,61 @@ function dashboardPage(cycles, req) {
         <a href="/admin/cycles/new" class="btn btn-primary">Create Group</a>
       </div>`}
     </div>`, req);
+}
+
+function teamPage(teammates, invites, req) {
+  const teammateRows = teammates.map(t => `
+    <tr>
+      <td style="font-weight:600">${t.name || '<span style="color:#ccc">&mdash;</span>'}</td>
+      <td style="color:var(--grey)">${t.email}</td>
+      <td><span class="badge badge-active">${t.role}</span></td>
+      <td>${new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+    </tr>`).join('');
+
+  const inviteRows = invites.map(i => `
+    <tr>
+      <td style="font-weight:600">${i.name || '<span style="color:#ccc">&mdash;</span>'}</td>
+      <td style="color:var(--grey)">${i.email}</td>
+      <td><span class="badge badge-draft">Pending</span></td>
+      <td>${new Date(i.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+    </tr>`).join('');
+
+  return adminShell('Team', `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Team</div>
+        <div class="page-sub">Invite a teammate to sign in and manage this same account with you.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><span class="card-title">Invite a teammate</span></div>
+      <form method="POST" action="/admin/team/invites" class="form-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Name</label>
+          <input class="form-control" name="name" placeholder="Jane Smith"/>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Email *</label>
+          <input class="form-control" type="email" name="email" required placeholder="jane@acme.com"/>
+        </div>
+        <button class="btn btn-primary" type="submit">Send invite</button>
+      </form>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><span class="card-title">Current team</span></div>
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+        <tbody>${teammateRows}</tbody>
+      </table>
+    </div>
+    ${invites.length ? `
+    <div class="card">
+      <div class="card-header"><span class="card-title">Pending invites</span></div>
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Sent</th></tr></thead>
+        <tbody>${inviteRows}</tbody>
+      </table>
+    </div>` : ''}`, req);
 }
 
 function cycleFormPage(req) {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
-const { signUp, signIn, setSessionCookies, clearSessionCookies } = require('../auth');
+const { signUp, signIn, setSessionCookies, clearSessionCookies, authClient } = require('../auth');
+const supabase = require('../db/client');
 
 const COOKIE_OPTS = {
   signed: true, httpOnly: true, sameSite: 'lax',
@@ -124,6 +125,95 @@ router.get('/signout', (req, res) => {
   res.clearCookie('adminAuth');
   res.clearCookie('pendingPurchase');
   res.redirect('/signin');
+});
+
+// ── Teammate invites ─────────────────────────────────────────
+// Public routes, reached only via an emailed token. The token's own
+// row state (accepted_at) is the entire validity check, same pattern
+// as the rater-invite token in src/routes/survey.js. Ends in a real
+// signup, but against an existing account_id, never a new accounts
+// row: that's the one thing this path can never do.
+
+router.get('/invite/:token', async (req, res) => {
+  const { data: invite } = await supabase
+    .from('account_invites')
+    .select('*, accounts(name)')
+    .eq('token', req.params.token)
+    .maybeSingle();
+
+  if (!invite) {
+    return res.send(messagePage('Invite not found', 'This invitation link was not found. Please check the link or ask whoever invited you to send a new one.', 'Go to sign in', '/signin'));
+  }
+  if (invite.accepted_at) {
+    return res.send(messagePage('Already accepted', 'This invitation has already been accepted. If this was not you, please contact whoever sent it.', 'Go to sign in', '/signin'));
+  }
+
+  res.send(inviteAcceptPage(invite, null));
+});
+
+router.post('/invite/:token', async (req, res) => {
+  const { name, password } = req.body;
+
+  const { data: invite } = await supabase
+    .from('account_invites')
+    .select('*, accounts(name)')
+    .eq('token', req.params.token)
+    .maybeSingle();
+
+  if (!invite) {
+    return res.send(messagePage('Invite not found', 'This invitation link was not found. Please check the link or ask whoever invited you to send a new one.', 'Go to sign in', '/signin'));
+  }
+  if (invite.accepted_at) {
+    return res.send(messagePage('Already accepted', 'This invitation has already been accepted. If this was not you, please contact whoever sent it.', 'Go to sign in', '/signin'));
+  }
+  if (!password || password.length < 8) {
+    return res.send(inviteAcceptPage(invite, 'Please choose a password of at least 8 characters.'));
+  }
+
+  const auth = authClient();
+  const { data, error } = await auth.auth.signUp({
+    email: invite.email,
+    password,
+    options: { data: { full_name: name || invite.name || null } }
+  });
+
+  if (error) return res.send(inviteAcceptPage(invite, error.message));
+
+  // Supabase returns a user with an empty identities array when the
+  // email is already registered, rather than an error. This is the
+  // case that must fail honestly: an existing login can never be
+  // silently attached to a second, different account, since
+  // account_users.auth_user_id is unique, one login belongs to exactly
+  // one account.
+  if (!data.user || (data.user.identities && data.user.identities.length === 0)) {
+    return res.send(inviteAcceptPage(invite, 'An account with that email already exists on CARE 360. Sign in with it instead, or ask whoever invited you to double-check the email address.'));
+  }
+
+  const { error: linkErr } = await supabase.from('account_users').insert([{
+    account_id: invite.account_id,
+    auth_user_id: data.user.id,
+    email: invite.email,
+    name: name || invite.name || null,
+    role: 'admin'
+  }]);
+
+  if (linkErr) {
+    console.error('TEAMMATE LINK FAILED', invite.email, linkErr.message);
+    return res.send(messagePage('Something went wrong', 'Your login was created but joining the account failed. Please contact support.', 'Go to sign in', '/signin'));
+  }
+
+  await supabase.from('account_invites').update({ accepted_at: new Date().toISOString() }).eq('id', invite.id);
+
+  if (!data.session) {
+    return res.send(messagePage(
+      'Check your email',
+      `We have sent a confirmation link to <strong>${invite.email}</strong>. Click it, then sign in to join ${invite.accounts ? invite.accounts.name : 'your team'}.`,
+      'Go to sign in', '/signin'
+    ));
+  }
+
+  setSessionCookies(res, data.session);
+  res.redirect('/admin');
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -255,6 +345,31 @@ function messagePage(title, body, ctaLabel, ctaHref) {
     <div class="title">${title}</div>
     <div class="sub">${body}</div>
     <a class="btn" href="${ctaHref}" style="display:block;text-align:center;text-decoration:none">${ctaLabel}</a>`);
+}
+
+function inviteAcceptPage(invite, error) {
+  const accountName = invite.accounts ? invite.accounts.name : 'CARE 360';
+
+  return shell(`Join ${accountName}`, `
+    <div class="title">Join ${accountName}</div>
+    <div class="sub">You have been invited to join this account on CARE 360. Set a password to finish.</div>
+    ${error ? `<div class="err">${error}</div>` : ''}
+    <form method="POST" action="/invite/${invite.token}">
+      <div class="group">
+        <label class="label">Email</label>
+        <input class="control" value="${invite.email}" disabled/>
+      </div>
+      <div class="group">
+        <label class="label">Your name</label>
+        <input class="control" name="name" value="${invite.name || ''}" placeholder="Jane Smith"/>
+      </div>
+      <div class="group">
+        <label class="label">Password *</label>
+        <input class="control" type="password" name="password" required placeholder="At least 8 characters"/>
+      </div>
+      <button class="btn" type="submit">Join ${accountName}</button>
+    </form>
+    <div class="alt">Already have an account? <a href="/signin">Sign in</a></div>`);
 }
 
 module.exports = router;

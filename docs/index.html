@@ -10,73 +10,24 @@
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif:wght@400;500&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#30383B;
-    --cream:#F7F3EA;
-    --clay:#A9633D;
-    --sage:#7C8863;
-    --sand:#D9CBB2;
-    --ochre:#C08A3E;
-    --white:#FFFFFF;
+    --ink:#30383B; --cream:#F7F3EA; --clay:#A9633D; --sage:#7C8863; --sand:#D9CBB2; --ochre:#C08A3E; --white:#FFFFFF;
   }
   *{ box-sizing:border-box; }
   html{ scroll-behavior:smooth; }
-  body{
-    margin:0;
-    background:var(--cream);
-    color:var(--ink);
-    font-family:'Noto Serif', serif;
-    line-height:1.65;
-    -webkit-font-smoothing:antialiased;
-  }
+  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Noto Serif', serif; line-height:1.65; -webkit-font-smoothing:antialiased; }
   h1,h2,h3,.display{ font-family:'EB Garamond', serif; font-weight:600; color:var(--ink); line-height:1.15; margin:0; }
   p{ margin:0; }
   a{ color:inherit; }
-  .eyebrow{
-    font-family:'EB Garamond', serif;
-    font-style:italic;
-    font-size:1.15rem;
-    color:var(--clay);
-    margin:0 0 0.7rem;
-  }
-  .label{
-    font-family:'Noto Sans', sans-serif;
-    font-size:0.76rem;
-    letter-spacing:0.1em;
-    text-transform:uppercase;
-    color:rgba(48,56,59,0.55);
-    font-weight:600;
-  }
+  .eyebrow{ font-family:'EB Garamond', serif; font-style:italic; font-size:1.15rem; color:var(--clay); margin:0 0 0.7rem; }
+  .label{ font-family:'Noto Sans', sans-serif; font-size:0.76rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(48,56,59,0.55); font-weight:600; }
 
-  /* ---------- header ---------- */
-  header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:1.1rem 2.5rem;
-    border-bottom:1px solid rgba(48,56,59,0.12);
-    flex-wrap:wrap;
-    gap:1rem;
-    position:sticky;
-    top:0;
-    background:rgba(247,243,234,0.94);
-    backdrop-filter:blur(6px);
-    z-index:50;
-  }
-  header .brand{ display:flex; align-items:center; gap:0.7rem; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:1.1rem 2.5rem; border-bottom:1px solid rgba(48,56,59,0.12); flex-wrap:wrap; gap:1rem; position:sticky; top:0; background:rgba(247,243,234,0.94); backdrop-filter:blur(6px); z-index:50; }
   header .brand img{ height:38px; width:auto; display:block; }
   nav.tabs{ display:flex; gap:0.4rem; font-family:'Noto Sans', sans-serif; font-size:0.92rem; }
-  nav.tabs a{
-    padding:0.55rem 1.05rem;
-    border-radius:999px;
-    text-decoration:none;
-    color:var(--ink);
-    border:1px solid transparent;
-    transition:background 0.15s ease;
-  }
+  nav.tabs a{ padding:0.55rem 1.05rem; border-radius:999px; text-decoration:none; color:var(--ink); border:1px solid transparent; transition:background 0.15s ease; }
   nav.tabs a:hover{ background:rgba(169,99,61,0.08); }
   nav.tabs a.active{ background:var(--ink); color:var(--cream); }
 
-  /* ---------- generic sections ---------- */
   .panel{ display:none; }
   .panel.active{ display:block; }
   .section{ padding:4.4rem 2rem; }
@@ -84,8 +35,8 @@
   .section h2{ font-size:clamp(1.7rem, 2.8vw, 2.3rem); max-width:640px; }
   .section-lede{ font-size:1.02rem; color:rgba(48,56,59,0.78); max-width:640px; margin-top:0.9rem; }
   .center{ text-align:center; margin-left:auto; margin-right:auto; }
+  .bg-alt{ background:linear-gradient(180deg, var(--cream), #F1ECDF); }
 
-  /* ---------- hero ---------- */
   .hero{ padding:4rem 2rem 1rem; }
   .hero-grid{ max-width:1120px; margin:0 auto; display:grid; grid-template-columns:1.1fr 0.9fr; gap:3rem; align-items:center; }
   @media (max-width:900px){ .hero-grid{ grid-template-columns:1fr; } }
@@ -93,44 +44,31 @@
   .hero .hero-body{ font-size:1.04rem; color:rgba(48,56,59,0.8); max-width:520px; }
   .hero .hero-ctas{ margin-top:1.7rem; display:flex; gap:0.9rem; flex-wrap:wrap; }
 
-  .cta-btn{
-    display:inline-block; font-family:'Noto Sans', sans-serif; font-weight:600; font-size:0.94rem;
-    background:var(--clay); color:var(--white); padding:0.85rem 1.6rem; border-radius:999px; text-decoration:none;
-  }
+  .cta-btn{ display:inline-block; font-family:'Noto Sans', sans-serif; font-weight:600; font-size:0.94rem; background:var(--clay); color:var(--white); padding:0.85rem 1.6rem; border-radius:999px; text-decoration:none; border:none; cursor:pointer; }
   .cta-btn.secondary{ background:transparent; color:var(--ink); border:1px solid rgba(48,56,59,0.35); }
   .cta-btn.on-dark{ background:var(--cream); color:var(--ink); }
+  .cta-btn.small{ padding:0.55rem 1.1rem; font-size:0.85rem; }
 
-  /* floating report card */
   .float-card-wrap{ position:relative; padding:1rem 0; }
-  .float-card-wrap::before, .float-card-wrap::after{
-    content:""; position:absolute; inset:12px 4px; background:var(--white); border-radius:16px; border:1px solid rgba(48,56,59,0.08); z-index:1;
-  }
+  .float-card-wrap::before, .float-card-wrap::after{ content:""; position:absolute; inset:12px 4px; background:var(--white); border-radius:16px; border:1px solid rgba(48,56,59,0.08); z-index:1; }
   .float-card-wrap::before{ transform:rotate(-3deg); }
   .float-card-wrap::after{ transform:rotate(2deg); }
-  .report-card{
-    position:relative; z-index:2; background:var(--white); border-radius:16px; border:1px solid rgba(48,56,59,0.1);
-    padding:1.7rem 1.8rem; box-shadow:0 22px 46px -26px rgba(48,56,59,0.4);
-  }
+  .report-card{ position:relative; z-index:2; background:var(--white); border-radius:16px; border:1px solid rgba(48,56,59,0.1); padding:1.7rem 1.8rem; box-shadow:0 22px 46px -26px rgba(48,56,59,0.4); }
   .report-card .rc-head{ display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid rgba(48,56,59,0.15); padding-bottom:0.85rem; margin-bottom:1rem; }
   .report-card .rc-head .name{ font-family:'EB Garamond', serif; font-size:1.3rem; }
   .report-card .rc-head .tag{ font-family:'Noto Sans', sans-serif; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(48,56,59,0.5); }
   .archetype-line{ font-family:'Noto Sans', sans-serif; font-size:0.86rem; color:var(--clay); font-weight:600; margin-bottom:1rem; }
   .bar-row{ display:grid; grid-template-columns:100px 1fr 32px; align-items:center; gap:0.7rem; margin-bottom:0.75rem; font-family:'Noto Sans', sans-serif; font-size:0.85rem; }
   .bar-track{ height:8px; border-radius:999px; background:var(--sand); overflow:hidden; }
-  .bar-fill{ height:100%; border-radius:999px; }
+  .bar-fill{ height:100%; border-radius:999px; width:0; transition:width 1.1s cubic-bezier(.2,.7,.3,1); }
   .bar-row .val{ text-align:right; color:rgba(48,56,59,0.7); }
   .report-card .rc-quote{ font-family:'EB Garamond', serif; font-style:italic; font-size:0.98rem; color:var(--ink); border-top:1px solid rgba(48,56,59,0.12); padding-top:1rem; margin-top:0.4rem; }
   .rc-caption{ font-family:'Noto Sans', sans-serif; font-size:0.78rem; color:rgba(48,56,59,0.55); text-align:center; margin-top:1.1rem; }
 
-  /* quote band */
   .quote-band{ background:var(--sand); padding:3.4rem 2rem; }
-  .quote-band blockquote{
-    max-width:760px; margin:0 auto; text-align:center; font-family:'EB Garamond', serif; font-style:italic;
-    font-size:clamp(1.3rem, 2.4vw, 1.7rem); color:var(--ink);
-  }
+  .quote-band blockquote{ max-width:760px; margin:0 auto; text-align:center; font-family:'EB Garamond', serif; font-style:italic; font-size:clamp(1.3rem, 2.4vw, 1.7rem); color:var(--ink); }
   .quote-band .quote-attr{ display:block; margin-top:1rem; font-family:'Noto Sans', sans-serif; font-style:normal; font-size:0.85rem; color:rgba(48,56,59,0.6); }
 
-  /* differentiators */
   .diff-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1.6rem; margin-top:2.4rem; }
   @media (max-width:860px){ .diff-grid{ grid-template-columns:repeat(2, 1fr); } }
   @media (max-width:600px){ .diff-grid{ grid-template-columns:1fr; } }
@@ -141,21 +79,14 @@
   .diff-card.wide .inf{ font-size:2.6rem; font-family:'EB Garamond', serif; color:var(--sand); flex-shrink:0; }
   .diff-card.wide h3{ color:var(--cream); font-size:1.25rem; margin-bottom:0.4rem; }
   .diff-card.wide p{ color:rgba(247,243,234,0.8); font-size:0.95rem; }
-  .num-badge{
-    width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-family:'Noto Sans', sans-serif; font-weight:600; font-size:0.85rem; color:var(--white); margin-bottom:1rem;
-  }
+  .num-badge{ width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Sans', sans-serif; font-weight:600; font-size:0.85rem; color:var(--white); margin-bottom:1rem; }
   .diff-card h3{ font-size:1.1rem; margin-bottom:0.5rem; }
   .diff-card p{ font-size:0.92rem; color:rgba(48,56,59,0.75); }
 
-  /* walkthrough */
   .walk-grid{ display:grid; grid-template-columns:0.95fr 1.05fr; gap:3rem; margin-top:2.4rem; align-items:start; }
   @media (max-width:900px){ .walk-grid{ grid-template-columns:1fr; } }
   .walk-step{ display:flex; gap:1rem; margin-bottom:1.6rem; }
-  .walk-step .wnum{
-    width:30px; height:30px; border-radius:50%; background:var(--ink); color:var(--cream); flex-shrink:0;
-    display:flex; align-items:center; justify-content:center; font-family:'Noto Sans', sans-serif; font-size:0.82rem; font-weight:600;
-  }
+  .walk-step .wnum{ width:30px; height:30px; border-radius:50%; background:var(--ink); color:var(--cream); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'Noto Sans', sans-serif; font-size:0.82rem; font-weight:600; }
   .walk-step h3{ font-size:1.02rem; margin-bottom:0.3rem; }
   .walk-step p{ font-size:0.92rem; color:rgba(48,56,59,0.75); }
 
@@ -172,14 +103,12 @@
   .t-stats div strong{ display:block; font-family:'EB Garamond', serif; font-size:1.4rem; color:var(--ink); }
   .t-stats div span{ font-size:0.76rem; color:rgba(48,56,59,0.55); }
   .t-note{ font-size:0.82rem; color:rgba(48,56,59,0.55); margin-top:1rem; font-family:'Noto Sans', sans-serif; }
-
   .mini-report{ margin-top:1.6rem; }
   .action-card{ background:var(--sand); border-radius:14px; padding:1.5rem 1.6rem; margin-top:1.2rem; }
   .action-card h4{ font-family:'EB Garamond', serif; font-size:1.05rem; margin-bottom:0.8rem; }
   .action-card ul{ margin:0; padding-left:1.1rem; font-family:'Noto Serif', serif; font-size:0.92rem; }
   .action-card li{ margin-bottom:0.5rem; }
 
-  /* framework / elements grid */
   .fw-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:1.3rem; margin-top:2.4rem; }
   @media (max-width:900px){ .fw-grid{ grid-template-columns:repeat(2, 1fr); } }
   @media (max-width:520px){ .fw-grid{ grid-template-columns:1fr; } }
@@ -189,12 +118,10 @@
   .fw-letter{ font-family:'EB Garamond', serif; font-size:1.8rem; color:var(--clay); margin-bottom:0.5rem; }
   .fw-card h3{ font-size:1.02rem; margin-bottom:0.4rem; }
   .fw-card p{ font-size:0.88rem; color:rgba(48,56,59,0.72); }
-
   .composite-card{ margin-top:2rem; border:1px solid var(--clay); border-radius:16px; padding:2rem 2.2rem; background:rgba(169,99,61,0.05); }
   .composite-card h3{ font-size:1.35rem; margin-bottom:0.6rem; }
   .composite-card p{ font-size:0.96rem; color:rgba(48,56,59,0.78); max-width:640px; }
 
-  /* pricing */
   .pricing-toggle{ display:flex; justify-content:center; align-items:center; gap:0.9rem; margin:2.2rem 0 0.6rem; font-family:'Noto Sans', sans-serif; font-size:0.92rem; }
   .toggle-track{ position:relative; width:52px; height:28px; background:var(--sand); border-radius:999px; cursor:pointer; border:none; }
   .toggle-knob{ position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--ink); transition:left 0.18s ease; }
@@ -217,11 +144,9 @@
   .community-note{ text-align:center; margin-top:2rem; font-family:'Noto Sans', sans-serif; font-size:0.9rem; color:rgba(48,56,59,0.7); }
   .community-note a{ text-decoration:underline; font-weight:600; }
 
-  /* closer */
   .closer{ background:var(--ink); color:var(--cream); text-align:center; padding:4.4rem 2rem; }
   .closer h2{ color:var(--cream); font-size:clamp(1.7rem,3vw,2.3rem); max-width:600px; margin:0 auto 1.6rem; }
 
-  /* bundle */
   .mark-row{ display:flex; align-items:center; justify-content:center; gap:1.2rem; margin-bottom:1.6rem; flex-wrap:wrap; }
   .mark-row .product-name{ font-family:'EB Garamond', serif; font-size:1.4rem; font-weight:500; color:var(--ink); }
   .bundle-hero{ text-align:center; max-width:680px; margin:0 auto 1rem; }
@@ -231,15 +156,75 @@
 
   footer{ text-align:center; padding:3rem 2rem 3.5rem; font-family:'Noto Sans', sans-serif; font-size:0.85rem; color:rgba(48,56,59,0.6); border-top:1px solid rgba(48,56,59,0.12); }
   footer a{ text-decoration:underline; }
-  .bg-alt{ background:linear-gradient(180deg, var(--cream), #F1ECDF); }
+
+  /* ---------- NEW: interactive demo components ---------- */
+  .demo-card{ background:var(--white); border-radius:16px; border:1px solid rgba(48,56,59,0.1); padding:1.9rem 2rem; box-shadow:0 18px 40px -26px rgba(48,56,59,0.35); margin-top:2.2rem; }
+  .demo-card h4{ font-family:'Noto Sans', sans-serif; font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(48,56,59,0.5); margin-bottom:1.2rem; }
+  .choice-round{ font-family:'Noto Sans', sans-serif; }
+  .choice-prompt{ font-family:'EB Garamond', serif; font-size:1.2rem; margin-bottom:1rem; }
+  .choice-opts{ display:grid; grid-template-columns:1fr 1fr; gap:0.9rem; }
+  @media (max-width:520px){ .choice-opts{ grid-template-columns:1fr; } }
+  .choice-btn{ text-align:left; background:var(--cream); border:1.5px solid rgba(48,56,59,0.15); border-radius:10px; padding:0.9rem 1.1rem; font-family:'Noto Sans', sans-serif; font-size:0.94rem; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease; }
+  .choice-btn:hover{ border-color:var(--clay); background:rgba(169,99,61,0.06); }
+  .choice-progress{ font-size:0.8rem; color:rgba(48,56,59,0.5); margin-bottom:0.6rem; }
+  .demo-reveal{ display:none; text-align:center; }
+  .demo-reveal.show{ display:block; animation:pop 0.5s ease; }
+  @keyframes pop{ from{ opacity:0; transform:scale(0.94); } to{ opacity:1; transform:scale(1); } }
+  .demo-reveal .archetype-name{ font-family:'EB Garamond', serif; font-size:1.6rem; color:var(--clay); margin:0.6rem 0 0.4rem; }
+  .demo-reveal .archetype-desc{ font-size:0.94rem; color:rgba(48,56,59,0.75); max-width:440px; margin:0 auto 1.2rem; }
+  .demo-restart{ font-family:'Noto Sans', sans-serif; font-size:0.85rem; color:var(--clay); text-decoration:underline; background:none; border:none; cursor:pointer; padding:0; }
+
+  .anon-demo{ display:flex; gap:2.4rem; align-items:flex-start; flex-wrap:wrap; }
+  .anon-side{ min-width:200px; }
+  .anon-dots{ display:flex; gap:0.7rem; margin-bottom:0.7rem; }
+  .anon-dot{ width:38px; height:38px; border-radius:50%; background:var(--sand); display:flex; align-items:center; justify-content:center; font-family:'Noto Sans', sans-serif; font-size:0.8rem; color:var(--ink); transition:opacity 0.6s ease, transform 0.6s ease; }
+  .anon-demo.revealed .anon-dot{ opacity:0.25; transform:scale(0.7); }
+  .anon-caption{ font-family:'Noto Sans', sans-serif; font-size:0.82rem; color:rgba(48,56,59,0.6); }
+  .anon-arrow{ font-family:'Noto Sans', sans-serif; font-size:1.4rem; color:rgba(48,56,59,0.3); align-self:center; margin-top:1.2rem; }
+  .anon-result{ flex:1; min-width:240px; }
+  .anon-result-caption{ font-family:'Noto Sans', sans-serif; font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; color:rgba(48,56,59,0.5); margin-bottom:0.7rem; }
+  .anon-bar-row{ display:flex; align-items:center; gap:0.8rem; margin-bottom:0.6rem; }
+  .anon-bar-track{ flex:1; height:10px; border-radius:999px; background:var(--sand); overflow:hidden; }
+  .anon-bar-fill{ height:100%; background:var(--clay); border-radius:999px; width:0; transition:width 0.9s ease 0.3s; }
+  .anon-demo.revealed .anon-bar-fill{ width:78%; }
+  .anon-score{ font-family:'Noto Sans', sans-serif; font-weight:600; font-size:0.95rem; color:var(--ink); min-width:28px; }
+  .anon-label{ font-family:'Noto Sans', sans-serif; font-size:0.88rem; color:rgba(48,56,59,0.75); }
+
+  .toggle-pills{ display:flex; gap:0.6rem; margin-bottom:1.8rem; flex-wrap:wrap; }
+  .pill-btn{ font-family:'Noto Sans', sans-serif; font-size:0.88rem; padding:0.5rem 1.1rem; border-radius:999px; border:1.5px solid rgba(48,56,59,0.2); background:var(--white); cursor:pointer; }
+  .pill-btn.active{ background:var(--ink); color:var(--cream); border-color:var(--ink); }
+
+  .radar-wrap{ display:grid; grid-template-columns:0.9fr 1.1fr; gap:2.5rem; align-items:center; margin-top:1.8rem; }
+  @media (max-width:860px){ .radar-wrap{ grid-template-columns:1fr; } }
+  .radar-svg-wrap{ position:relative; width:100%; max-width:340px; margin:0 auto; }
+  .radar-poly{ transition:opacity 0.5s ease; }
+  .team-narrative{ font-size:0.98rem; color:rgba(48,56,59,0.8); display:none; }
+  .team-narrative.active{ display:block; }
+
+  .role-panel{ display:none; }
+  .role-panel.active{ display:block; }
+  .compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1.4rem; margin-top:1.4rem; }
+  @media (max-width:700px){ .compare-grid{ grid-template-columns:1fr; } }
+  .compare-col h4{ font-family:'Noto Sans', sans-serif; font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; color:rgba(48,56,59,0.5); margin-bottom:0.8rem; }
+  .gap-note{ background:rgba(192,138,62,0.1); border-left:3px solid var(--ochre); padding:0.9rem 1.1rem; border-radius:6px; font-size:0.9rem; margin-top:1rem; }
+
+  .accordion-item{ border-bottom:1px solid rgba(48,56,59,0.12); }
+  .accordion-head{ display:flex; justify-content:space-between; align-items:center; padding:1.1rem 0; cursor:pointer; font-family:'Noto Sans', sans-serif; font-weight:600; font-size:0.98rem; }
+  .accordion-head .plus{ font-size:1.3rem; color:var(--clay); transition:transform 0.2s ease; }
+  .accordion-item.open .accordion-head .plus{ transform:rotate(45deg); }
+  .accordion-body{ max-height:0; overflow:hidden; transition:max-height 0.3s ease; font-size:0.92rem; color:rgba(48,56,59,0.78); }
+  .accordion-item.open .accordion-body{ max-height:200px; padding-bottom:1.1rem; }
+
+  .people-table{ width:100%; border-collapse:collapse; font-family:'Noto Sans', sans-serif; font-size:0.9rem; margin-top:1.2rem; }
+  .people-table th{ text-align:left; font-size:0.75rem; letter-spacing:0.06em; text-transform:uppercase; color:rgba(48,56,59,0.5); padding-bottom:0.7rem; border-bottom:1px solid rgba(48,56,59,0.15); }
+  .people-table td{ padding:0.7rem 0; border-bottom:1px solid rgba(48,56,59,0.08); }
+  .people-table tr.hidden-row{ display:none; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">
-    <img src="assets/ink__full_lockup_transparent.png" alt="In good company.">
-  </div>
+  <div class="brand"><img src="assets/ink__full_lockup_transparent.png" alt="In good company."></div>
   <nav class="tabs" id="tab-nav">
     <a href="#care360" data-tab="care360">CARE 360</a>
     <a href="#element" data-tab="element">The Element Profile</a>
@@ -257,7 +242,7 @@
       <div>
         <p class="eyebrow">Real 360 feedback, without the red tape</p>
         <h1>See how your leaders actually show up. Then help them grow.</h1>
-        <p class="hero-body">Good 360 feedback already exists, it's just been built for big companies with big HR budgets and someone whose full-time job is running these programs. CARE 360 gives small and growing companies the same caliber of report and the same real plan for what to do next, without the sales calls, the annual contract, or the per-report bill.</p>
+        <p class="hero-body">A full 360: self-assessment plus supervisor, peer, direct report, and skip-level raters. Every individual response stays genuinely anonymous, only combined group averages and anonymized comments ever reach the leader. No sales calls, no annual contract, no per-report bill.</p>
         <div class="hero-ctas">
           <a class="cta-btn" href="https://care360.ingoodcocollective.com/plans#care360" target="_blank" rel="noopener">Start free trial</a>
           <a class="cta-btn secondary" href="https://care360.ingoodcocollective.com/plans#care360" target="_blank" rel="noopener">See pricing</a>
@@ -266,11 +251,11 @@
       <div class="float-card-wrap">
         <div class="report-card">
           <div class="rc-head"><span class="name">Jordan Ellis</span><span class="tag">Care Report</span></div>
-          <div class="bar-row"><span>Connect</span><div class="bar-track"><div class="bar-fill" style="width:82%;background:var(--clay);"></div></div><span class="val">4.1</span></div>
-          <div class="bar-row"><span>Accountable</span><div class="bar-track"><div class="bar-fill" style="width:70%;background:var(--sage);"></div></div><span class="val">3.5</span></div>
-          <div class="bar-row"><span>Reach</span><div class="bar-track"><div class="bar-fill" style="width:64%;background:var(--ochre);"></div></div><span class="val">3.2</span></div>
-          <div class="bar-row"><span>Empower</span><div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--clay);"></div></div><span class="val">4.4</span></div>
-          <div class="bar-row"><span>Leadership Eff.</span><div class="bar-track"><div class="bar-fill" style="width:76%;background:var(--ink);"></div></div><span class="val">3.8</span></div>
+          <div class="bar-row"><span>Connect</span><div class="bar-track"><div class="bar-fill" data-w="82%" style="background:var(--clay);"></div></div><span class="val">4.1</span></div>
+          <div class="bar-row"><span>Accountable</span><div class="bar-track"><div class="bar-fill" data-w="70%" style="background:var(--sage);"></div></div><span class="val">3.5</span></div>
+          <div class="bar-row"><span>Reach</span><div class="bar-track"><div class="bar-fill" data-w="64%" style="background:var(--ochre);"></div></div><span class="val">3.2</span></div>
+          <div class="bar-row"><span>Empower</span><div class="bar-track"><div class="bar-fill" data-w="88%" style="background:var(--clay);"></div></div><span class="val">4.4</span></div>
+          <div class="bar-row"><span>Leadership Eff.</span><div class="bar-track"><div class="bar-fill" data-w="76%" style="background:var(--ink);"></div></div><span class="val">3.8</span></div>
           <p class="rc-quote">"Jordan's clearest strength is how she empowers her team to make decisions without her in the room."</p>
         </div>
         <p class="rc-caption">One of the pages inside a CARE report, generated the moment the survey closes.</p>
@@ -284,13 +269,14 @@
       <div class="diff-grid">
         <div class="diff-card wide">
           <span class="inf">∞</span>
-          <div><h3>Unlimited surveys and reports. Every plan, no exceptions.</h3><p>Run a 360 for one leader or fifty this month. No per-report charges, no credit packs to track, no usage math to explain to finance. That's the whole idea behind making development attainable at every level, not a line item people have to ration.</p></div>
+          <div><h3>Unlimited surveys and reports. Every paid plan, no exceptions.</h3><p>Run a 360 for one leader or fifty this month. No per-report charges, no credit packs to track, no usage math to explain to finance.</p></div>
         </div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">01</div><h3>Ask what actually matters to you</h3><p>Add your own custom questions alongside the CARE framework, so the survey reflects your organization's own language and priorities, not just a generic template.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">02</div><h3>A report people actually read</h3><p>Written narrative feedback, not just a page of bar charts. Every Full 360 Report names real strengths and real risks, in plain language.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--ochre);">03</div><h3>Runs itself</h3><p>Automatic rater reminders, deadline tracking, and auto-close on the survey date. Nobody has to chase anyone down.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">04</div><h3>A plan, not just a score</h3><p>Every report ships with a Leadership Action Plan, a ready-to-use slide deck the leader can walk into their next 1:1 with.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">05</div><h3>Priced for the whole organization</h3><p>Plans scale by company size, not by how many 360s you happen to run this year. Growing teams and lean HR functions can both afford it.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">01</div><h3>Real anonymity, not a promise</h3><p>Individual responses are never shown to anyone. Only combined group averages and anonymized comments make it into a report.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">02</div><h3>Ask what matters to you</h3><p>Up to five custom questions per rater group, scored in their own separate bucket so they never distort the validated CARE framework underneath.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--ochre);">03</div><h3>A report people actually read</h3><p>Section-by-section scores by rater group, every comment shown in full, Start/Stop/Continue responses, a coach's note, and reflection questions.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">04</div><h3>Runs itself</h3><p>Setup takes about ten minutes. Reminders, completion notices, and close-date handling happen automatically after that.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">05</div><h3>A plan, not just a score</h3><p>Every report ships with an action plan built to walk a leader through three real priorities after their debrief.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--ochre);">06</div><h3>Real team accounts</h3><p>Invite colleagues to help administer, everyone shares one real account rather than juggling separate logins.</p></div>
       </div>
     </div>
   </section>
@@ -301,17 +287,46 @@
     </blockquote>
   </section>
 
+  <section class="section" id="care360-anon">
+    <div class="section-inner">
+      <p class="label">Genuine anonymity</p>
+      <h2>Individual answers disappear. Only the pattern survives.</h2>
+      <p class="section-lede">No one, not even you, ever sees how one specific rater answered. Click below to see what a leader actually receives.</p>
+      <div class="demo-card">
+        <h4>Connect · four raters respond</h4>
+        <div class="anon-demo" id="anon-demo">
+          <div class="anon-side">
+            <div class="anon-dots">
+              <div class="anon-dot">R1</div><div class="anon-dot">R2</div><div class="anon-dot">R3</div><div class="anon-dot">R4</div>
+            </div>
+            <p class="anon-caption">4 individual responses, never shown to anyone, including you</p>
+          </div>
+          <span class="anon-arrow">→</span>
+          <div class="anon-result">
+            <p class="anon-result-caption" id="anon-result-caption">What Jordan's report shows, before the reveal</p>
+            <div class="anon-bar-row">
+              <div class="anon-bar-track"><div class="anon-bar-fill"></div></div>
+              <span class="anon-score" id="anon-score">—</span>
+            </div>
+            <p class="anon-label" id="anon-label">Locked until all four responses are combined into one score.</p>
+          </div>
+        </div>
+        <button class="cta-btn small secondary" id="anon-btn" style="margin-top:1.4rem;">Reveal what the leader sees</button>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="care360-how">
     <div class="section-inner">
       <p class="label">How it works</p>
       <h2>Built on the CARE framework, from invite to action plan.</h2>
-      <p class="section-lede">Every survey measures the same five dimensions of how a leader actually operates day to day. Here's what a leader and their raters experience.</p>
+      <p class="section-lede">Every survey measures the same five dimensions of how a leader actually operates day to day.</p>
       <div class="walk-grid">
         <div>
-          <div class="walk-step"><div class="wnum">01</div><div><h3>Invite raters</h3><p>Add a leader, choose their raters, set a close date. CARE 360 handles the rest.</p></div></div>
-          <div class="walk-step"><div class="wnum">02</div><div><h3>Feedback comes in</h3><p>Raters get reminders automatically. You can see who's responded at a glance.</p></div></div>
-          <div class="walk-step"><div class="wnum">03</div><div><h3>Your report writes itself</h3><p>Once the survey closes, a full narrative report is ready, scored across Connect, Accountable, Reach, and Empower.</p></div></div>
-          <div class="walk-step"><div class="wnum">04</div><div><h3>The Action Plan ships</h3><p>A Leadership Action Plan deck, built from the report, ready for the leader's next conversation.</p></div></div>
+          <div class="walk-step"><div class="wnum">01</div><div><h3>Invite raters</h3><p>Self-assessment plus supervisor, peer, direct report, and skip-level raters. Set a close date and go.</p></div></div>
+          <div class="walk-step"><div class="wnum">02</div><div><h3>Feedback comes in, anonymously</h3><p>Reminders go out automatically. You see who's responded, never how they answered.</p></div></div>
+          <div class="walk-step"><div class="wnum">03</div><div><h3>Your report writes itself</h3><p>Scores by rater group, full comments, Start/Stop/Continue, a coach's note, and reflection questions, ready the moment the survey closes.</p></div></div>
+          <div class="walk-step"><div class="wnum">04</div><div><h3>The action plan ships</h3><p>Three real priorities, built directly from the report, ready for the leader's next conversation.</p></div></div>
         </div>
         <div>
           <div class="tracking-card">
@@ -319,27 +334,27 @@
             <div class="t-row"><div class="who">Jordan Ellis<span class="role">Self-assessment</span></div><span class="t-status done">Complete</span></div>
             <div class="t-row"><div class="who">Priya N.<span class="role">Direct report</span></div><span class="t-status done">Complete</span></div>
             <div class="t-row"><div class="who">Marcus T.<span class="role">Peer</span></div><span class="t-status pending">Reminder sent</span></div>
-            <div class="t-row"><div class="who">Dana K.<span class="role">Manager</span></div><span class="t-status waiting">Invited</span></div>
+            <div class="t-row"><div class="who">Dana K.<span class="role">Skip-level</span></div><span class="t-status waiting">Invited</span></div>
             <div class="t-stats">
               <div><strong>6/8</strong><span>Raters responded</span></div>
               <div><strong>3</strong><span>Days until close</span></div>
               <div><strong>2</strong><span>Reminders auto-sent</span></div>
             </div>
-            <p class="t-note">Reminder emails go out automatically two days before the deadline. Late responses are blocked once the survey closes.</p>
+            <p class="t-note">Late responses are blocked once the survey closes. No one can see individual answers, including you.</p>
           </div>
           <div class="mini-report">
             <div class="tracking-card">
-              <h4>Jordan Ellis — CARE Report · Generated on close</h4>
-              <p class="rc-quote" style="border:none; padding:0; margin:0 0 1rem;">"Across raters, Empower is Jordan's clearest strength. Reach is the area most worth developing next, particularly in cross-team visibility."</p>
-              <div class="bar-row"><span>Connect</span><div class="bar-track"><div class="bar-fill" style="width:82%;background:var(--clay);"></div></div><span class="val">4.1</span></div>
-              <div class="bar-row"><span>Empower</span><div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--clay);"></div></div><span class="val">4.4</span></div>
+              <h4>Jordan Ellis — CARE Report · Coach's note</h4>
+              <p class="rc-quote" style="border:none; padding:0; margin:0 0 1rem;">"Across raters, Empower is Jordan's clearest strength. Reach is the area most worth developing next, particularly cross-team visibility."</p>
+              <div class="bar-row"><span>Connect</span><div class="bar-track"><div class="bar-fill" data-w="82%" style="background:var(--clay);"></div></div><span class="val">4.1</span></div>
+              <div class="bar-row"><span>Empower</span><div class="bar-track"><div class="bar-fill" data-w="88%" style="background:var(--clay);"></div></div><span class="val">4.4</span></div>
             </div>
             <div class="action-card">
-              <h4>Leadership Action Plan · Jordan Ellis, Next 90 Days</h4>
+              <h4>Action Plan · Three priorities for Jordan</h4>
               <ul>
-                <li>Lean into Empower: delegate one recurring decision to a direct report this month.</li>
-                <li>Build Reach: join one cross-team planning meeting outside your own function.</li>
-                <li>Check in with your manager on progress at the 45-day mark.</li>
+                <li>Delegate one recurring decision to a direct report this month.</li>
+                <li>Join one cross-team planning meeting outside your own function.</li>
+                <li>Revisit progress with your manager at the 45-day mark.</li>
               </ul>
             </div>
           </div>
@@ -360,7 +375,7 @@
       <div class="composite-card">
         <p class="label" style="color:var(--clay);">The composite score</p>
         <h3>Leadership Effectiveness</h3>
-        <p>The four scores combined: an overall read on how the leader is landing.</p>
+        <p>The four scores combined, plus up to five custom questions per rater group, scored separately so they never distort the core CARE framework.</p>
       </div>
     </div>
   </section>
@@ -382,7 +397,7 @@
           <div class="tier-blurb">Run one complete 360, start to finish.</div>
           <div class="price-amt" data-m="$0" data-a="$0">$0</div>
           <div class="price-per">&nbsp;</div>
-          <ul><li>One leader</li><li>Unlimited raters on that leader</li><li>The Full 360 Report and PDF</li><li>Automatic reminders and deadlines</li><li>Leadership Action Plan template</li></ul>
+          <ul><li>One leader</li><li>Unlimited raters on that leader</li><li>The Full 360 Report and PDF</li><li>Automatic reminders and deadlines</li><li>Action plan template</li></ul>
           <a class="cta-btn secondary" href="https://care360.ingoodcocollective.com/plans#care360" target="_blank" rel="noopener">Start free trial</a>
         </div>
         <div class="price-card featured">
@@ -391,7 +406,7 @@
           <div class="tier-blurb">For organizations up to 250 employees.</div>
           <div class="price-amt" data-m="$149" data-a="$1,490">$149</div>
           <div class="price-per" data-m="/mo" data-a="/yr">/mo</div>
-          <ul><li>Unlimited leaders and surveys</li><li>Unlimited raters</li><li>The Full 360 Report and PDF</li><li>Automatic reminders and deadlines</li><li>Leadership Action Plan template</li><li>Email support</li></ul>
+          <ul><li>Unlimited leaders and surveys</li><li>Unlimited raters</li><li>Custom questions per rater group</li><li>Automatic reminders and deadlines</li><li>Action plan template</li><li>Email support</li></ul>
           <a class="cta-btn" href="https://care360.ingoodcocollective.com/plans#care360" target="_blank" rel="noopener">Choose Starter</a>
         </div>
         <div class="price-card">
@@ -399,7 +414,7 @@
           <div class="tier-blurb">For organizations up to 750 employees.</div>
           <div class="price-amt" data-m="$299" data-a="$2,990">$299</div>
           <div class="price-per" data-m="/mo" data-a="/yr">/mo</div>
-          <ul><li>Everything in Starter</li><li>Higher usage for larger teams</li><li>Priority support</li><li>Onboarding walkthrough</li></ul>
+          <ul><li>Everything in Starter</li><li>Real team accounts for shared administration</li><li>Priority support</li><li>Onboarding walkthrough</li></ul>
           <a class="cta-btn secondary" href="https://care360.ingoodcocollective.com/plans#care360" target="_blank" rel="noopener">Choose Growth</a>
         </div>
         <div class="price-card">
@@ -431,8 +446,8 @@
     <div class="hero-grid">
       <div>
         <p class="eyebrow">See how someone works, before you manage them</p>
-        <h1>Know how someone's wired before you spend a year finding out.</h1>
-        <p class="hero-body">Good behavioral assessments already exist, they're just built for enterprises with certified administrators and six-figure contracts. The Element Profile gives growing companies the same caliber of behavioral insight, without the certification requirement, the annual contract, or the per-report bill.</p>
+        <h1>Know whether someone's in their element, before you spend a year finding out.</h1>
+        <p class="hero-body">Built on the Six Elements framework and sixteen real archetypes. No trait is good or bad on its own, it depends on whether someone's in their element. A twelve-round assessment, instant results, and a full report already in their inbox.</p>
         <div class="hero-ctas">
           <a class="cta-btn" href="https://care360.ingoodcocollective.com/plans#element" target="_blank" rel="noopener">See Element Profile plans</a>
           <a class="cta-btn secondary" href="https://care360.ingoodcocollective.com/plans#element" target="_blank" rel="noopener">See pricing</a>
@@ -442,15 +457,39 @@
         <div class="report-card">
           <div class="rc-head"><span class="name">Jordan Ellis</span><span class="tag">Element Profile</span></div>
           <div class="archetype-line">The Steady Hand — Drive + Composure</div>
-          <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--clay);"></div></div><span class="val">85</span></div>
-          <div class="bar-row"><span>Pace</span><div class="bar-track"><div class="bar-fill" style="width:52%;background:var(--sand);"></div></div><span class="val">52</span></div>
-          <div class="bar-row"><span>People</span><div class="bar-track"><div class="bar-fill" style="width:46%;background:var(--sand);"></div></div><span class="val">46</span></div>
-          <div class="bar-row"><span>Structure</span><div class="bar-track"><div class="bar-fill" style="width:60%;background:var(--sage);"></div></div><span class="val">60</span></div>
-          <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" style="width:81%;background:var(--clay);"></div></div><span class="val">81</span></div>
-          <div class="bar-row"><span>Ambiguity</span><div class="bar-track"><div class="bar-fill" style="width:58%;background:var(--ochre);"></div></div><span class="val">58</span></div>
+          <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" data-w="85%" style="background:var(--clay);"></div></div><span class="val">85</span></div>
+          <div class="bar-row"><span>Pace</span><div class="bar-track"><div class="bar-fill" data-w="52%" style="background:var(--sand);"></div></div><span class="val">52</span></div>
+          <div class="bar-row"><span>People</span><div class="bar-track"><div class="bar-fill" data-w="46%" style="background:var(--sand);"></div></div><span class="val">46</span></div>
+          <div class="bar-row"><span>Structure</span><div class="bar-track"><div class="bar-fill" data-w="60%" style="background:var(--sage);"></div></div><span class="val">60</span></div>
+          <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" data-w="81%" style="background:var(--clay);"></div></div><span class="val">81</span></div>
+          <div class="bar-row"><span>Ambiguity</span><div class="bar-track"><div class="bar-fill" data-w="58%" style="background:var(--ochre);"></div></div><span class="val">58</span></div>
           <p class="rc-quote">"Jordan's Drive and Composure combination means she stays steady when a plan changes mid-stream. Others look to her first."</p>
         </div>
         <p class="rc-caption">One of the pages inside an Element report, generated the moment the assessment closes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="element-demo">
+    <div class="section-inner">
+      <p class="label">Try it yourself</p>
+      <h2>Twelve rounds. That's it.</h2>
+      <p class="section-lede">Each round is a quick forced choice, no lengthy survey fatigue. Pick an answer at each step and see what comes out the other end.</p>
+      <div class="demo-card">
+        <h4 id="demo-h4">Round 1 of 3 (sample)</h4>
+        <div class="choice-round" id="choice-round">
+          <p class="choice-prompt" id="choice-prompt">When a plan changes at the last minute, I tend to:</p>
+          <div class="choice-opts" id="choice-opts">
+            <button class="choice-btn" data-track="composure">Stay steady and adjust the plan calmly</button>
+            <button class="choice-btn" data-track="pace">Move fast and improvise on the spot</button>
+          </div>
+        </div>
+        <div class="demo-reveal" id="demo-reveal">
+          <p class="choice-progress">Sample result</p>
+          <div class="archetype-name">The Steady Hand</div>
+          <p class="archetype-desc">High Drive, high Composure. Steady when plans shift, others look to this person first when things get tense.</p>
+          <button class="demo-restart" id="demo-restart">Try it again</button>
+        </div>
       </div>
     </div>
   </section>
@@ -461,13 +500,13 @@
       <div class="diff-grid">
         <div class="diff-card wide">
           <span class="inf">∞</span>
-          <div><h3>Unlimited assessments and reports. Every plan, no exceptions.</h3><p>Profile one person or the whole company this month. No per-report charges, no credit packs to track. Insight into how people work shouldn't be something you ration to save budget.</p></div>
+          <div><h3>Unlimited assessments and reports. Every paid plan, no exceptions.</h3><p>Profile one person or the whole company this month. No per-report charges to track.</p></div>
         </div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">01</div><h3>One assessment, four ways to use it</h3><p>The same ten-minute profile powers individual development, team composition, career pathing, and manager coaching. Not four separate tools to buy and administer.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">02</div><h3>A report people actually read</h3><p>Written narrative feedback, not just six bars on a page. Every report names real strengths and real friction points, in plain language.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--ochre);">03</div><h3>An archetype that makes the debrief easy</h3><p>Every profile lands on one of fifteen named patterns. It gives a team a shared shorthand instead of re-explaining six scores every time.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">04</div><h3>Ten minutes, no facilitator required</h3><p>A quick forced-choice format anyone can take on their own device. No certification needed to administer it, no training session required.</p></div>
-        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">05</div><h3>Priced for the whole organization</h3><p>Plans scale by company size, not by how many profiles you happen to run this year. Growing teams and lean HR functions can both afford it.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">01</div><h3>Sixteen real archetypes</h3><p>Built on six elements, Drive, Pace, People Orientation, Structure, Composure, Ambiguity Tolerance, and framed around being in your element, or not. Never good or bad on their own.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">02</div><h3>Twelve rounds, not a marathon</h3><p>A short forced-choice format built to avoid the fatigue longer instruments run into.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--ochre);">03</div><h3>Instant results</h3><p>The person sees their real archetype the moment they finish. Their full report is already in their inbox.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--clay);">04</div><h3>Teams organized your way</h3><p>Department, market, division, whatever your org chart actually looks like. One person can genuinely belong to more than one team.</p></div>
+        <div class="diff-card"><div class="num-badge" style="background:var(--sage);">05</div><h3>A team shape you can read</h3><p>A visual, at-a-glance view of where a team's strengths overlap and where its real gaps sit.</p></div>
       </div>
     </div>
   </section>
@@ -482,13 +521,13 @@
     <div class="section-inner">
       <p class="label">How it works</p>
       <h2>One instrument, from assessment to team view.</h2>
-      <p class="section-lede">Every profile measures the same six elements of how someone naturally operates. Here's what adding a person to your workspace looks like.</p>
+      <p class="section-lede">Every profile measures the same six elements of how someone naturally operates.</p>
       <div class="walk-grid">
         <div>
-          <div class="walk-step"><div class="wnum">01</div><div><h3>Add someone</h3><p>Add a person to your workspace. No scheduling, no facilitator, no training session needed first.</p></div></div>
-          <div class="walk-step"><div class="wnum">02</div><div><h3>They take the assessment</h3><p>Twelve quick forced-choice questions, about ten minutes, on any device.</p></div></div>
-          <div class="walk-step"><div class="wnum">03</div><div><h3>Their report writes itself</h3><p>Once they finish, a full narrative report is ready, scored across all six elements and named with their archetype.</p></div></div>
-          <div class="walk-step"><div class="wnum">04</div><div><h3>The team view builds itself</h3><p>As more people complete it, a team composition view rolls up automatically, no extra setup required.</p></div></div>
+          <div class="walk-step"><div class="wnum">01</div><div><h3>Add someone</h3><p>Add a person to your workspace. No scheduling or facilitator needed first.</p></div></div>
+          <div class="walk-step"><div class="wnum">02</div><div><h3>Twelve rounds, about ten minutes</h3><p>A quick forced-choice assessment on any device.</p></div></div>
+          <div class="walk-step"><div class="wnum">03</div><div><h3>Instant results</h3><p>They see their archetype the moment they finish. Their full report is already in their inbox.</p></div></div>
+          <div class="walk-step"><div class="wnum">04</div><div><h3>The team view builds itself</h3><p>As more people complete it, a team shape rolls up automatically, department, market, or division, however you structure it.</p></div></div>
         </div>
         <div>
           <div class="tracking-card">
@@ -502,22 +541,13 @@
               <div><strong>9 min</strong><span>Avg. time</span></div>
               <div><strong>3</strong><span>Archetypes assigned</span></div>
             </div>
-            <p class="t-note">A reminder goes out automatically three days after an invite with no response.</p>
           </div>
           <div class="mini-report">
             <div class="tracking-card">
               <h4>Jordan Ellis — Element Profile · Generated on completion</h4>
-              <p class="rc-quote" style="border:none; padding:0; margin:0 0 1rem;">"Jordan's Drive and Composure combination means she stays steady when a plan changes mid-stream. Others look to her first."</p>
-              <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--clay);"></div></div><span class="val">85</span></div>
-              <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" style="width:81%;background:var(--clay);"></div></div><span class="val">81</span></div>
-            </div>
-            <div class="action-card">
-              <h4>Where to lean in · Jordan Ellis</h4>
-              <ul>
-                <li>Lean into Drive: take the lead on the next undefined, ambiguous project.</li>
-                <li>Watch for: Composure can read as distance under real pressure. Name the tension out loud.</li>
-                <li>Manager note: check in twice as often when priorities shift quickly.</li>
-              </ul>
+              <p class="rc-quote" style="border:none; padding:0; margin:0 0 1rem;">"Jordan's Drive and Composure combination means she stays steady when a plan changes mid-stream."</p>
+              <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" data-w="85%" style="background:var(--clay);"></div></div><span class="val">85</span></div>
+              <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" data-w="81%" style="background:var(--clay);"></div></div><span class="val">81</span></div>
             </div>
           </div>
         </div>
@@ -539,8 +569,154 @@
       <div class="composite-card">
         <p class="label" style="color:var(--clay);">The composite read</p>
         <h3>Your Archetype</h3>
-        <p>The two elements where someone scores highest combine into their archetype, one of fifteen named patterns, plus a Wild Card for flatter profiles. It's the shorthand a team can use in a debrief without re-explaining six scores every time.</p>
+        <p>The two elements where someone scores highest combine into their archetype, one of sixteen named patterns built around being in your element, or not. It's the shorthand a team can use in a debrief without re-explaining six scores every time.</p>
       </div>
+    </div>
+  </section>
+
+  <section class="section" id="element-teamshape">
+    <div class="section-inner">
+      <p class="label">Team composition</p>
+      <h2>See a team's shape, not just six averages.</h2>
+      <p class="section-lede">Every teammate's profile rolls into one view: where the team leans hard in the same direction, and where it has a real gap. Try switching teams below.</p>
+      <div class="toggle-pills">
+        <button class="pill-btn active" data-team="product">Product Team</button>
+        <button class="pill-btn" data-team="sales">Sales Team</button>
+      </div>
+      <div class="radar-wrap">
+        <div class="radar-svg-wrap">
+          <svg viewBox="0 0 300 300" width="100%">
+            <polygon points="150,30 260,90 260,210 150,270 40,210 40,90" fill="none" stroke="rgba(48,56,59,0.15)" stroke-width="1"/>
+            <polygon points="150,70 220,105 220,195 150,230 80,195 80,105" fill="none" stroke="rgba(48,56,59,0.1)" stroke-width="1"/>
+            <polygon id="radar-product" class="radar-poly" points="150,45 235,95 230,190 150,250 90,180 70,100" fill="rgba(169,99,61,0.35)" stroke="var(--clay)" stroke-width="2"/>
+            <polygon id="radar-sales" class="radar-poly" points="150,35 250,85 245,165 150,200 110,210 55,110" fill="rgba(124,136,99,0.35)" stroke="var(--sage)" stroke-width="2" style="display:none;"/>
+            <text x="150" y="20" text-anchor="middle" font-size="11" font-family="Noto Sans" fill="#30383B">Drive</text>
+            <text x="270" y="90" text-anchor="start" font-size="11" font-family="Noto Sans" fill="#30383B">Pace</text>
+            <text x="270" y="215" text-anchor="start" font-size="11" font-family="Noto Sans" fill="#30383B">People</text>
+            <text x="150" y="288" text-anchor="middle" font-size="11" font-family="Noto Sans" fill="#30383B">Structure</text>
+            <text x="30" y="215" text-anchor="end" font-size="11" font-family="Noto Sans" fill="#30383B">Composure</text>
+            <text x="30" y="90" text-anchor="end" font-size="11" font-family="Noto Sans" fill="#30383B">Ambiguity</text>
+          </svg>
+        </div>
+        <div>
+          <p class="team-narrative active" id="narrative-product">This team runs high on Structure and Ambiguity Tolerance, low on Pace. Decisions get made carefully and hold up under scrutiny, but execution can lag when speed actually matters more than certainty.</p>
+          <p class="team-narrative" id="narrative-sales">High Drive and Pace, low Structure. Fast, persuasive, and comfortable improvising, without a Structure anchor somewhere on the team, follow-through is the real risk to watch.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section bg-alt" id="element-roles">
+    <div class="section-inner">
+      <p class="label">Role deep dives &amp; career pathing</p>
+      <h2>Paste a job description. Get a target profile.</h2>
+      <p class="section-lede">An AI-drafted target profile for the role, reviewed and adjustable by a human before it's ever used to compare anyone against it. The same comparison works for a future, aspirational role too, living right alongside the current one.</p>
+      <div class="toggle-pills">
+        <button class="pill-btn active" data-role="current">Current Role: Sales Manager</button>
+        <button class="pill-btn" data-role="aspirational">Aspirational: Regional Director</button>
+      </div>
+      <div class="role-panel active" id="role-current">
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h4>Target profile · Sales Manager</h4>
+            <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" data-w="80%" style="background:var(--sand);"></div></div><span class="val">80</span></div>
+            <div class="bar-row"><span>Pace</span><div class="bar-track"><div class="bar-fill" data-w="75%" style="background:var(--sand);"></div></div><span class="val">75</span></div>
+            <div class="bar-row"><span>People</span><div class="bar-track"><div class="bar-fill" data-w="82%" style="background:var(--sand);"></div></div><span class="val">82</span></div>
+          </div>
+          <div class="compare-col">
+            <h4>Jordan Ellis · Actual</h4>
+            <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" data-w="85%" style="background:var(--clay);"></div></div><span class="val">85</span></div>
+            <div class="bar-row"><span>Pace</span><div class="bar-track"><div class="bar-fill" data-w="52%" style="background:var(--ochre);"></div></div><span class="val">52</span></div>
+            <div class="bar-row"><span>People</span><div class="bar-track"><div class="bar-fill" data-w="46%" style="background:var(--ochre);"></div></div><span class="val">46</span></div>
+          </div>
+        </div>
+        <div class="gap-note">Strong on Drive. The real gap against this role is Pace and People, worth naming directly in the next 1:1.</div>
+      </div>
+      <div class="role-panel" id="role-aspirational">
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h4>Target profile · Regional Director</h4>
+            <div class="bar-row"><span>Structure</span><div class="bar-track"><div class="bar-fill" data-w="78%" style="background:var(--sand);"></div></div><span class="val">78</span></div>
+            <div class="bar-row"><span>Ambiguity</span><div class="bar-track"><div class="bar-fill" data-w="85%" style="background:var(--sand);"></div></div><span class="val">85</span></div>
+            <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" data-w="80%" style="background:var(--sand);"></div></div><span class="val">80</span></div>
+          </div>
+          <div class="compare-col">
+            <h4>Jordan Ellis · Actual</h4>
+            <div class="bar-row"><span>Structure</span><div class="bar-track"><div class="bar-fill" data-w="60%" style="background:var(--ochre);"></div></div><span class="val">60</span></div>
+            <div class="bar-row"><span>Ambiguity</span><div class="bar-track"><div class="bar-fill" data-w="58%" style="background:var(--ochre);"></div></div><span class="val">58</span></div>
+            <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" data-w="81%" style="background:var(--clay);"></div></div><span class="val">81</span></div>
+          </div>
+        </div>
+        <div class="gap-note">Composure is already there. Ambiguity Tolerance is the biggest stretch for this future role, a good focus for development conversations now.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="element-manager">
+    <div class="section-inner">
+      <p class="label">Manager coaching kit</p>
+      <h2>One PDF, built to hand off.</h2>
+      <p class="section-lede">Assign a manager to any team and get individualized guidance for working with each person on it, plus a holistic read on how the manager's own style interacts with the team's actual makeup. Click a name below.</p>
+      <div class="demo-card">
+        <h4>Manager: Jordan Ellis (The Steady Hand) · Team of 3</h4>
+        <p class="label" style="margin-bottom:0.9rem;">Holistic view: manager style vs. team makeup</p>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h4>Jordan Ellis · Manager</h4>
+            <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" data-w="85%" style="background:var(--clay);"></div></div><span class="val">85</span></div>
+            <div class="bar-row"><span>Structure</span><div class="bar-track"><div class="bar-fill" data-w="60%" style="background:var(--clay);"></div></div><span class="val">60</span></div>
+            <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" data-w="81%" style="background:var(--clay);"></div></div><span class="val">81</span></div>
+          </div>
+          <div class="compare-col">
+            <h4>Team average</h4>
+            <div class="bar-row"><span>Drive</span><div class="bar-track"><div class="bar-fill" data-w="62%" style="background:var(--sage);"></div></div><span class="val">62</span></div>
+            <div class="bar-row"><span>Structure</span><div class="bar-track"><div class="bar-fill" data-w="74%" style="background:var(--sage);"></div></div><span class="val">74</span></div>
+            <div class="bar-row"><span>Composure</span><div class="bar-track"><div class="bar-fill" data-w="55%" style="background:var(--sage);"></div></div><span class="val">55</span></div>
+          </div>
+        </div>
+        <div class="gap-note">Jordan's high Drive and Composure naturally stabilize the team under pressure, but the team runs higher on Structure than she does. Watch for friction when Jordan wants to move fast and the team wants more process locked in first.</div>
+        <p class="label" style="margin:1.8rem 0 0.9rem;">Individualized guidance, person by person</p>
+        <div class="accordion" id="manager-accordion">
+          <div class="accordion-item open">
+            <div class="accordion-head"><span>Priya N. — The Trailblazer</span><span class="plus">+</span></div>
+            <div class="accordion-body" style="max-height:200px;">High Pace, low Structure. Give her the headline first, she'll ask for detail only if she needs it. Don't over-document before you've talked it through.</div>
+          </div>
+          <div class="accordion-item">
+            <div class="accordion-head"><span>Marcus T. — The Anchor</span><span class="plus">+</span></div>
+            <div class="accordion-body">High Structure, low Pace. Give him lead time before a decision is due, rushed asks read as chaos, not urgency.</div>
+          </div>
+          <div class="accordion-item">
+            <div class="accordion-head"><span>Dana K. — The Connector</span><span class="plus">+</span></div>
+            <div class="accordion-body">High People, moderate Drive. Loop her in on the why, not just the what, she does her best work when she understands the impact on people.</div>
+          </div>
+        </div>
+        <p style="margin-top:1.4rem; font-size:0.9rem; color:rgba(48,56,59,0.7); font-family:'Noto Sans', sans-serif;">Delivered as one downloadable PDF, built to hand a manager everything at once.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section bg-alt" id="element-people">
+    <div class="section-inner">
+      <p class="label">Organization-wide view</p>
+      <h2>Who's in, who's not, at a glance.</h2>
+      <p class="section-lede">See who's been invited, who's completed their assessment, and who isn't on a team yet, across the whole organization.</p>
+      <div class="toggle-pills" id="people-filter">
+        <button class="pill-btn active" data-filter="all">All</button>
+        <button class="pill-btn" data-filter="done">Completed</button>
+        <button class="pill-btn" data-filter="invited">Invited</button>
+        <button class="pill-btn" data-filter="noteam">No team yet</button>
+      </div>
+      <table class="people-table">
+        <thead><tr><th>Name</th><th>Team</th><th>Status</th></tr></thead>
+        <tbody id="people-body">
+          <tr data-status="done"><td>Jordan Ellis</td><td>Product</td><td><span class="t-status done">Completed</span></td></tr>
+          <tr data-status="done"><td>Priya N.</td><td>Product, Sales</td><td><span class="t-status done">Completed</span></td></tr>
+          <tr data-status="invited"><td>Marcus T.</td><td>Sales</td><td><span class="t-status pending">Invited</span></td></tr>
+          <tr data-status="noteam"><td>Dana K.</td><td>—</td><td><span class="t-status waiting">Not on a team</span></td></tr>
+          <tr data-status="done"><td>Sam R.</td><td>Sales</td><td><span class="t-status done">Completed</span></td></tr>
+          <tr data-status="invited"><td>Alex P.</td><td>Product</td><td><span class="t-status pending">Invited</span></td></tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
@@ -562,7 +738,7 @@
           <div class="tier-blurb">For organizations up to 250 employees.</div>
           <div class="price-amt" data-m="$199" data-a="$2,030">$199</div>
           <div class="price-per" data-m="/mo" data-a="/yr">/mo</div>
-          <ul><li>Unlimited people and assessments</li><li>Unlimited reports and PDFs</li><li>Team composition view</li><li>Automatic reminders</li><li>Email support</li></ul>
+          <ul><li>Unlimited people and assessments</li><li>Unlimited reports and PDFs</li><li>Team composition views</li><li>Automatic reminders</li><li>Email support</li></ul>
           <a class="cta-btn" href="https://care360.ingoodcocollective.com/plans#element" target="_blank" rel="noopener">Choose Starter</a>
         </div>
         <div class="price-card">
@@ -570,7 +746,7 @@
           <div class="tier-blurb">For organizations up to 750 employees.</div>
           <div class="price-amt" data-m="$349" data-a="$3,560">$349</div>
           <div class="price-per" data-m="/mo" data-a="/yr">/mo</div>
-          <ul><li>Everything in Starter</li><li>Higher usage for larger teams</li><li>Priority support</li><li>Onboarding walkthrough</li></ul>
+          <ul><li>Everything in Starter</li><li>Role deep dives and career pathing</li><li>Manager Coaching Kit</li><li>Priority support</li></ul>
           <a class="cta-btn secondary" href="https://care360.ingoodcocollective.com/plans#element" target="_blank" rel="noopener">Choose Growth</a>
         </div>
         <div class="price-card">
@@ -667,61 +843,151 @@
   var navLinks = document.querySelectorAll('#tab-nav a');
   var tabTriggers = document.querySelectorAll('[data-tab]');
 
-  function activate(name, scrollToId){
+  function activate(name){
     if(!panels[name]) name = 'care360';
     Object.keys(panels).forEach(function(k){ panels[k].classList.toggle('active', k === name); });
     navLinks.forEach(function(l){ l.classList.toggle('active', l.getAttribute('data-tab') === name); });
-    if(scrollToId){
-      requestAnimationFrame(function(){
-        var el = document.getElementById(scrollToId);
-        if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-      });
-    } else {
-      window.scrollTo({top:0, behavior:'auto'});
-    }
+    window.scrollTo({top:0, behavior:'auto'});
   }
-
   tabTriggers.forEach(function(el){
     el.addEventListener('click', function(e){
       var name = el.getAttribute('data-tab');
-      if(name){
-        e.preventDefault();
-        window.location.hash = name;
-        activate(name);
-      }
+      if(name){ e.preventDefault(); window.location.hash = name; activate(name); }
     });
   });
-
-  document.querySelectorAll('[data-scroll]').forEach(function(el){
-    el.addEventListener('click', function(e){
-      e.preventDefault();
-      var id = el.getAttribute('data-scroll');
-      document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
-    });
-  });
-
-  window.addEventListener('hashchange', function(){
-    activate(window.location.hash.replace('#',''));
-  });
-
+  window.addEventListener('hashchange', function(){ activate(window.location.hash.replace('#','')); });
   activate(window.location.hash.replace('#','') || new URLSearchParams(window.location.search).get('product') || 'care360');
 
-  // Monthly/Annual toggle, shared logic per product
+  // Monthly/Annual toggle
   function wireToggle(toggleId, gridId){
-    var toggle = document.getElementById(toggleId);
-    var grid = document.getElementById(gridId);
+    var toggle = document.getElementById(toggleId), grid = document.getElementById(gridId);
     if(!toggle || !grid) return;
     var annual = false;
     toggle.addEventListener('click', function(){
       annual = !annual;
       toggle.classList.toggle('on', annual);
-      grid.querySelectorAll('[data-m]').forEach(function(el){
-        el.textContent = annual ? el.getAttribute('data-a') : el.getAttribute('data-m');
-      });
+      grid.querySelectorAll('[data-m]').forEach(function(el){ el.textContent = annual ? el.getAttribute('data-a') : el.getAttribute('data-m'); });
     });
   }
   wireToggle('care360-toggle', 'care360-price-grid');
   wireToggle('element-toggle', 'element-price-grid');
+
+  // Animate bar fills into view
+  var bars = document.querySelectorAll('.bar-fill[data-w]');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.style.width = entry.target.getAttribute('data-w');
+        io.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.3});
+  bars.forEach(function(b){ io.observe(b); });
+
+  // Anonymity demo
+  var anonBtn = document.getElementById('anon-btn');
+  var anonDemo = document.getElementById('anon-demo');
+  var anonLabel = document.getElementById('anon-label');
+  var anonScore = document.getElementById('anon-score');
+  var anonCaption = document.getElementById('anon-result-caption');
+  var anonRevealed = false;
+  if(anonBtn){
+    anonBtn.addEventListener('click', function(){
+      anonRevealed = !anonRevealed;
+      anonDemo.classList.toggle('revealed', anonRevealed);
+      anonCaption.textContent = anonRevealed ? "What Jordan's report actually shows" : "What Jordan's report shows, before the reveal";
+      anonScore.textContent = anonRevealed ? '4.1' : '—';
+      anonLabel.textContent = anonRevealed ? 'One blended group average for Connect, plus anonymized comments. No individual answer is ever visible.' : 'Locked until all four responses are combined into one score.';
+      anonBtn.textContent = anonRevealed ? 'Reset' : 'Reveal what the leader sees';
+    });
+  }
+
+  // Mini assessment demo
+  var rounds = [
+    {prompt:'When a plan changes at the last minute, I tend to:', a:'Stay steady and adjust the plan calmly', b:'Move fast and improvise on the spot'},
+    {prompt:'In a group project, I naturally:', a:'Make sure everyone has a clear role and timeline', b:'Focus on keeping the relationships smooth'},
+    {prompt:'When facing an undefined, ambiguous task, I:', a:'Build some structure before starting', b:'Just start and figure it out as I go'}
+  ];
+  var roundIndex = 0;
+  var choicePrompt = document.getElementById('choice-prompt');
+  var choiceOpts = document.getElementById('choice-opts');
+  var demoH4 = document.getElementById('demo-h4');
+  var choiceRound = document.getElementById('choice-round');
+  var demoReveal = document.getElementById('demo-reveal');
+  var demoRestart = document.getElementById('demo-restart');
+
+  function renderRound(){
+    var r = rounds[roundIndex];
+    demoH4.textContent = 'Round ' + (roundIndex+1) + ' of ' + rounds.length + ' (sample)';
+    choicePrompt.textContent = r.prompt;
+    choiceOpts.innerHTML = '';
+    ['a','b'].forEach(function(k){
+      var btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = r[k];
+      btn.addEventListener('click', function(){
+        roundIndex++;
+        if(roundIndex < rounds.length){ renderRound(); }
+        else{
+          choiceRound.style.display = 'none';
+          demoReveal.classList.add('show');
+        }
+      });
+      choiceOpts.appendChild(btn);
+    });
+  }
+  if(choicePrompt){ renderRound(); }
+  if(demoRestart){
+    demoRestart.addEventListener('click', function(){
+      roundIndex = 0;
+      demoReveal.classList.remove('show');
+      choiceRound.style.display = 'block';
+      renderRound();
+    });
+  }
+
+  // Team shape toggle
+  document.querySelectorAll('[data-team]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('[data-team]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var team = btn.getAttribute('data-team');
+      document.getElementById('radar-product').style.display = team === 'product' ? 'block' : 'none';
+      document.getElementById('radar-sales').style.display = team === 'sales' ? 'block' : 'none';
+      document.getElementById('narrative-product').classList.toggle('active', team === 'product');
+      document.getElementById('narrative-sales').classList.toggle('active', team === 'sales');
+    });
+  });
+
+  // Role tabs
+  document.querySelectorAll('[data-role]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('[data-role]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var role = btn.getAttribute('data-role');
+      document.getElementById('role-current').classList.toggle('active', role === 'current');
+      document.getElementById('role-aspirational').classList.toggle('active', role === 'aspirational');
+    });
+  });
+
+  // Manager accordion
+  document.querySelectorAll('#manager-accordion .accordion-head').forEach(function(head){
+    head.addEventListener('click', function(){
+      head.parentElement.classList.toggle('open');
+    });
+  });
+
+  // People filter
+  document.querySelectorAll('#people-filter [data-filter]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#people-filter [data-filter]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var f = btn.getAttribute('data-filter');
+      document.querySelectorAll('#people-body tr').forEach(function(row){
+        row.classList.toggle('hidden-row', f !== 'all' && row.getAttribute('data-status') !== f);
+      });
+    });
+  });
 })();
 </script>
 

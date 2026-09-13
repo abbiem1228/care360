@@ -1,5 +1,6 @@
 const express = require('express');
 const router  = express.Router();
+const { adminShell } = require('./admin');
 
 function requireAuth(req, res, next) {
   if (req.isAdmin) return next();
@@ -241,27 +242,8 @@ router.get('/', requireAuth, (req, res) => {
       <div class="faq-a">${f.a}</div>
     </div>`).join('');
 
-  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>How it works — CARE 360</title>
+  const content = `
 <style>
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--ink:#30383B;--clay:#A9633D;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F4EF;--warm:#EDE8DF;--grey:#595959;--shadow:0 1px 4px rgba(48,56,59,0.10)}
-body{font-family:'Inter',Arial,sans-serif;background:var(--cream);color:var(--ink);font-size:14px}
-a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
-
-.admin-nav{background:var(--ink);height:56px;display:flex;align-items:center;padding:0 32px;gap:28px;box-shadow:0 2px 8px rgba(0,0,0,0.2);position:sticky;top:0;z-index:100}
-.nav-logo{display:flex;align-items:center;gap:10px}
-.nav-logo-mark{width:32px;height:32px;background:var(--clay);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:11px;font-family:'EB Garamond',serif}
-.nav-brand{color:white;font-weight:600;font-size:15px;font-family:'EB Garamond',serif;letter-spacing:0.3px}
-.nav-link{color:rgba(255,255,255,0.6);font-size:13px;font-weight:500}
-.nav-link:hover{color:white;text-decoration:none}
-.nav-link.active{color:white}
-.nav-spacer{flex:1}
-.nav-user{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.6);font-size:13px}
-.nav-avatar{width:28px;height:28px;border-radius:50%;background:var(--clay);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
-
 .guide-main{max-width:840px;margin:0 auto;padding:36px 24px 80px}
 .guide-title{font-family:'EB Garamond',serif;font-size:30px;font-weight:600;margin-bottom:6px}
 .guide-lede{font-size:14px;color:var(--grey);line-height:1.7;margin-bottom:24px}
@@ -314,28 +296,14 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
 .guide-footer-name{font-family:'EB Garamond',serif;font-size:14px;color:var(--ink);margin-bottom:4px}
 .guide-footer-tag{font-size:10px;color:var(--sand);letter-spacing:1.5px;text-transform:uppercase}
 
-@media(max-width:700px){.guide-main{padding:20px 14px 60px}.guide-block{padding:18px}.admin-nav{padding:0 16px;gap:16px}}
-</style></head>
-<body>
-<nav class="admin-nav">
-  <div class="nav-logo">
-    <div class="nav-logo-mark">C</div>
-    <span class="nav-brand">in good company.</span>
-  </div>
-  <a href="/admin" class="nav-link">Groups</a>
-  <a href="/guide" class="nav-link active">How it works</a>
-  <div class="nav-spacer"></div>
-  <div class="nav-user">
-    <div class="nav-avatar">A</div>
-    <a href="/signout" class="nav-link">Sign out</a>
-  </div>
-</nav>
+@media(max-width:700px){.guide-main{padding:20px 14px 60px}.guide-block{padding:18px}}
+</style>
 
 <div class="guide-main">
   <div class="guide-title">How CARE 360 works</div>
   <p class="guide-lede">Setup takes about ten minutes. Everything then runs itself until the close date you set. You come back at the end to generate the report.</p>
 
-  <div class="callout callout-clay">Have both CARE 360 and the Element Profile? Click the logo in the top-left corner, right where it says "in good company." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
+  <div class="callout callout-clay">Have both CARE 360 and the Element Profile? Click the logo in the top-left corner, right where it says "CARE 360 Survey." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
 
   <div class="search-wrap">
     <span class="search-icon">&#9906;</span>
@@ -427,7 +395,9 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
   });
 })();
 </script>
-</body></html>`);
+  `;
+
+  res.send(adminShell('How it works', content, req));
 });
 
 module.exports = router;

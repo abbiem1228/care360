@@ -438,7 +438,7 @@ function adminShell(title, content, req) {
     ? `<details class="nav-logo nav-logo-switcher">
       <summary class="nav-logo-summary" style="display:flex;align-items:center;gap:10px">
         <div class="nav-logo-mark">C</div>
-        <span class="nav-brand">in good company.</span>
+        <span class="nav-brand">CARE 360 Survey</span>
       </summary>
       <div class="nav-logo-dropdown">
         <a href="/admin/handoff/element-profile" class="nav-logo-dropdown-item">Switch to Element Profile</a>
@@ -446,7 +446,7 @@ function adminShell(title, content, req) {
     </details>`
     : `<div class="nav-logo">
       <div class="nav-logo-mark">C</div>
-      <span class="nav-brand">in good company.</span>
+      <span class="nav-brand">CARE 360 Survey</span>
     </div>`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -880,3 +880,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount, re
 }
 
 module.exports = router;
+// Exposed so other routers (guide.js) can render through the exact same
+// shell, real nav and real switcher included, instead of keeping their
+// own separate copy that silently stops matching this one.
+module.exports.adminShell = adminShell;

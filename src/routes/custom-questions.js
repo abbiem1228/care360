@@ -2,6 +2,7 @@ const express   = require('express');
 const router    = express.Router();
 const supabase  = require('../db/client');
 const Anthropic = require('@anthropic-ai/sdk');
+const { adminShell } = require('./admin');
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MAX_QUESTIONS = 5;
@@ -37,7 +38,7 @@ router.get('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =>
     .select('*').eq('cycle_id', cycle.id).order('position');
 
   const locked = await hasCustomResponses(req, cycle.id);
-  res.send(page(cycle, existing || [], null, null, null, null, locked));
+  res.send(page(cycle, existing || [], null, null, null, null, locked, req));
 });
 
 // ── Step 1: draft self-assessment wording ──────────────────────
@@ -59,7 +60,7 @@ router.post('/cycles/:cycleId/custom-questions/draft', requireAuth, async (req, 
   const filled = raterTexts.filter(Boolean);
 
   if (!filled.length) {
-    return res.send(page(cycleForRender, [], null, 'Write at least one question before drafting the self-assessment versions.', raterTexts));
+    return res.send(page(cycleForRender, [], null, 'Write at least one question before drafting the self-assessment versions.', raterTexts, null, null, req));
   }
 
   try {
@@ -86,10 +87,10 @@ Respond with exactly ${filled.length} lines, one per question, in the same order
     let li = 0;
     raterTexts.forEach(t => selfTexts.push(t ? (lines[li++] || '') : ''));
 
-    res.send(page(cycleForRender, [], null, null, raterTexts, selfTexts));
+    res.send(page(cycleForRender, [], null, null, raterTexts, selfTexts, null, req));
   } catch (e) {
     console.error('CUSTOM QUESTION DRAFT FAILED', e.message);
-    res.send(page(cycleForRender, [], null, 'Could not draft the self-assessment wording just now. You can write it yourself below, or try again.', raterTexts));
+    res.send(page(cycleForRender, [], null, 'Could not draft the self-assessment wording just now. You can write it yourself below, or try again.', raterTexts, null, null, req));
   }
 });
 
@@ -108,7 +109,7 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
   // no self text yet) must be caught here, not silently dropped.
   const hasUnpaired = raterTexts.slice(0, MAX_QUESTIONS).some((t, i) => t && !selfTexts[i]);
   if (hasUnpaired) {
-    return res.send(page({ ...cycle, custom_questions_label: label }, [], null, 'Every question needs a self-assessment version before saving. Draft it or write your own for each one.', raterTexts, selfTexts));
+    return res.send(page({ ...cycle, custom_questions_label: label }, [], null, 'Every question needs a self-assessment version before saving. Draft it or write your own for each one.', raterTexts, selfTexts, null, req));
   }
 
   const rows = [];
@@ -125,7 +126,7 @@ router.post('/cycles/:cycleId/custom-questions', requireAuth, async (req, res) =
     const { error } = await db(req).from('custom_questions').insert(rows);
     if (error) {
       console.error('CUSTOM QUESTION SAVE FAILED', error.message);
-      return res.send(page({ ...cycle, custom_questions_label: label }, [], null, 'Something went wrong saving these questions. Please try again.', raterTexts, selfTexts));
+      return res.send(page({ ...cycle, custom_questions_label: label }, [], null, 'Something went wrong saving these questions. Please try again.', raterTexts, selfTexts, null, req));
     }
   }
 
@@ -170,18 +171,7 @@ router.post('/cycles/:cycleId/custom-questions/clear', requireAuth, async (req, 
 
 const CSS = `
 <style>
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--ink:#30383B;--clay:#A9633D;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F4EF;--warm:#EDE8DF;--grey:#595959;--shadow:0 1px 4px rgba(48,56,59,0.10)}
-body{font-family:'Inter',Arial,sans-serif;background:var(--cream);color:var(--ink);font-size:14px}
-a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
-.admin-nav{background:var(--ink);height:56px;display:flex;align-items:center;padding:0 32px;gap:28px;box-shadow:0 2px 8px rgba(0,0,0,0.2);position:sticky;top:0;z-index:100}
-.nav-logo-mark{width:32px;height:32px;background:var(--clay);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:11px;font-family:'EB Garamond',serif}
-.nav-brand{color:white;font-weight:600;font-size:15px;font-family:'EB Garamond',serif}
-.nav-link{color:rgba(255,255,255,0.6);font-size:13px;font-weight:500}
-.nav-link:hover{color:white;text-decoration:none}
-.nav-spacer{flex:1}
-.admin-main{max-width:820px;margin:0 auto;padding:32px 24px}
+.cq-wrap{max-width:820px;margin:0 auto}
 .page-title{font-family:'EB Garamond',serif;font-size:26px;font-weight:600;margin-bottom:4px}
 .page-sub{font-size:13.5px;color:var(--grey);line-height:1.7;margin-bottom:24px}
 .card{background:white;border-radius:10px;padding:24px;margin-bottom:18px;box-shadow:var(--shadow);border:1px solid var(--warm)}
@@ -207,31 +197,13 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
 .btn-red{background:transparent;color:#A94442;border:1.5px solid #FDDDD9}
 .locked{opacity:0.65}
 .locked .form-control{background:#F7F4EF;cursor:not-allowed}
-@media(max-width:700px){.admin-main{padding:16px 12px}}
 </style>`;
-
-function shell(title, content) {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${title} — CARE 360</title>${CSS}</head><body>
-<nav class="admin-nav">
-  <div style="display:flex;align-items:center;gap:10px">
-    <div class="nav-logo-mark">C</div>
-    <span class="nav-brand">in good company.</span>
-  </div>
-  <a href="/admin" class="nav-link">Groups</a>
-  <a href="/guide" class="nav-link">How it works</a>
-  <div class="nav-spacer"></div>
-  <a href="/signout" class="nav-link">Sign out</a>
-</nav>
-<div class="admin-main">${content}</div></body></html>`;
-}
 
 function escapeAttr(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
-function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, locked) {
+function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, locked, req) {
   locked = !!locked;
   const label = cycle.custom_questions_label || '';
 
@@ -310,7 +282,7 @@ function page(cycle, existing, _unused, error, draftRaterTexts, draftSelfTexts, 
     </form>
   `;
 
-  return shell('Custom questions', body);
+  return adminShell('Custom questions', `${CSS}<div class="cq-wrap">${body}</div>`, req);
 }
 
 module.exports = router;

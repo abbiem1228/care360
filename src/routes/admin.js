@@ -312,6 +312,13 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
 .nav-logo{display:flex;align-items:center;gap:10px}
 .nav-logo-mark{width:32px;height:32px;background:var(--clay);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:11px;font-family:'EB Garamond',serif;letter-spacing:0}
 .nav-brand{color:white;font-weight:600;font-size:15px;font-family:'EB Garamond',serif;letter-spacing:0.3px}
+.nav-logo-switcher{position:relative;cursor:pointer}
+.nav-logo-switcher summary{list-style:none}
+.nav-logo-switcher summary::-webkit-details-marker{display:none}
+.nav-logo-switcher summary:focus-visible{outline:2px solid var(--sand);outline-offset:4px;border-radius:4px}
+.nav-logo-dropdown{position:absolute;top:100%;left:0;margin-top:10px;background:white;border-radius:8px;box-shadow:var(--shadow-md);padding:6px;min-width:220px;z-index:200}
+.nav-logo-dropdown-item{display:block;padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink);border-radius:6px;white-space:nowrap}
+.nav-logo-dropdown-item:hover{background:var(--warm);text-decoration:none}
 .nav-link{color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;transition:color 0.15s}
 .nav-link:hover{color:white;text-decoration:none}
 .nav-link-btn{background:none;border:none;font-family:inherit;padding:0;cursor:pointer}
@@ -421,18 +428,31 @@ function adminShell(title, content, req) {
       : null;
 
   // Same entitlement check as the reminder above, just the other
-  // direction: once an account genuinely has both products, it can
-  // cross straight into Element Profile instead of being reminded to
-  // buy it.
+  // direction: once an account genuinely has both products, the
+  // top-left logo itself becomes the environment switcher. A
+  // single-product account gets no dropdown at all, not a disabled
+  // one, the exact same plain, non-interactive logo as always.
   const hasBothProducts = !!(acct && acct.has_care360 && acct.has_element_profile);
+
+  const navLogo = hasBothProducts
+    ? `<details class="nav-logo nav-logo-switcher">
+      <summary class="nav-logo-summary" style="display:flex;align-items:center;gap:10px">
+        <div class="nav-logo-mark">C</div>
+        <span class="nav-brand">in good company.</span>
+      </summary>
+      <div class="nav-logo-dropdown">
+        <a href="/admin/handoff/element-profile" class="nav-logo-dropdown-item">Switch to Element Profile</a>
+      </div>
+    </details>`
+    : `<div class="nav-logo">
+      <div class="nav-logo-mark">C</div>
+      <span class="nav-brand">in good company.</span>
+    </div>`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${title} — CARE 360</title>${CSS}</head><body>
   <nav class="admin-nav">
-    <div class="nav-logo">
-      <div class="nav-logo-mark">C</div>
-      <span class="nav-brand">in good company.</span>
-    </div>
+    ${navLogo}
     <a href="/admin" class="nav-link">Groups</a>
     <a href="/admin/team" class="nav-link">Team</a>
     <a href="/guide" class="nav-link">How it works</a>
@@ -446,7 +466,6 @@ function adminShell(title, content, req) {
       <form method="POST" action="/billing/upgrade-to-bundle" style="display:inline">
         <button type="submit" class="nav-link nav-link-btn" style="color:#F0C987;font-weight:700">${bundleReminder}</button>
       </form>` : ''}
-      ${hasBothProducts ? `<a href="/admin/handoff/element-profile" class="nav-link">Go to Element Profile</a>` : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>

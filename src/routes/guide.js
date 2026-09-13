@@ -335,6 +335,8 @@ a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
   <div class="guide-title">How CARE 360 works</div>
   <p class="guide-lede">Setup takes about ten minutes. Everything then runs itself until the close date you set. You come back at the end to generate the report.</p>
 
+  <div class="callout callout-clay">Have both CARE 360 and the Element Profile? Click the logo in the top-left corner, right where it says "in good company." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
+
   <div class="search-wrap">
     <span class="search-icon">&#9906;</span>
     <input class="search-box" id="q" type="text" placeholder="Search. Try 'spam', 'deadline' or 'custom questions'" autocomplete="off"/>

@@ -488,7 +488,6 @@
           <p class="choice-progress">Sample result</p>
           <div class="archetype-name">The Steady Hand</div>
           <p class="archetype-desc">High Drive, high Composure. Steady when plans shift, others look to this person first when things get tense.</p>
-          <button class="demo-restart" id="demo-restart">Try it again</button>
         </div>
       </div>
     </div>
@@ -914,7 +913,6 @@
   var demoH4 = document.getElementById('demo-h4');
   var choiceRound = document.getElementById('choice-round');
   var demoReveal = document.getElementById('demo-reveal');
-  var demoRestart = document.getElementById('demo-restart');
 
   function renderRound(){
     var r = rounds[roundIndex];
@@ -937,14 +935,6 @@
     });
   }
   if(choicePrompt){ renderRound(); }
-  if(demoRestart){
-    demoRestart.addEventListener('click', function(){
-      roundIndex = 0;
-      demoReveal.classList.remove('show');
-      choiceRound.style.display = 'block';
-      renderRound();
-    });
-  }
 
   // Team shape toggle
   document.querySelectorAll('[data-team]').forEach(function(btn){

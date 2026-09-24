@@ -138,6 +138,74 @@ router.post('/cycles/:id/status', requireAuth, async (req, res) => {
   res.redirect(`/admin/cycles/${req.params.id}`);
 });
 
+// Edits a Group's opens_at/closes_at after creation, on a Group in any
+// status. checkClosedCycles and sendReminders (server.js) both read
+// these columns live off the cycles row on every run, no caching
+// anywhere, so a saved change here takes effect on the very next
+// hourly pass, and the survey link (survey.js) re-reads them on every
+// single rater visit. The one state this route has to actively manage
+// itself: closed_notified_at. That column is the automatic system's
+// own record that it already emailed an admin notice for this Group's
+// closure, and checkClosedCycles will never fire again for a cycle
+// once it's set, regardless of status or dates. If extending closes_at
+// into the future on an already-closed, already-notified Group is
+// confirmed below, this route clears closed_notified_at along with
+// reactivating status, specifically so the automatic system is
+// genuinely re-armed, not just cosmetically reopened on screen.
+router.post('/cycles/:id/dates', requireAuth, async (req, res) => {
+  const { data: cycle } = await db(req).from('cycles').select('*').eq('id', req.params.id).maybeSingle();
+  if (!cycle) return res.redirect('/admin');
+
+  const { opens_at, closes_at, confirm } = req.body;
+  if (!closes_at) {
+    return res.send(adminShell('Error', `<div class="card"><p>A close date is required. <a href="/admin/cycles/${cycle.id}">Go back</a></p></div>`, req));
+  }
+  if (opens_at && new Date(closes_at) <= new Date(opens_at)) {
+    return res.send(adminShell('Error', `<div class="card"><p>The close date must be after the open date. <a href="/admin/cycles/${cycle.id}">Go back</a></p></div>`, req));
+  }
+
+  // The one silent-undo risk worth blocking on: this Group already
+  // closed for real, the automatic notice about it already went out
+  // (closed_notified_at is set precisely because that happened), and
+  // this save would put its close date back in the future. Saving that
+  // change is exactly what "fixing dates on a Group that's already
+  // live" means when the Group in question has already closed, so it's
+  // allowed, just not silently — it also reactivates the Group, which
+  // is a real, meaningful reversal of something raters and the account
+  // owner were already told was final.
+  const wouldReopenAlreadyClosedGroup = cycle.status === 'closed' && cycle.closed_notified_at && new Date(closes_at) > new Date();
+  if (wouldReopenAlreadyClosedGroup && !confirm) {
+    return res.send(adminShell('Confirm reopening this Group', `
+      <div class="card" style="border-left:4px solid #A9633D;background:#FBF5EC;max-width:560px">
+        <div style="font-size:15px;font-weight:600;color:#30383B;margin-bottom:8px">This Group already closed, and that closure was already reported</div>
+        <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:18px">"${cycle.name}" closed automatically, and the admin notice for any leader with unanswered raters already went out. Saving a close date in the future will also reactivate this Group so raters can respond again. If that's what you want, confirm below.</div>
+        <form method="POST" action="/admin/cycles/${cycle.id}/dates">
+          <input type="hidden" name="opens_at" value="${opens_at || ''}"/>
+          <input type="hidden" name="closes_at" value="${closes_at}"/>
+          <input type="hidden" name="confirm" value="1"/>
+          <div class="actions-row">
+            <button class="btn btn-sage" type="submit">Yes, save dates and reopen this Group</button>
+            <a href="/admin/cycles/${cycle.id}" class="btn btn-ghost">Cancel</a>
+          </div>
+        </form>
+      </div>`, req));
+  }
+
+  const update = { opens_at: opens_at || null, closes_at };
+  if (wouldReopenAlreadyClosedGroup && confirm) {
+    update.status = 'active';
+    update.closed_notified_at = null;
+  }
+
+  const { error } = await db(req).from('cycles').update(update).eq('id', cycle.id);
+  if (error) {
+    console.error('GROUP DATES UPDATE FAILED', error.message);
+    return res.send(adminShell('Error', `<div class="card"><p>The dates could not be updated. <a href="/admin/cycles/${cycle.id}">Go back</a></p></div>`, req));
+  }
+
+  res.redirect(`/admin/cycles/${cycle.id}?datesUpdated=1`);
+});
+
 router.get('/cycles/:id', requireAuth, async (req, res) => {
   const { data: cycle } = await db(req).from('cycles').select('*').eq('id', req.params.id).maybeSingle();
   if (!cycle) return res.redirect('/admin');
@@ -650,6 +718,18 @@ function cycleFormPage(req) {
     </div>`, req);
 }
 
+// Formats a stored timestamptz back into the plain "YYYY-MM-DDTHH:mm"
+// string a datetime-local input expects. Both the create and edit
+// forms hand that same unqualified string straight to Postgres with no
+// timezone conversion on either side (the create route below does the
+// same), so this has to mirror that exactly: read it back as a bare
+// UTC slice, not converted through any local timezone, or resaving an
+// untouched date here would silently shift it.
+function toLocalInputValue(iso) {
+  if (!iso) return '';
+  return new Date(iso).toISOString().slice(0, 16);
+}
+
 function cycleDetailPage(cycle, leaders, req) {
   // Once at least one invite has actually been sent, we cannot know
   // whether someone out there is holding a live link. Reopening the
@@ -674,6 +754,8 @@ function cycleDetailPage(cycle, leaders, req) {
     flash = failed
       ? `<div class="flash flash-warn"><strong>${sent} invitation${sent===1?'':'s'} sent, ${failed} failed.</strong> Failures are usually a bad email address or a sending limit. Check the logs, then click Send Invites again to retry the ones that did not go.</div>`
       : `<div class="flash flash-ok">${sent} invitation${sent===1?'':'s'} sent.</div>`;
+  } else if (req.query.datesUpdated === '1') {
+    flash = `<div class="flash flash-ok">Dates updated.</div>`;
   }
 
   const rows = leaders.map(l => {
@@ -714,6 +796,26 @@ function cycleDetailPage(cycle, leaders, req) {
       <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:14px">Raters will not be able to open their survey until you activate this Group. If you send invites now, everyone will receive a link that does not work.</div>
       <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">Activate Group</button></form>
     </div>` : ''}
+    <div class="card" style="max-width:580px">
+      <div class="card-header"><span class="card-title">Dates</span></div>
+      <form method="POST" action="/admin/cycles/${cycle.id}/dates">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Opens At</label>
+            <input class="form-control" type="datetime-local" name="opens_at" value="${toLocalInputValue(cycle.opens_at)}"/>
+            <div class="form-hint">Leave blank for no open-date restriction.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Closes At *</label>
+            <input class="form-control" type="datetime-local" name="closes_at" value="${toLocalInputValue(cycle.closes_at)}" required/>
+            <div class="form-hint">Raters cannot submit after this date.</div>
+          </div>
+        </div>
+        <div class="actions-row">
+          <button class="btn btn-primary" type="submit">Save Dates</button>
+        </div>
+      </form>
+    </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Leaders</span><span style="font-size:13px;color:var(--grey)">${leaders.length} leader${leaders.length!==1?'s':''}</span></div>
       ${leaders.length ? `

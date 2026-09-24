@@ -191,7 +191,7 @@ const FAQS = [
   },
   {
     q: 'Can I extend the deadline?',
-    tags: 'extend deadline close date open date opens at closes at change more time reopen reactivate closed early confirm',
+    tags: 'extend deadline close date open date opens at closes at change more time reopen reactivate closed early confirm dates survey date change survey date change dates',
     a: 'Yes. Both the open date and the close date can be changed directly on the Group\'s own page, in any status, including one that has already closed. Pushing the close date forward on an already-closed Group reactivates it for real, not just on screen: raters can respond again, and the automatic reminder and closure checks re-arm and pick up the new date right away. That specific case asks for confirmation first, since it reverses a closure that was already reported. This applies to every leader in the Group, and reminders only ever send once per person, so extending will not trigger a second one.'
   },
   {

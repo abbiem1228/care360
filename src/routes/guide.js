@@ -25,7 +25,7 @@ const STEPS = [
   {
     n: '1',
     title: 'Create a Group',
-    tags: 'create new group name organization close date closes at opens deadline timeline how long two weeks',
+    tags: 'create new group name organization close date closes at opens deadline timeline how long two weeks edit change later reopen reactivate',
     body: `
       <p><strong>Group name.</strong> Something you will recognize later. "Q1 2027 Leadership Review" rather than "Group 2." If you are running this for one organization, working the organization's name into the Group name makes it easy to find later.</p>
       <p><strong>Organization.</strong> Who this is for.</p>
@@ -34,7 +34,8 @@ const STEPS = [
         <li>Shorter than one week is hard on anyone traveling or on leave</li>
         <li>Longer than three weeks and the invitation gets buried</li>
       </ul>
-      <p><strong>Opens at.</strong> Optional. Leave it blank unless you want the Group to become available on a future date.</p>`
+      <p><strong>Opens at.</strong> Optional. Leave it blank unless you want the Group to become available on a future date.</p>
+      <p>Neither date is locked in once the Group is created. Both can be changed later from the Group's own page, in any status, including a Group that has already closed. See <strong>Can I extend the deadline?</strong> below.</p>`
   },
   {
     n: '2',
@@ -190,8 +191,8 @@ const FAQS = [
   },
   {
     q: 'Can I extend the deadline?',
-    tags: 'extend deadline close date change more time reopen closed early',
-    a: 'Yes. Change the close date on the Group, and reopen it if it has already closed. This applies to every leader in the Group. Note that reminders only send once per person, so extending will not trigger a second one.'
+    tags: 'extend deadline close date open date opens at closes at change more time reopen reactivate closed early confirm',
+    a: 'Yes. Both the open date and the close date can be changed directly on the Group\'s own page, in any status, including one that has already closed. Pushing the close date forward on an already-closed Group reactivates it for real, not just on screen: raters can respond again, and the automatic reminder and closure checks re-arm and pick up the new date right away. That specific case asks for confirmation first, since it reverses a closure that was already reported. This applies to every leader in the Group, and reminders only ever send once per person, so extending will not trigger a second one.'
   },
   {
     q: 'Someone wants to change their answers',

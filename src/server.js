@@ -157,7 +157,5 @@ setInterval(checkClosedCycles, 60 * 60 * 1000);
 setTimeout(checkClosedCycles, 30 * 1000);
 setInterval(sendReminders, 60 * 60 * 1000);
 setTimeout(sendReminders, 45 * 1000);
-setInterval(checkClosedCycles, 60 * 60 * 1000);
-setTimeout(checkClosedCycles, 30 * 1000);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`CARE 360 running on port ${PORT}`));

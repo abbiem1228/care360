@@ -71,6 +71,12 @@ router.get('/signup', (req, res) => {
   const tier     = TIERS.includes(req.query.tier) ? req.query.tier : null;
   const products = PRODUCTS.includes(req.query.products) ? req.query.products : 'care360';
   const billing  = req.query.billing === 'annual' ? 'annual' : 'monthly';
+  // Only CARE 360 has a free trial. An Element Profile or Bundle signup
+  // without a paid tier goes back to that product's plans, never into
+  // the CARE 360 trial signup.
+  if (products !== 'care360' && !tier) {
+    return res.redirect(`/plans?product=${products}`);
+  }
   res.send(signupPage(null, {}, tier, products, billing));
 });
 
@@ -86,6 +92,9 @@ router.post('/signup', async (req, res) => {
   const tier     = TIERS.includes(req.body.tier) ? req.body.tier : null;
   const products = PRODUCTS.includes(req.body.products) ? req.body.products : 'care360';
   const billing  = req.body.billing === 'annual' ? 'annual' : 'monthly';
+  if (products !== 'care360' && !tier) {
+    return res.redirect(`/plans?product=${products}`);
+  }
 
   if (!email || !password || !organization) {
     return res.send(signupPage('Please fill in every required field.', req.body, tier, products, billing));

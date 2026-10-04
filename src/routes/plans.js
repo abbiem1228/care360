@@ -31,7 +31,7 @@ const PRODUCTS = {
         annual: 2990,
         features: [
           'Everything in Starter',
-          'Higher usage for larger teams',
+          'Sized for organizations up to 750 employees',
           'Priority support',
           'Onboarding walkthrough'
         ],
@@ -47,7 +47,7 @@ const PRODUCTS = {
         name: 'Starter',
         blurb: 'For organizations up to 250 employees.',
         monthly: 199,
-        annual: 2030,
+        annual: 1990,
         features: [
           'Unlimited people assessed',
           'Full archetype report for every person',
@@ -61,10 +61,10 @@ const PRODUCTS = {
         name: 'Growth',
         blurb: 'For organizations up to 750 employees.',
         monthly: 349,
-        annual: 3560,
+        annual: 3490,
         features: [
           'Everything in Starter',
-          'Higher usage for larger teams',
+          'Sized for organizations up to 750 employees',
           'Priority support',
           'Onboarding walkthrough'
         ],
@@ -80,7 +80,7 @@ const PRODUCTS = {
         name: 'Starter Bundle',
         blurb: 'CARE 360 Starter and Element Profile Starter, together.',
         monthly: 248,
-        annual: 2320,
+        annual: 2480,
         features: [
           'Everything in CARE 360 Starter',
           'Everything in Element Profile Starter',
@@ -94,7 +94,7 @@ const PRODUCTS = {
         name: 'Growth Bundle',
         blurb: 'CARE 360 Growth and Element Profile Growth, together.',
         monthly: 548,
-        annual: 5350,
+        annual: 5480,
         features: [
           'Everything in CARE 360 Growth',
           'Everything in Element Profile Growth',
@@ -172,9 +172,38 @@ const SPECIAL_PLANS = {
 // confirmed directly against a freshly restarted production process.
 const SHOW_ALL_PRODUCTS = true;
 
+const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.ingoodcocollective.com';
+
+// Short aliases, so /plans?product=element works as well as the full key.
+const PRODUCT_ALIASES = { element: 'element_profile', care: 'care360' };
+
+// Copy that differs by product tab. Element Profile and the Bundle have
+// no free trial, so their tabs say so and point to Starter or a demo.
+const PAGE_COPY = {
+  care360: {
+    backHref: '/admin',
+    backText: 'Back to surveys',
+    foot: 'Every plan includes unlimited raters and unlimited reports. No per-report charges.',
+    note: ''
+  },
+  element_profile: {
+    backHref: `${ELEMENT_PROFILE_URL}/admin`,
+    backText: 'Back to your dashboard',
+    foot: 'Every plan includes unlimited people and unlimited assessments. No per-assessment charges.',
+    note: 'No free trial. Start on Starter or <a href="mailto:info@ingoodcocollective.com?subject=Element%20Profile%20demo">book a demo</a>.'
+  },
+  bundle: {
+    backHref: '/admin',
+    backText: 'Back to your account',
+    foot: 'Every plan includes unlimited people, assessments, raters and reports. No per-report charges.',
+    note: 'No free trial. Start on Starter or <a href="mailto:info@ingoodcocollective.com?subject=Bundle%20demo">book a demo</a>.'
+  }
+};
+
 router.get('/', (req, res) => {
   const annual  = req.query.billing === 'annual';
-  const product = (SHOW_ALL_PRODUCTS && PRODUCTS[req.query.product]) ? req.query.product : 'care360';
+  const asked   = PRODUCT_ALIASES[req.query.product] || req.query.product;
+  const product = (SHOW_ALL_PRODUCTS && PRODUCTS[asked]) ? asked : 'care360';
   res.send(plansPage(annual, product, req));
 });
 
@@ -239,6 +268,7 @@ function plansPage(annual, product, req) {
   const signedIn = !!req.isAdmin;
   const loggedIn = signedIn;
   const p = PRODUCTS[product];
+  const copy = PAGE_COPY[product];
   const billingSuffix = annual ? '&billing=annual' : '';
 
   const productToggle = Object.keys(PRODUCTS).map(key => `
@@ -247,7 +277,20 @@ function plansPage(annual, product, req) {
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${p.label} plans — CARE 360</title>
+<title>${p.label} plans | In Good Company</title>
+<script>
+// A hash never reaches the server, so #element, #bundle and #care360
+// are honored here instead, and only when no ?product= was given.
+(function(){
+  var map = { '#element': 'element_profile', '#bundle': 'bundle', '#care360': 'care360' };
+  var q = new URLSearchParams(location.search);
+  var target = map[location.hash.toLowerCase()];
+  if (target && !q.get('product') && target !== '${product}') {
+    q.set('product', target);
+    location.replace('/plans?' + q.toString());
+  }
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -298,6 +341,9 @@ a{text-decoration:none}
 .plan-btn-primary{background:var(--clay);color:white;border-color:var(--clay)}
 .plan-btn-primary:hover{background:#96562F}
 
+.no-trial{text-align:center;font-size:13px;color:var(--ink);margin:-18px 0 30px}
+.no-trial a{color:var(--clay);font-weight:600}
+
 .foot{text-align:center;margin-top:44px;font-size:12.5px;color:var(--grey);line-height:1.8}
 .foot a{color:var(--clay)}
 
@@ -311,7 +357,7 @@ a{text-decoration:none}
   </div>
   <div class="top-spacer"></div>
   ${signedIn
-    ? '<a href="/admin" class="top-link">Back to surveys</a>'
+    ? `<a href="${copy.backHref}" class="top-link">${copy.backText}</a>`
     : '<a href="/signin" class="top-link">Sign in</a>'}
 </div>
 
@@ -333,6 +379,7 @@ a{text-decoration:none}
     </div>
   </div>
   <div class="save">${annual ? 'Two months free on annual billing' : ''}</div>
+  ${copy.note ? `<div class="no-trial">${copy.note}</div>` : ''}
 
   <div class="grid" style="${product === 'care360' ? '' : 'grid-template-columns:repeat(2,1fr);max-width:760px;margin-left:auto;margin-right:auto'}">
     ${product === 'care360' ? specialCard(SPECIAL_PLANS.trial, annual, loggedIn) : ''}
@@ -346,8 +393,8 @@ a{text-decoration:none}
   </div>` : ''}
 
   <div class="foot">
-    Every plan includes unlimited raters and unlimited reports. No per-report charges.<br/>
-    Questions? <a href="mailto:abbie@ingoodcocollective.com">Get in touch</a>.
+    ${copy.foot}<br/>
+    Questions? <a href="mailto:info@ingoodcocollective.com">Get in touch</a>.
   </div>
 </div>
 

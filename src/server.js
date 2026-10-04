@@ -42,6 +42,10 @@ app.use(async (req, res, next) => {
 });
 const billing = require('./routes/billing');
 const customQuestions = require('./routes/custom-questions');
+// Billing access, checked on every signed-in CARE 360 page and form.
+const { careAccessGate } = require('./routes/access-gate');
+app.use(['/admin', '/report', '/guide'], careAccessGate);
+
 app.use('/billing/webhook', billing.webhookRouter);
 app.use('/billing', billing.checkoutRouter);
 app.use('/admin', customQuestions);
@@ -70,6 +74,7 @@ function errorPage(msg) {
 // ── Hourly check for cycles that have passed their close date ──
 const supabase = require('./db/client');
 const { sendAdminNotice, sendRaterReminder, resolveNotifyEmail } = require('./email');
+const { accessForAccountId, LOCKED_STATES } = require('./access');
 
 async function checkClosedCycles() {
   try {
@@ -117,7 +122,7 @@ async function sendReminders() {
 
     const { data: cycles } = await supabase
       .from('cycles')
-      .select('id, name, closes_at')
+      .select('id, name, account_id, closes_at')
       .eq('status', 'active')
       .gt('closes_at', now.toISOString())
       .lt('closes_at', soon);
@@ -125,6 +130,18 @@ async function sendReminders() {
     if (!cycles || !cycles.length) return;
 
     for (const cycle of cycles) {
+      // A locked account's surveys are no longer open, so its raters
+      // get no reminder. Past due keeps reminding, since its surveys
+      // keep accepting responses.
+      let locked = false;
+      try {
+        locked = LOCKED_STATES.includes(await accessForAccountId(cycle.account_id, 'care360'));
+      } catch (e) {
+        // Same as the request gate: a failed lookup never stops reminders.
+        console.error('Reminder access check failed:', e.message);
+      }
+      if (locked) continue;
+
       const { data: leaders } = await supabase
         .from('leaders').select('id, name, title').eq('cycle_id', cycle.id);
 

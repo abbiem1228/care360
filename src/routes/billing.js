@@ -509,6 +509,9 @@ async function syncSubscription(subscriptionId, accountIdHint) {
       products,
       tier,
       status: sub.status,
+      // When Stripe says the subscription ended. The ended page shows
+      // the data-retention date from this (Terms 5.4: 60 days).
+      ended_at: sub.ended_at ? new Date(sub.ended_at * 1000).toISOString() : null,
       updated_at: new Date().toISOString()
     }, { onConflict: 'stripe_subscription_id' });
   if (error) throw error;
@@ -569,7 +572,12 @@ async function recomputeAccount(accountId) {
   // comp stays active. Per-product access is read from each product's
   // own flag and subscription rows, not from this account-level status.
   if (current.comp_care360 || current.comp_element_profile) status = 'active';
-  updates.status = status;
+  // A first payment still awaiting card verification is neither live
+  // nor ended. While every row is still pending, the account status is
+  // left as it was (e.g. a trial stays active), not marked canceled.
+  const allPending = subs.length > 0 && subs.every(s => s.status === 'incomplete');
+  const comped = current.comp_care360 || current.comp_element_profile;
+  if (!allPending || comped) updates.status = status;
 
   const { data: account } = await supabase
     .from('accounts')

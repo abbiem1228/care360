@@ -3,17 +3,31 @@ const router   = express.Router();
 const supabase = require('../db/client');
 const { SECTIONS, SCALE_LABELS } = require('../questions');
 const { sendAdminNotice, resolveNotifyEmail } = require('../email');
+const { accessForAccountId, LOCKED_STATES } = require('../access');
+
+// A survey belonging to an account whose CARE 360 access is locked is
+// no longer open. Raters see a neutral message, never anything about
+// billing. Past due keeps accepting responses.
+async function surveyLocked(cycle) {
+  try {
+    return LOCKED_STATES.includes(await accessForAccountId(cycle.account_id, 'care360'));
+  } catch (e) {
+    console.error('Survey access check failed:', e.message);
+    return false;
+  }
+}
 
 // GET /survey/:token
 router.get('/:token', async (req, res) => {
   try {
     const { data: rater, error } = await supabase
       .from('raters')
-      .select('*, leaders(name, title, cycle_id, cycles(name, status, opens_at, closes_at, custom_questions_label))')
+      .select('*, leaders(name, title, cycle_id, cycles(name, account_id, status, opens_at, closes_at, custom_questions_label))')
       .eq('token', req.params.token)
       .single();
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Link not found', 'This survey link was not found. Please check your email for the correct link.'));
+    if (await surveyLocked(rater.leaders.cycles)) return res.send(statusPage('!', 'Survey not open', 'This survey is no longer open.'));
     if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `You have already completed the survey for <strong>${rater.leaders.name}</strong>. Thank you for your contribution.`, '#1F6B3A'));
     if (rater.leaders.cycles.status !== 'active') return res.send(statusPage('!', 'Survey not open', 'This survey is not currently open. Please contact your survey administrator.'));
 
@@ -50,11 +64,12 @@ router.post('/:token', async (req, res) => {
   try {
     const { data: rater, error } = await supabase
       .from('raters')
-      .select('*, leaders(name, cycle_id, cycles(status, closes_at))')
+      .select('*, leaders(name, cycle_id, cycles(account_id, status, closes_at))')
       .eq('token', req.params.token)
       .single();
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Invalid link', 'Survey link not found.'));
+    if (await surveyLocked(rater.leaders.cycles)) return res.status(410).send(statusPage('!', 'Survey not open', 'This survey is no longer open.'));
     if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `Already submitted for <strong>${rater.leaders.name}</strong>.`, '#1F6B3A'));
     if (rater.leaders.cycles.status !== 'active') return res.status(400).send(statusPage('!', 'Survey closed', 'This survey is no longer accepting responses.'));
     if (rater.leaders.cycles.closes_at && new Date() > new Date(rater.leaders.cycles.closes_at)) {

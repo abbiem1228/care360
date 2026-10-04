@@ -90,7 +90,9 @@ router.post('/team/invites', requireAuth, async (req, res) => {
 // person's real email and hands it to Element Profile, which redeems
 // it for a real session there, no second password.
 router.get('/handoff/element-profile', requireAuth, async (req, res) => {
-  if (!req.account || !req.account.has_care360 || !req.account.has_element_profile) {
+  // Only Element Profile itself needs to be on: this is also how a
+  // CARE 360 account whose CARE subscription lapsed reaches Element.
+  if (!req.account || !req.account.has_element_profile) {
     return res.redirect('/admin');
   }
 
@@ -477,6 +479,22 @@ select.form-control{cursor:pointer}
 @media(max-width:700px){.admin-main{padding:16px 12px}.form-row{grid-template-columns:1fr}.rater-row{grid-template-columns:1fr}.rater-row-header{display:none}.data-table{font-size:12px}.data-table td,.data-table th{padding:8px 10px}.nav-acct{display:none}}
 </style>`;
 
+// Shown at the top of every adminShell page while CARE 360 is past due,
+// or while a CARE 360 payment awaits card verification (both set per
+// request by src/routes/access-gate.js).
+function billingBanner(message, req) {
+  return `<div style="background:#FFF7E8;border:1px solid #E8C98A;border-left:4px solid #C08A3E;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13.5px;color:#30383B;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <span style="flex:1;min-width:220px">${message}</span>
+    ${req.account && req.account.stripe_customer_id ? '<a href="/billing/portal" style="font-weight:700;color:#A9633D">Manage billing</a>' : ''}
+  </div>`;
+}
+
+function billingBanners(req) {
+  if (!req) return '';
+  return (req.care360Access === 'past_due' ? billingBanner('Your last payment didn\'t go through. Update your billing to keep making changes.', req) : '')
+       + (req.care360Pending ? billingBanner('Your payment is pending verification.', req) : '');
+}
+
 function adminShell(title, content, req) {
   const acct    = req && req.account ? req.account : null;
   const acctName = acct ? acct.name : '';
@@ -535,7 +553,7 @@ function adminShell(title, content, req) {
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>
-  <div class="admin-main">${content}</div></body></html>`;
+  <div class="admin-main">${billingBanners(req)}${content}</div></body></html>`;
 }
 
 function loginPage(error) {

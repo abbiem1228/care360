@@ -512,6 +512,11 @@ async function syncSubscription(subscriptionId, accountIdHint) {
       // When Stripe says the subscription ended. The ended page shows
       // the data-retention date from this (Terms 5.4: 60 days).
       ended_at: sub.ended_at ? new Date(sub.ended_at * 1000).toISOString() : null,
+      // When it became unpaid, kept while it stays unpaid. Data
+      // retention counts its 60 days from here.
+      unpaid_at: sub.status === 'unpaid'
+        ? ((existing && existing.status === 'unpaid' && existing.unpaid_at) || new Date().toISOString())
+        : null,
       updated_at: new Date().toISOString()
     }, { onConflict: 'stripe_subscription_id' });
   if (error) throw error;

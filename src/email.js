@@ -317,4 +317,96 @@ async function sendTeammateInvite(invite, inviterName, accountName) {
   await resend.emails.send({ from: FROM, to: invite.email, subject: `You have been invited to join ${accountName} on CARE 360`, html, text });
 }
 
-module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice, sendTeammateInvite, resolveNotifyEmail };
+// ── Data retention ───────────────────────────────────────────
+// What each product's deletion removes, in plain words for the owner.
+const RETENTION_WHAT = {
+  care360: 'every CARE 360 Group, leader and rater, all survey responses and comments, and every report',
+  element_profile: 'your Element Profile organization, people, teams and roles, every assessment invite, answer and score, and all saved reports and narratives'
+};
+const PLANS_PRODUCT = { care360: 'care360', element_profile: 'element_profile' };
+
+// Each product's warning comes from that product's own sender, the same
+// address its other emails use. Element Profile's matches Element's
+// server/email.js default.
+const RETENTION_FROM = {
+  care360: FROM,
+  element_profile: process.env.ELEMENT_FROM_EMAIL || 'element@ingoodcocollective.com'
+};
+
+function retentionDateLabel(isoDate) {
+  return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
+// Sent to the account owner 7 days before a product's data is deleted.
+// unpaid: the subscription is still open with a balance due, so paying
+// it (not resubscribing) is what keeps the data.
+async function sendRetentionWarning({ to, accountName, product, productLabel, deletionDate, unpaid = false }) {
+  const date = retentionDateLabel(deletionDate);
+  const resubscribe = `${APP_URL}/plans?product=${PLANS_PRODUCT[product]}`;
+  const signin = `${APP_URL}/signin`;
+  const opening = unpaid
+    ? `Your ${productLabel} subscription for ${accountName} is paused because payment didn't go through. As our Terms and Privacy Policy describe, we keep your data for 60 days after that, then permanently delete it.`
+    : `Your ${productLabel} subscription for ${accountName} has ended. As our Terms and Privacy Policy describe, we keep your data for 60 days after a subscription ends, then permanently delete it.`;
+  const keep = unpaid
+    ? `<strong>To keep your data,</strong> pay your outstanding balance before then: sign in and choose Manage billing. Paying restores your access right away, with everything exactly as it was.`
+    : `<strong>To keep your data,</strong> resubscribe before then and everything stays exactly as it is.`;
+  const keepText = unpaid
+    ? `To keep your data, pay your outstanding balance before then: sign in at ${signin} and choose Manage billing. Paying restores your access right away.`
+    : `To keep your data, resubscribe before then: ${resubscribe}`;
+  const button = unpaid ? { href: signin, label: 'Pay your balance' } : { href: resubscribe, label: 'Resubscribe' };
+  const html = `
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/></head>
+<body style="font-family:Arial,sans-serif;background:#F7F4EF;margin:0;padding:40px 20px">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+  <div style="background:#30383B;padding:26px 34px">
+    <div style="color:#D9CBB2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">In Good Company Collective</div>
+    <div style="color:#fff;font-size:19px;font-weight:bold">Your ${productLabel} data will be deleted on ${date}</div>
+  </div>
+  <div style="padding:32px 34px;color:#30383B;font-size:14px;line-height:1.7">
+    <p style="margin:0 0 14px">${opening}</p>
+    <p style="margin:0 0 14px">On <strong>${date}</strong>, we'll permanently delete ${RETENTION_WHAT[product]}. This can't be undone.</p>
+    <p style="margin:0 0 14px">${keep}</p>
+    <p style="margin:0 0 22px"><strong>To get a copy first,</strong> email <a href="mailto:info@ingoodcocollective.com" style="color:#A9633D">info@ingoodcocollective.com</a> before ${date} and we'll send you an export.</p>
+    <div style="text-align:center">
+      <a href="${button.href}" style="display:inline-block;background:#A9633D;color:#fff;padding:13px 34px;border-radius:6px;font-size:14px;font-weight:bold;text-decoration:none">${button.label}</a>
+    </div>
+  </div>
+  <div style="background:#F7F4EF;padding:15px 34px;text-align:center">
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective</p>
+  </div>
+</div>
+</body></html>`;
+  const text = `Your ${productLabel} data will be deleted on ${date}.\n\n${opening}\n\nOn ${date}, we'll permanently delete ${RETENTION_WHAT[product]}. This can't be undone.\n\n${keepText}\n\nTo get a copy first, email info@ingoodcocollective.com before ${date}.`;
+  await resend.emails.send({ from: RETENTION_FROM[product], to, subject: `Your ${productLabel} data will be deleted on ${date}`, html, text });
+}
+
+// The daily list for IGC. Ids, products and dates only.
+async function sendRetentionSummary({ due, upcoming, warned, noOwnerEmail }) {
+  const to = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL;
+  if (!to) return;
+  const row = i => `<li>${i.accountName}: ${i.product === 'care360' ? 'CARE 360' : 'Element Profile'}${i.deletionDate ? `, ${retentionDateLabel(i.deletionDate)}` : ''}</li>`;
+  const section = (title, items) => items.length ? `<p style="margin:18px 0 6px;font-weight:bold">${title} (${items.length})</p><ul style="margin:0;padding-left:20px">${items.map(row).join('')}</ul>` : '';
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#30383B;line-height:1.6;max-width:560px">
+    <p style="margin:0 0 6px">Data retention, ${retentionDateLabel(new Date().toISOString().slice(0, 10))}. Nothing has been deleted. Review and approve in HQ.</p>
+    ${section('Ready for your approval', due)}
+    ${section('Owner warned today', warned)}
+    ${section('Warned, deletion date coming up', upcoming)}
+    ${section('No owner email on file: notice period started without an email', noOwnerEmail)}
+    <p style="margin:22px 0 0"><a href="${APP_URL}/hq/retention" style="color:#A9633D;font-weight:bold">Open retention in HQ</a></p>
+  </div>`;
+  await resend.emails.send({ from: FROM, to, subject: `Data retention: ${due.length} ready for approval`, html });
+}
+
+// Weekly, only when there's been nothing else to report all week.
+async function sendRetentionAllClear({ accountsChecked }) {
+  const to = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL;
+  if (!to) return;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#30383B;line-height:1.6;max-width:560px">
+    <p style="margin:0 0 10px">Data retention is running. Nothing is due, warned or coming up this week (${accountsChecked} ${accountsChecked === 1 ? 'account' : 'accounts'} with a subscription checked).</p>
+    <p style="margin:0"><a href="${APP_URL}/hq/retention" style="color:#A9633D;font-weight:bold">Open retention in HQ</a></p>
+  </div>`;
+  await resend.emails.send({ from: FROM, to, subject: 'Data retention: all clear this week', html });
+}
+
+module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice, sendTeammateInvite, resolveNotifyEmail, sendRetentionWarning, sendRetentionSummary, sendRetentionAllClear };

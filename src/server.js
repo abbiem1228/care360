@@ -75,6 +75,8 @@ function errorPage(msg) {
 const supabase = require('./db/client');
 const { sendAdminNotice, sendRaterReminder, resolveNotifyEmail } = require('./email');
 const { accessForAccountId, LOCKED_STATES } = require('./access');
+const { runDailyRetention } = require('./retention');
+const { sendRetentionWarning, sendRetentionSummary, sendRetentionAllClear } = require('./email');
 
 async function checkClosedCycles() {
   try {
@@ -170,6 +172,20 @@ async function sendReminders() {
   }
 }
 
+// Data retention: warns owners 7 days ahead and emails IGC the list.
+// Never deletes anything; deletion only happens from HQ, on approval.
+// Checked hourly, but runs at most once per day (recorded in
+// retention_log), so restarts never send it twice.
+async function retentionTick() {
+  try {
+    await runDailyRetention({ sendWarning: sendRetentionWarning, sendSummary: sendRetentionSummary, sendAllClear: sendRetentionAllClear });
+  } catch (e) {
+    console.error('Retention run failed:', e.message);
+  }
+}
+
+setInterval(retentionTick, 60 * 60 * 1000);
+setTimeout(retentionTick, 60 * 1000);
 setInterval(checkClosedCycles, 60 * 60 * 1000);
 setTimeout(checkClosedCycles, 30 * 1000);
 setInterval(sendReminders, 60 * 60 * 1000);

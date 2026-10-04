@@ -270,4 +270,101 @@ tr:hover td{background:var(--cream)}
 </body></html>`;
 }
 
+// ── Data retention: review and approve ───────────────────────
+// Lists every product that's ended, with a dry run of exactly what
+// deleting it would remove. Nothing is deleted except by pressing
+// Delete on an item that's due, which re-checks it at that moment.
+
+const retention = require('../retention');
+
+const RET_LABEL = { care360: 'CARE 360', element_profile: 'Element Profile' };
+const RET_STATUS = {
+  due: 'Ready for approval', warned: 'Owner warned', warn: 'Warning goes out today',
+  counting: 'Inside its 60 days', deleted: 'Deleted'
+};
+
+function retentionPage(items, flash, scan) {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rows = items.map(i => {
+    const counts = i.counts ? Object.entries(i.counts).filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`).join(', ') || 'no rows' : '';
+    const acct = i.deletesAccount ? `<div style="margin-top:4px;color:#A94442">Also deletes the account and ${i.accountCounts.logins} login(s): ${Object.entries(i.accountCounts).filter(([t, n]) => n > 0 && t !== 'logins').map(([t, n]) => `${t} ${n}`).join(', ')}</div>` : '<div style="margin-top:4px;color:#595959">Account and login stay.</div>';
+    // Typing the account name exactly is the confirmation: the server
+    // checks it, so a stray click can never delete anything.
+    const action = i.status === 'due'
+      ? `<form method="POST" action="/hq/retention/delete" style="margin-top:8px">
+          <input type="hidden" name="account_id" value="${esc(i.accountId)}"/><input type="hidden" name="product" value="${esc(i.product)}"/>
+          <label style="display:block;font-size:12px;color:#595959;margin-bottom:4px">Type <strong>${esc(i.accountName)}</strong> to confirm. This can't be undone.</label>
+          <input name="confirm_name" autocomplete="off" required style="padding:7px 9px;border:1px solid #D9CBB2;border-radius:6px;font-size:13px;width:220px"/>
+          <button style="background:#A94442;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer">Delete now</button></form>`
+      : '';
+    return `<tr><td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top"><strong>${esc(i.accountName)}</strong><div style="font-size:11px;color:#999">${esc(i.accountId)}</div></td>
+      <td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top">${RET_LABEL[i.product]}<div style="font-size:12px;color:#595959">${esc(i.state)} since ${esc(i.endedOn)}</div></td>
+      <td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top">${RET_STATUS[i.status] || i.status}<div style="font-size:12px;color:#595959">${i.status === 'deleted' ? 'on ' + esc(i.deletedOn) : 'deletion date ' + esc(i.deletionDate)}${i.warnedOn ? ', warned ' + esc(i.warnedOn) : ''}</div></td>
+      <td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top;font-size:12.5px">${counts ? 'Would delete: ' + esc(counts) : ''}${i.counts ? acct : ''}${action}</td></tr>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Data retention | HQ</title></head>
+  <body style="font-family:Arial,sans-serif;background:#F7F4EF;color:#30383B;margin:0;padding:32px 20px"><div style="max-width:1100px;margin:0 auto">
+    <p><a href="/hq" style="color:#A9633D">Back to HQ</a></p>
+    <h1 style="font-family:Georgia,serif;font-weight:600">Data retention</h1>
+    <p style="color:#595959;max-width:720px">Products whose subscription has ended. Data is deleted 60 days after the end date, and only after the owner has had 7 days' warning and you approve it here. The counts are a dry run: nothing is deleted until you press Delete now.</p>
+    ${scanLine(scan)}
+    ${flash ? `<div style="background:#fff;border-left:4px solid #7C8863;padding:12px 16px;margin:16px 0">${flash}</div>` : ''}
+    ${items.length ? `<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px"><tr style="text-align:left;font-size:12px;color:#595959"><th style="padding:12px">Account</th><th style="padding:12px">Product</th><th style="padding:12px">Status</th><th style="padding:12px">What happens</th></tr>${rows}</table>`
+      : '<p style="background:#fff;padding:16px;border-radius:10px">Nothing has ended. Nothing to review.</p>'}
+  </div></body></html>`;
+}
+
+// The daily job's last run. Over 26 hours ago means it has stopped.
+function scanLine(scan) {
+  if (!scan) return '<div style="background:#FFF0EE;border-left:4px solid #A94442;padding:10px 14px;margin:12px 0">The daily retention check has never run.</div>';
+  const at = new Date(scan.created_at);
+  const stale = Date.now() - at.getTime() > 26 * 60 * 60 * 1000;
+  const when = at.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
+  return stale
+    ? `<div style="background:#FFF0EE;border-left:4px solid #A94442;padding:10px 14px;margin:12px 0"><strong>The daily retention check last ran ${when} UTC, more than a day ago.</strong> It may have stopped. Check the server logs for "Retention run failed".</div>`
+    : `<p style="color:#595959;font-size:13px;margin:8px 0 16px">Daily check last ran ${when} UTC.</p>`;
+}
+
+async function retentionItems() {
+  const assessed = await retention.assessAll();
+  const items = [];
+  for (const a of assessed) {
+    for (const product of retention.PRODUCTS) {
+      const s = a.products[product];
+      if (!['due', 'warned', 'warn', 'counting', 'deleted'].includes(s.status)) continue;
+      const item = { accountId: a.accountId, accountName: a.accountName, product, ...s };
+      if (['due', 'warned', 'warn'].includes(s.status)) Object.assign(item, await retention.dryRun(a.accountId, product));
+      items.push(item);
+    }
+  }
+  const order = { due: 0, warn: 1, warned: 2, counting: 3, deleted: 4 };
+  return items.sort((x, y) => order[x.status] - order[y.status]);
+}
+
+router.get('/retention', requireOwner, async (req, res) => {
+  try {
+    res.send(retentionPage(await retentionItems(), null, await retention.lastScan()));
+  } catch (e) {
+    console.error('Retention page failed:', e.message);
+    res.status(500).send('Could not load data retention right now.');
+  }
+});
+
+router.post('/retention/delete', requireOwner, async (req, res) => {
+  const { account_id: accountId, product, confirm_name: confirmName } = req.body;
+  try {
+    if (!retention.PRODUCTS.includes(product)) throw new Error('Unknown product.');
+    const { data: account } = await supabase.from('accounts').select('name').eq('id', accountId).maybeSingle();
+    if (!account) throw new Error('Account not found.');
+    if ((confirmName || '').trim() !== account.name.trim()) throw new Error('The account name you typed did not match.');
+    const result = await retention.executeDeletion(accountId, product);
+    const total = Object.values(result.counts).reduce((a, b) => a + b, 0);
+    const flash = `Deleted ${RET_LABEL[product]} data: ${total} rows.${result.canceledInStripe.length ? ` Canceled ${result.canceledInStripe.length} unpaid Stripe subscription(s) first.` : ''}${result.deletesAccount ? ` The account and ${result.accountCounts.logins} login(s) were deleted too.` : ''}`;
+    res.send(retentionPage(await retentionItems(), flash, await retention.lastScan()));
+  } catch (e) {
+    console.error('Retention delete failed:', e.message);
+    res.status(400).send(retentionPage(await retentionItems().catch(() => []), `Nothing was deleted: ${e.message}`, await retention.lastScan().catch(() => null)));
+  }
+});
+
 module.exports = router;

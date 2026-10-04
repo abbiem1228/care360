@@ -62,14 +62,13 @@ for (const products of ALL_PRODUCTS) {
   }
 }
 
-// A price ID back to its tier (starter/growth), for care360 and
-// element_profile prices only, never bundle: bundle prices are the
-// destination of an upgrade, not a tier an account could already be
-// on. Now that Element Profile can be bought on its own, an
-// Element-Profile-only subscription can genuinely upgrade to the
-// Bundle too, same as a CARE 360 one, so its prices belong here.
+// A price ID back to its tier (starter/growth), for all three
+// products. syncSubscription records it on each subscription row, and
+// the upgrade-to-bundle route reads a single-product subscription's
+// current tier from it (it never sees a bundle price, since an account
+// already on the Bundle has nothing left to add).
 const PRICE_TO_TIER = {};
-for (const products of ['care360', 'element_profile']) {
+for (const products of ALL_PRODUCTS) {
   for (const tier of ALL_TIERS) {
     if (PRICE_MAP[products][tier].monthly) PRICE_TO_TIER[PRICE_MAP[products][tier].monthly] = tier;
     if (PRICE_MAP[products][tier].annual)  PRICE_TO_TIER[PRICE_MAP[products][tier].annual]  = tier;
@@ -401,12 +400,11 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
       const tier      = session.metadata && session.metadata.tier;
 
       if (accountId && tier) {
-        // plan is the tier, stripe_customer_id links the account to
-        // Stripe. Product flags and status are no longer written here:
-        // syncSubscription below derives them from Stripe's real state,
-        // the same way every other subscription event does.
+        // stripe_customer_id links the account to Stripe. Plan, product
+        // flags and status are not written here: syncSubscription below
+        // derives them from Stripe's real state, the same way every
+        // other subscription event does.
         await supabase.from('accounts').update({
-          plan: tier,
           stripe_customer_id: session.customer
         }).eq('id', accountId);
 
@@ -496,6 +494,7 @@ async function syncSubscription(subscriptionId, accountIdHint) {
   // keeps whatever products the row already had.
   const priceId  = sub.items.data[0] && sub.items.data[0].price.id;
   const products = PRICE_TO_PRODUCTS[priceId] || (existing && existing.products);
+  const tier     = PRICE_TO_TIER[priceId] || (existing && existing.tier) || null;
 
   if (!products) {
     console.error(`Subscription ${sub.id}: unrecognized price ${priceId} and no existing row, skipping`);
@@ -508,31 +507,55 @@ async function syncSubscription(subscriptionId, accountIdHint) {
       account_id: accountId,
       stripe_subscription_id: sub.id,
       products,
+      tier,
       status: sub.status,
       updated_at: new Date().toISOString()
     }, { onConflict: 'stripe_subscription_id' });
   if (error) throw error;
 
   await recomputeAccount(accountId);
-  console.log(`Subscription ${sub.id} synced: ${products}, ${sub.status}`);
+  console.log(`Subscription ${sub.id} synced: ${products}, ${tier}, ${sub.status}`);
 }
 
-// Derives the account's per-product flags and overall status from all
-// of its subscriptions together, so one product ending or going past
-// due never touches the other. Only accounts that have ever had a
+// Plans set by hand, never derived from subscriptions.
+const MANUAL_PLANS = ['enterprise', 'community'];
+const TIER_RANK    = { starter: 1, growth: 2 };
+
+// Derives the account's per-product flags, plan and overall status from
+// all of its subscriptions together, so one product ending or going
+// past due never touches the other. Only accounts that have ever had a
 // subscription reach here, so trial accounts are never affected.
 async function recomputeAccount(accountId) {
   const { data: subs, error } = await supabase
     .from('account_subscriptions')
-    .select('products, status')
+    .select('products, tier, status')
     .eq('account_id', accountId);
   if (error) throw error;
+
+  const { data: current, error: acctErr } = await supabase
+    .from('accounts')
+    .select('plan, comp_care360, comp_element_profile')
+    .eq('id', accountId)
+    .single();
+  if (acctErr) throw acctErr;
 
   const covers = (s, product) => s.products === product || s.products === 'bundle';
   const live   = subs.filter(s => LIVE_STATUSES.includes(s.status));
 
-  const has_care360         = live.some(s => covers(s, 'care360'));
-  const has_element_profile = live.some(s => covers(s, 'element_profile'));
+  // A product is on while a live subscription covers it, or while it's
+  // comped (granted by hand in Supabase). Comps are the only thing that
+  // keeps a product on without a subscription behind it.
+  const has_care360         = live.some(s => covers(s, 'care360'))         || current.comp_care360;
+  const has_element_profile = live.some(s => covers(s, 'element_profile')) || current.comp_element_profile;
+
+  // plan is the highest tier among live subscriptions. With nothing
+  // live it's left as it was (status carries canceled/unpaid, and trial
+  // only ever means never paid). Manual plans are never relabeled.
+  const updates = { has_care360, has_element_profile };
+  const liveTiers = live.map(s => s.tier).filter(t => TIER_RANK[t]);
+  if (liveTiers.length && !MANUAL_PLANS.includes(current.plan)) {
+    updates.plan = liveTiers.reduce((a, b) => (TIER_RANK[b] > TIER_RANK[a] ? b : a));
+  }
 
   // active if anything is fully paid up, past_due if the only live
   // subscriptions are past due. With nothing live left: unpaid if Stripe
@@ -542,10 +565,15 @@ async function recomputeAccount(accountId) {
   if (live.some(s => s.status === 'active' || s.status === 'trialing')) status = 'active';
   else if (live.length) status = 'past_due';
   else if (subs.some(s => s.status === 'unpaid')) status = 'unpaid';
+  // A comped product is never canceled or unpaid, so an account with any
+  // comp stays active. Per-product access is read from each product's
+  // own flag and subscription rows, not from this account-level status.
+  if (current.comp_care360 || current.comp_element_profile) status = 'active';
+  updates.status = status;
 
   const { data: account } = await supabase
     .from('accounts')
-    .update({ has_care360, has_element_profile, status })
+    .update(updates)
     .eq('id', accountId)
     .select()
     .maybeSingle();

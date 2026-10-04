@@ -52,9 +52,8 @@ const ALL_PRODUCTS = ['care360', 'element_profile', 'bundle'];
 const ALL_TIERS     = ['starter', 'growth'];
 
 // Reverse of PRICE_MAP: a Stripe price ID back to what it entitles.
-// Used by the checkout.session.completed and customer.subscription.updated
-// webhook handlers, the only two places that ever need to go from "a
-// price changed" to "what does the account actually have now."
+// Used by syncSubscription, the one place that goes from a Stripe
+// subscription to what the account actually has now.
 const PRICE_TO_PRODUCTS = {};
 for (const products of ALL_PRODUCTS) {
   for (const tier of ALL_TIERS) {
@@ -127,9 +126,18 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
       mode: 'subscription',
       allow_promotion_codes: true,
       line_items: [{ price: priceId, quantity: 1 }],
+      // Carried onto the subscription itself, so every later webhook
+      // can find its account even if it arrives before
+      // checkout.session.completed does.
+      subscription_data: { metadata: { account_id: req.accountId } },
       success_url: `${APP_URL}/billing/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${APP_URL}/plans`,
-      customer_email: req.session ? req.session.email : undefined,
+      // Reuse the account's existing Stripe customer, so every product
+      // it buys sits under one customer and one Manage billing portal.
+      // A brand new account has none yet, so Stripe creates one.
+      ...(req.account && req.account.stripe_customer_id
+        ? { customer: req.account.stripe_customer_id }
+        : { customer_email: req.session ? req.session.email : undefined }),
       client_reference_id: req.accountId,
       metadata: { account_id: req.accountId, tier, products },
       consent_collection: { terms_of_service: 'required' },
@@ -209,6 +217,21 @@ checkoutRouter.get('/portal', requireAuth, async (req, res) => {
 // account_subscriptions and the entitlement flags, once Stripe
 // confirms the change really happened.
 
+// Shown when an account already holds CARE 360 and Element Profile as
+// two separate subscriptions. Merging them into one Bundle subscription
+// is done by hand for now.
+const SWITCH_TO_BUNDLE_MESSAGE = 'You have CARE 360 and Element Profile as separate subscriptions. To switch them to a Bundle, email <a href="mailto:info@ingoodcocollective.com?subject=Switch%20to%20a%20Bundle">info@ingoodcocollective.com</a> and we\'ll take care of it. <a href="/admin">Back to dashboard</a>';
+
+async function liveSubscriptionCount(accountId) {
+  const { data, error } = await supabase
+    .from('account_subscriptions')
+    .select('stripe_subscription_id')
+    .eq('account_id', accountId)
+    .in('status', LIVE_STATUSES);
+  if (error) throw error;
+  return data.length;
+}
+
 // The one new product an "Upgrade to Bundle" click actually adds, for
 // whichever account is asking: an account only ever sees this option
 // (src/routes/admin.js's bundleReminder) when it genuinely has exactly
@@ -259,8 +282,11 @@ function upgradeConfirmPage(products, error) {
   </div></body></html>`;
 }
 
-checkoutRouter.get('/upgrade-to-bundle', requireAuth, (req, res) => {
+checkoutRouter.get('/upgrade-to-bundle', requireAuth, async (req, res) => {
   const products = missingProduct(req.account);
+  if (!products && req.accountId && await liveSubscriptionCount(req.accountId) > 1) {
+    return res.send(SWITCH_TO_BUNDLE_MESSAGE);
+  }
   if (!products) {
     return res.status(400).send('Your account already has both products, or we could not tell which one you\'re adding. <a href="/admin">Back to dashboard</a>');
   }
@@ -306,6 +332,10 @@ checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {
       .eq('status', 'active');
 
     if (error) throw error;
+
+    if (activeSubs && activeSubs.length > 1) {
+      return res.send(SWITCH_TO_BUNDLE_MESSAGE);
+    }
 
     if (!activeSubs || activeSubs.length !== 1) {
       console.error(`Upgrade to bundle: expected exactly one active subscription for account ${req.accountId}, found ${activeSubs ? activeSubs.length : 0}`);
@@ -369,162 +399,174 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
       const session   = event.data.object;
       const accountId = session.client_reference_id;
       const tier      = session.metadata && session.metadata.tier;
-      const products  = (session.metadata && session.metadata.products) || 'care360';
 
       if (accountId && tier) {
-        // stripe_subscription_id no longer written here: an account
-        // can hold more than one active subscription (see
-        // account_subscriptions, schema/007), so a single column on
-        // accounts can't represent that. plan/status/stripe_customer_id
-        // stay here unchanged; those are still meaningfully singular
-        // per account today. plan is set to the tier: it has never
-        // meant "which product," only "which tier," and that stays
-        // true now that a tier can attach to any of the three products.
-        //
-        // has_care360/has_element_profile are set here for the first
-        // time: per the merge plan, buying the bundle (or either
-        // product alone) at signup provisions the matching flags
-        // immediately, additive only, same as every other entitlement
-        // write in this app.
-        const entitlements = {};
-        if (products === 'care360' || products === 'bundle')         entitlements.has_care360 = true;
-        if (products === 'element_profile' || products === 'bundle') entitlements.has_element_profile = true;
-
-        const { data: account } = await supabase.from('accounts').update({
+        // plan is the tier, stripe_customer_id links the account to
+        // Stripe. Product flags and status are no longer written here:
+        // syncSubscription below derives them from Stripe's real state,
+        // the same way every other subscription event does.
+        await supabase.from('accounts').update({
           plan: tier,
-          status: 'active',
-          stripe_customer_id: session.customer,
-          ...entitlements
-        }).eq('id', accountId).select().maybeSingle();
+          stripe_customer_id: session.customer
+        }).eq('id', accountId);
 
         if (session.subscription) {
-          await supabase.from('account_subscriptions').insert({
-            account_id: accountId,
-            stripe_subscription_id: session.subscription,
-            products,
-            status: 'active'
-          });
+          await syncSubscription(session.subscription, accountId);
         }
-
-        // First time this account has Element Profile access: it needs
-        // the organizations row it never had. Same pattern as the
-        // upgrade-to-bundle path, just reached from signup instead.
-        if ((products === 'element_profile' || products === 'bundle') && account) {
-          const { data: existingOrg } = await supabase
-            .from('organizations')
-            .select('id')
-            .eq('account_id', accountId)
-            .maybeSingle();
-
-          if (!existingOrg) {
-            await supabase.from('organizations').insert({
-              account_id: accountId,
-              name: account.name
-            });
-          }
-        }
-
-        console.log(`Account ${accountId} purchased ${products} at ${tier}`);
+        console.log(`Account ${accountId} completed checkout at ${tier}`);
       }
     }
 
-    if (event.type === 'customer.subscription.deleted') {
-      const sub = event.data.object;
-      const { data: subscriptionRow } = await supabase
-        .from('account_subscriptions')
-        .update({ status: 'canceled', updated_at: new Date().toISOString() })
-        .eq('stripe_subscription_id', sub.id)
-        .select()
-        .maybeSingle();
-
-      // accounts.status still gets updated too, unchanged from today's
-      // behavior, looked up via the new table instead of the old
-      // column. It has the same one-value-for-possibly-several-
-      // subscriptions shape of gap as stripe_subscription_id did, just
-      // not fixed as part of this change.
-      if (subscriptionRow) {
-        await supabase.from('accounts').update({ status: 'canceled' }).eq('id', subscriptionRow.account_id);
-      }
-      console.log(`Subscription ${sub.id} canceled`);
+    if (event.type === 'customer.subscription.created' ||
+        event.type === 'customer.subscription.updated' ||
+        event.type === 'customer.subscription.deleted') {
+      await syncSubscription(event.data.object.id);
     }
 
-    if (event.type === 'customer.subscription.updated') {
-      const sub        = event.data.object;
-      const newPriceId = sub.items.data[0].price.id;
-      const products    = PRICE_TO_PRODUCTS[newPriceId];
-
-      // An unrecognized price isn't this app's concern (Stripe fires
-      // this event for plenty of changes that aren't a price swap we
-      // originated), so only act when the new price is one we know.
-      if (products) {
-        const { data: subscriptionRow } = await supabase
-          .from('account_subscriptions')
-          .update({ products, status: 'active', updated_at: new Date().toISOString() })
-          .eq('stripe_subscription_id', sub.id)
-          .select()
-          .maybeSingle();
-
-        if (subscriptionRow) {
-          // Additive only, same as every other entitlement write in this
-          // app: a price change only ever turns a flag on, never off.
-          // Now that Element Profile can be bought and changed on its
-          // own, this can genuinely fire with products === 'element_profile'
-          // too (e.g. a tier change via Stripe's own customer portal),
-          // not just 'bundle', so has_care360 is no longer unconditional.
-          const entitlements = {};
-          if (products === 'care360' || products === 'bundle')         entitlements.has_care360 = true;
-          if (products === 'element_profile' || products === 'bundle') entitlements.has_element_profile = true;
-
-          const { data: account } = await supabase
-            .from('accounts')
-            .update(entitlements)
-            .eq('id', subscriptionRow.account_id)
-            .select()
-            .maybeSingle();
-
-          // First time this account has gained Element Profile access this
-          // way: it needs the organizations row it never had, so upgrading
-          // is more than just an entitlement flag flip.
-          if ((products === 'element_profile' || products === 'bundle') && account) {
-            const { data: existingOrg } = await supabase
-              .from('organizations')
-              .select('id')
-              .eq('account_id', account.id)
-              .maybeSingle();
-
-            if (!existingOrg) {
-              await supabase.from('organizations').insert({
-                account_id: account.id,
-                name: account.name
-              });
-            }
-          }
-        }
-        console.log(`Subscription ${sub.id} price changed, now entitles: ${products}`);
-      }
-    }
-
-    if (event.type === 'invoice.payment_failed') {
-      const inv = event.data.object;
-      if (inv.subscription) {
-        const { data: subscriptionRow } = await supabase
-          .from('account_subscriptions')
-          .update({ status: 'past_due', updated_at: new Date().toISOString() })
-          .eq('stripe_subscription_id', inv.subscription)
-          .select()
-          .maybeSingle();
-
-        if (subscriptionRow) {
-          await supabase.from('accounts').update({ status: 'past_due' }).eq('id', subscriptionRow.account_id);
-        }
-        console.log(`Subscription ${inv.subscription} marked past due`);
-      }
+    if (event.type === 'invoice.paid' || event.type === 'invoice.payment_failed') {
+      const subId = invoiceSubscriptionId(event.data.object);
+      if (subId) await syncSubscription(subId);
     }
   } catch (e) {
-    console.error('Webhook handling failed:', e.message);
+    // A non-2xx makes Stripe retry this event later. Safe, since every
+    // handler above re-reads Stripe's current state rather than
+    // applying the event's own snapshot.
+    console.error('Webhook handling failed:', event.type, e.message);
+    return res.status(500).send('Webhook handling failed');
   }
 
   res.json({ received: true });
 });
+
+// ── Subscription sync ────────────────────────────────────────
+// Every subscription-related event funnels through here. Rather than
+// trusting the event's own snapshot, it re-reads the subscription from
+// Stripe, so the database always ends up matching Stripe's current
+// state no matter which order events arrive in, or how many times one
+// is retried. A late payment_failed after a successful retry, for
+// example, re-reads "active" and changes nothing.
+
+// Statuses under which a subscription still entitles its product(s).
+// past_due keeps access during Stripe's retry window, so a customer
+// can fix their card through Manage billing; unpaid, canceled and
+// incomplete_expired do not.
+const LIVE_STATUSES = ['active', 'trialing', 'past_due'];
+
+// Newer Stripe API versions moved invoice.subscription under
+// invoice.parent.subscription_details. Handles both shapes.
+function invoiceSubscriptionId(inv) {
+  if (typeof inv.subscription === 'string') return inv.subscription;
+  if (inv.subscription && inv.subscription.id) return inv.subscription.id;
+  const details = inv.parent && inv.parent.subscription_details;
+  return details ? details.subscription : null;
+}
+
+async function syncSubscription(subscriptionId, accountIdHint) {
+  const sub = await stripe.subscriptions.retrieve(subscriptionId);
+
+  const { data: existing } = await supabase
+    .from('account_subscriptions')
+    .select('*')
+    .eq('stripe_subscription_id', sub.id)
+    .maybeSingle();
+
+  let accountId = (existing && existing.account_id) ||
+                  accountIdHint ||
+                  (sub.metadata && sub.metadata.account_id) ||
+                  null;
+
+  if (!accountId && sub.customer) {
+    const { data: acct } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('stripe_customer_id', sub.customer)
+      .maybeSingle();
+    if (acct) accountId = acct.id;
+  }
+
+  if (!accountId) {
+    // Nothing to attach it to yet. checkout.session.completed carries
+    // the account id and calls this again, so nothing is lost.
+    console.log(`Subscription ${sub.id}: no account found yet, skipping`);
+    return;
+  }
+
+  // Products come from the current price. An unrecognized price (one
+  // this environment has no env var for, e.g. an archived old price)
+  // keeps whatever products the row already had.
+  const priceId  = sub.items.data[0] && sub.items.data[0].price.id;
+  const products = PRICE_TO_PRODUCTS[priceId] || (existing && existing.products);
+
+  if (!products) {
+    console.error(`Subscription ${sub.id}: unrecognized price ${priceId} and no existing row, skipping`);
+    return;
+  }
+
+  const { error } = await supabase
+    .from('account_subscriptions')
+    .upsert({
+      account_id: accountId,
+      stripe_subscription_id: sub.id,
+      products,
+      status: sub.status,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'stripe_subscription_id' });
+  if (error) throw error;
+
+  await recomputeAccount(accountId);
+  console.log(`Subscription ${sub.id} synced: ${products}, ${sub.status}`);
+}
+
+// Derives the account's per-product flags and overall status from all
+// of its subscriptions together, so one product ending or going past
+// due never touches the other. Only accounts that have ever had a
+// subscription reach here, so trial accounts are never affected.
+async function recomputeAccount(accountId) {
+  const { data: subs, error } = await supabase
+    .from('account_subscriptions')
+    .select('products, status')
+    .eq('account_id', accountId);
+  if (error) throw error;
+
+  const covers = (s, product) => s.products === product || s.products === 'bundle';
+  const live   = subs.filter(s => LIVE_STATUSES.includes(s.status));
+
+  const has_care360         = live.some(s => covers(s, 'care360'));
+  const has_element_profile = live.some(s => covers(s, 'element_profile'));
+
+  // active if anything is fully paid up, past_due if the only live
+  // subscriptions are past due. With nothing live left: unpaid if Stripe
+  // gave up retrying a payment (paying it restores access), otherwise
+  // canceled.
+  let status = 'canceled';
+  if (live.some(s => s.status === 'active' || s.status === 'trialing')) status = 'active';
+  else if (live.length) status = 'past_due';
+  else if (subs.some(s => s.status === 'unpaid')) status = 'unpaid';
+
+  const { data: account } = await supabase
+    .from('accounts')
+    .update({ has_care360, has_element_profile, status })
+    .eq('id', accountId)
+    .select()
+    .maybeSingle();
+
+  // First time this account has Element Profile access: it needs the
+  // organizations row it never had. Never removed when access ends, so
+  // nothing is lost if they resubscribe.
+  if (has_element_profile && account) {
+    const { data: existingOrg } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('account_id', account.id)
+      .maybeSingle();
+
+    if (!existingOrg) {
+      await supabase.from('organizations').insert({
+        account_id: account.id,
+        name: account.name
+      });
+    }
+  }
+}
 
 module.exports = { checkoutRouter, webhookRouter };

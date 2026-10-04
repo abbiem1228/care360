@@ -163,6 +163,23 @@ checkoutRouter.get('/checkout/success', requireAuth, (req, res) => {
 // here needs building or maintaining ourselves, Stripe owns the
 // whole experience once they land on it.
 
+// Where Stripe's portal may send someone back to. Only this app and
+// Element Profile, matched by exact origin, so ?return= can never send
+// a customer anywhere else. Anything missing or not allowed falls back
+// to this app's own dashboard, same as before.
+const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.ingoodcocollective.com';
+const PORTAL_RETURN_ORIGINS = [APP_URL, ELEMENT_PROFILE_URL].map(u => new URL(u).origin);
+
+function portalReturnUrl(raw) {
+  if (typeof raw === 'string') {
+    try {
+      const u = new URL(raw);
+      if (PORTAL_RETURN_ORIGINS.includes(u.origin)) return u.toString();
+    } catch (e) { /* not a URL, fall through */ }
+  }
+  return `${APP_URL}/admin`;
+}
+
 checkoutRouter.get('/portal', requireAuth, async (req, res) => {
   if (!req.account || !req.account.stripe_customer_id) {
     return res.status(400).send('No billing account found. <a href="/plans">See plans</a>');
@@ -171,7 +188,7 @@ checkoutRouter.get('/portal', requireAuth, async (req, res) => {
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: req.account.stripe_customer_id,
-      return_url: `${APP_URL}/admin`
+      return_url: portalReturnUrl(req.query.return)
     });
     res.redirect(session.url);
   } catch (e) {

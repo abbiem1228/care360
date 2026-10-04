@@ -55,7 +55,7 @@ async function signUp({ email, password, name, organization, termsAcceptedAt }) 
   // Supabase returns a user with an empty identities array when the
   // email is already registered, rather than an error.
   if (!data.user || (data.user.identities && data.user.identities.length === 0)) {
-    return { error: 'An account with that email already exists. Try signing in instead.' };
+    return { error: 'An account with that email already exists. <a href="/signin">Sign in</a> or <a href="/forgot-password">reset your password</a>.' };
   }
 
   // Account and link row are written with the service client, because
@@ -201,11 +201,24 @@ async function redeemHandoffToken(token) {
   return { session: data.session, user: data.user };
 }
 
+// ── Forgot password ────────────────────────────────────────
+// Supabase's own resetPasswordForEmail never errors for an email that
+// has no account, specifically so the response can't be used to tell
+// which emails are registered. This wraps it the same way: the route
+// built on this always shows the identical confirmation regardless of
+// what actually happened here. Same as Element Profile's.
+async function requestPasswordReset(email, redirectTo) {
+  const auth = authClient();
+  const { error } = await auth.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) console.error('Password reset request failed:', email, error.message);
+}
+
 module.exports = {
   authClient,
   userClient,
   signUp,
   signIn,
+  requestPasswordReset,
   getSession,
   setSessionCookies,
   clearSessionCookies,

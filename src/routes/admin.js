@@ -531,6 +531,7 @@ function adminShell(title, content, req) {
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
       ${acct && acct.plan === 'trial' ? `<a href="/plans" class="nav-link" style="color:#F0C987;font-weight:700">Upgrade</a>` : ''}
       ${bundleReminder ? `<a href="/billing/upgrade-to-bundle" class="nav-link" style="color:#F0C987;font-weight:700">${bundleReminder}</a>` : ''}
+      ${acct && acct.stripe_customer_id ? '<a href="/billing/portal" class="nav-link">Manage billing</a>' : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>

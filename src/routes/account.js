@@ -1,6 +1,8 @@
 const express = require('express');
 const router  = express.Router();
-const { signUp, signIn, setSessionCookies, clearSessionCookies, authClient, redeemHandoffToken } = require('../auth');
+const { signUp, signIn, requestPasswordReset, setSessionCookies, clearSessionCookies, authClient, redeemHandoffToken } = require('../auth');
+
+const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 const supabase = require('../db/client');
 
 const COOKIE_OPTS = {
@@ -176,6 +178,25 @@ router.post('/signin', async (req, res) => {
   res.redirect('/admin');
 });
 
+// ── Forgot password ───────────────────────────────────────────
+// Mirrors Element Profile's flow. The recovery email links back to
+// this app's own /reset-password, never Element's.
+
+router.get('/forgot-password', (req, res) => res.send(forgotPasswordPage()));
+
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (email && typeof email === 'string' && email.trim()) {
+    await requestPasswordReset(email.trim().toLowerCase(), `${APP_URL}/reset-password`);
+  }
+  // Same confirmation whether or not that email actually has an
+  // account, or was even provided: this response must never be usable
+  // to tell which emails are registered.
+  res.send(forgotPasswordPage({ submitted: true }));
+});
+
+router.get('/reset-password', (req, res) => res.send(resetPasswordPage()));
+
 // ── Sign out ──────────────────────────────────────────────────
 
 router.get('/signout', (req, res) => {
@@ -292,6 +313,15 @@ router.get('/handoff', async (req, res) => {
   }
 
   setSessionCookies(res, session);
+
+  // Element Profile's "Manage billing" link hands off here with
+  // next=/billing/portal?return=..., since the portal lives in this
+  // app. Only the portal path is honored, so this can never become
+  // an open redirect; billing.js separately checks the return target.
+  const next = typeof req.query.next === 'string' ? req.query.next : '';
+  if (next === '/billing/portal' || next.startsWith('/billing/portal?')) {
+    return res.redirect(next);
+  }
   res.redirect('/admin');
 });
 
@@ -411,7 +441,125 @@ function signinPage(error, email) {
       </div>
       <button class="btn" type="submit">Sign in</button>
     </form>
+    <div class="alt"><a href="/forgot-password">Forgot password?</a></div>
     <div class="alt">No account yet? <a href="/plans">See plans</a></div>`);
+}
+
+function forgotPasswordPage({ submitted } = {}) {
+  return shell('Forgot password', `
+    <div class="title">Reset your password</div>
+    ${submitted
+      ? `<div class="sub">If an account exists for that email, we've sent a link to reset your password. Check your inbox.</div>`
+      : `<div class="sub">Enter your email and we'll send you a link to set a new password.</div>
+    <form method="POST" action="/forgot-password">
+      <div class="group">
+        <label class="label">Email</label>
+        <input class="control" type="email" name="email" required autofocus placeholder="jane@acme.com"/>
+      </div>
+      <button class="btn" type="submit">Send reset link</button>
+    </form>`}
+    <div class="alt"><a href="/signin">Back to sign in</a></div>`);
+}
+
+// The recovery link Supabase emails lands the browser here with the
+// session token in the URL (a hash fragment or a ?code= param,
+// depending on flow configuration), which the server never sees, so
+// the whole exchange runs client side. Same logic as Element Profile's
+// proven page, in this app's own styling.
+function resetPasswordPage() {
+  return shell('Set a new password', `
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+
+    <section id="loading">
+      <div class="title">Checking your link</div>
+      <div class="sub">One moment.</div>
+    </section>
+
+    <section id="invalid" hidden>
+      <div class="title">This link is not valid</div>
+      <div class="sub">It may have expired, or already been used. Request a new one below.</div>
+      <div class="alt"><a href="/forgot-password">Request a new link</a></div>
+    </section>
+
+    <section id="form" hidden>
+      <div class="title">Set a new password</div>
+      <div class="sub">Choose a new password for your account.</div>
+      <form id="reset-form">
+        <div class="group">
+          <label class="label" for="password">New password</label>
+          <input class="control" type="password" id="password" required minlength="8" placeholder="At least 8 characters"/>
+        </div>
+        <div class="group">
+          <label class="label" for="confirmPassword">Confirm password</label>
+          <input class="control" type="password" id="confirmPassword" required minlength="8"/>
+        </div>
+        <div class="err" id="form-error" hidden></div>
+        <button class="btn" type="submit">Set new password</button>
+      </form>
+    </section>
+
+    <section id="success" hidden>
+      <div class="title">Password updated</div>
+      <div class="sub">Your password has been changed. You can sign in with it now.</div>
+      <div class="alt"><a href="/signin">Go to sign in</a></div>
+    </section>
+
+    <script>
+      const supabaseClient = supabase.createClient('${process.env.SUPABASE_URL}', '${process.env.SUPABASE_ANON_KEY}', {
+        auth: { persistSession: false },
+      });
+
+      async function init() {
+        const hashParams   = new URLSearchParams(window.location.hash.slice(1));
+        const accessToken  = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const code = new URLSearchParams(window.location.search).get('code');
+
+        let sessionEstablished = false;
+        if (accessToken && refreshToken) {
+          const { error } = await supabaseClient.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          sessionEstablished = !error;
+        } else if (code) {
+          const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
+          sessionEstablished = !error;
+        }
+
+        document.getElementById('loading').hidden = true;
+        document.getElementById(sessionEstablished ? 'form' : 'invalid').hidden = false;
+      }
+
+      document.getElementById('reset-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const errorEl = document.getElementById('form-error');
+        errorEl.hidden = true;
+
+        if (password !== confirmPassword) {
+          errorEl.textContent = 'Passwords do not match.';
+          errorEl.hidden = false;
+          return;
+        }
+
+        const submitButton = e.target.querySelector('button');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Saving...';
+
+        const { error } = await supabaseClient.auth.updateUser({ password });
+        if (error) {
+          errorEl.textContent = error.message;
+          errorEl.hidden = false;
+          submitButton.disabled = false;
+          submitButton.textContent = 'Set new password';
+          return;
+        }
+
+        document.getElementById('form').hidden = true;
+        document.getElementById('success').hidden = false;
+      });
+
+      init();
+    </script>`);
 }
 
 function messagePage(title, body, ctaLabel, ctaHref) {

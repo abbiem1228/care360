@@ -251,7 +251,7 @@ function upgradeConfirmPage(products, error) {
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Add ${productName} — CARE 360</title>
+  <title>Add ${productName} | CARE 360</title>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
   <style>
     body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;-webkit-font-smoothing:antialiased}

@@ -397,7 +397,7 @@ input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
 function shell(title, inner) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${title} — CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
+<title>${title} | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
 <div class="auth">
 <aside class="auth-art">
   <img src="/img/igc-hero-clay-mobile.webp" alt=""/>

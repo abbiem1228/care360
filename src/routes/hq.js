@@ -171,7 +171,7 @@ function hqPage(d) {
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>HQ — CARE 360</title>
+<title>HQ | CARE 360</title>
 <link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap');

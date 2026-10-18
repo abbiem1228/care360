@@ -655,11 +655,18 @@ function ring(pct) {
   </svg>`;
 }
 
+// Account names are typed by the account owner at sign-up, so anything
+// that prints one into a page has to escape it.
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function adminShell(title, content, req) {
   const acct    = req && req.account ? req.account : null;
-  const acctName = acct ? acct.name : '';
+  const rawAcctName = acct && acct.name ? String(acct.name) : '';
+  const acctName = escapeHtml(rawAcctName);
   const plan     = acct ? acct.plan : '';
-  const initial  = acctName ? acctName.trim().charAt(0).toUpperCase() : 'A';
+  const initial  = escapeHtml(rawAcctName.trim().charAt(0).toUpperCase()) || 'A';
 
   // Entitlement-aware reminder: only when the account genuinely has
   // exactly one of the two products, read straight from its real,
@@ -696,7 +703,7 @@ function adminShell(title, content, req) {
     </div>`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${title} — CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
+  <title>${title} | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
   <nav class="admin-nav">
     ${navLogo}
     <a href="/admin" class="nav-link">Groups</a>
@@ -720,7 +727,7 @@ function adminShell(title, content, req) {
 
 function loginPage(error) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Sign In — CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}
+  <title>Sign In | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}
   <style>
   body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,var(--wash),var(--white) 70%)}
   .login-wrap{width:100%;max-width:440px;padding:20px}
@@ -815,7 +822,7 @@ function dashboardPage(cycles, req) {
     </tr>`).join('');
 
   const step = nextStep(cycles);
-  const acctName = req && req.account ? req.account.name : '';
+  const acctName = req && req.account ? escapeHtml(req.account.name) : '';
 
   return adminShell('Dashboard', `
     <div class="page-header">

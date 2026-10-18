@@ -8,10 +8,23 @@ const fs        = require('fs');
 const path      = require('path');
 
 // The PDF is rendered from saved HTML with no web server behind it, so
-// brand marks are inlined as data URIs rather than linked.
-const svgUri = file => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'img', file), 'utf8'));
+// brand marks are inlined as data URIs rather than linked. This runs when
+// the module loads, so a missing file must never stop the server from
+// starting: it logs a warning and the report falls back to plain text.
+function svgUri(file) {
+  try {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'img', file), 'utf8'));
+  } catch (e) {
+    console.warn(`reports: could not read public/img/${file} (${e.code || e.message}); reports will leave this mark out`);
+    return '';
+  }
+}
 const WORDMARK  = svgUri('igc-wordmark.svg');
 const CARE_MARK = svgUri('care-mark.svg');
+const careMarkImg  = () => CARE_MARK ? `<img src="${CARE_MARK}" alt="" class="cover-mark"/>` : '';
+const wordmarkImg  = (cls, style) => WORDMARK
+  ? `<img src="${WORDMARK}" alt="in good company." ${cls ? `class="${cls}"` : ''}${style ? ` style="${style}"` : ''}/>`
+  : `<span ${cls ? `class="${cls}"` : ''} style="font-family:'EB Garamond',Georgia,serif;font-size:${cls === 'cover-wordmark' ? '22px' : '14px'};color:#30383B">in good company.</span>`;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -660,7 +673,7 @@ function buildReportHtml(leader, scoreData, narrative, commentData, customSectio
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/>
-<title>CARE 360 Report — ${leader.name}</title>
+<title>${leader.name} report | CARE 360</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -819,7 +832,7 @@ h2,.section-header h2,.summary-section h2,.reflect-section h2{font-weight:500;le
 <body><div class="page">
 
 <div class="cover">
-  <div class="cover-brand"><img src="${CARE_MARK}" alt="" class="cover-mark"/><img src="${WORDMARK}" alt="in good company." class="cover-wordmark"/></div>
+  <div class="cover-brand">${careMarkImg()}${wordmarkImg('cover-wordmark')}</div>
   <div class="cover-eyebrow">CARE 360 Feedback Report</div>
   <div class="cover-name">${leader.name}</div>
   <div class="cover-meta">${leader.title || ''}</div>
@@ -872,7 +885,7 @@ ${narrative.closingReflection ? `
   <div class="reflect-bridge">As Part 2 of the CARE 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
 </div>
 <div class="brand-footer">
-  <div class="brand-footer-name"><img src="${WORDMARK}" alt="in good company." style="height:15px;width:auto"/></div>
+  <div class="brand-footer-name">${wordmarkImg('', 'height:15px;width:auto')}</div>
   <div class="brand-footer-tag">Thoughtful &nbsp;·&nbsp; Innovative &nbsp;·&nbsp; Human</div>
 </div>
 

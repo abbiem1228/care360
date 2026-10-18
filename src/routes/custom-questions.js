@@ -189,7 +189,7 @@ const CSS = `
 .self-block{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line-strong)}
 .self-badge{display:inline-block;font-size:12px;font-weight:500;color:var(--ochre);background:var(--ochre-tint);border:1px solid var(--ochre-line);padding:2px 10px;border-radius:999px;margin-bottom:8px}
 .actions-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;text-decoration:none;line-height:1.1;transition:background .15s,border-color .15s,box-shadow .2s,transform .12s}
+.btn{text-transform:lowercase;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;text-decoration:none;line-height:1.1;transition:background .15s,border-color .15s,box-shadow .2s,transform .12s}
 .btn:active{transform:translateY(1px) scale(.98)}
 .btn:hover{text-decoration:none}
 .btn-primary,.btn-ink{background:var(--ink);color:var(--cream);box-shadow:0 1px 2px rgba(32,40,43,0.2),inset 0 1px 0 rgba(255,255,255,0.08)}

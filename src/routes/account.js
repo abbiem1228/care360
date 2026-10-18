@@ -337,14 +337,24 @@ const CSS = `
 @keyframes igc-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 :focus-visible{outline:2px solid var(--clay);outline-offset:2px}
 ::selection{background:var(--ochre-light)}
-body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,var(--wash),#ffffff 70%);color:var(--ink);font-size:14px;line-height:1.6;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;-webkit-font-smoothing:antialiased}
+body{font-family:'Noto Sans',Arial,sans-serif;background:#ffffff;color:var(--ink);font-size:14px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
+.auth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:100vh}
+.auth-art{position:sticky;top:0;height:100vh;overflow:hidden;background:#B0673F;color:#F7F3EA}
+.auth-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;animation:igc-zoom 14s ease-out both}
+@keyframes igc-zoom{from{transform:scale(1.06)}to{transform:scale(1)}}
+.auth-art-copy{position:relative;padding:48px 56px;display:flex;flex-direction:column;gap:18px;max-width:560px;animation:igc-rise .8s .15s var(--ease) both}
+.auth-art-mark{display:flex;align-items:center;gap:10px;font-family:'EB Garamond',Georgia,serif;font-size:22px;font-weight:500;letter-spacing:-0.4px;color:#F7F3EA}
+.auth-art-mark img{position:static;width:28px;height:28px;animation:none;filter:brightness(0) invert(96%) sepia(8%) saturate(300%)}
+.auth-art h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:clamp(40px,4.4vw,60px);line-height:1.02;letter-spacing:-2px;margin-top:28px;text-wrap:balance}
+.auth-art p{font-size:15px;line-height:1.65;color:rgba(247,243,234,0.86);max-width:400px}
+.auth-main{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(24px,6vw,96px)}
 a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}a:hover{color:var(--clay);text-decoration-color:currentColor}
-.wrap{width:100%;max-width:460px}
-.card{background:#ffffff;border:1px solid var(--line);border-radius:24px;padding:44px 44px 40px;box-shadow:var(--shadow-lift);animation:igc-rise .55s var(--ease) both}
-.logo{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:34px}
+.wrap{width:100%;max-width:420px;margin:0 auto}
+.card{animation:igc-rise .55s var(--ease) both}
+.logo{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:40px}
 .logo-mark{height:20px;width:auto;display:block}
 .logo-sub{font-size:13px;color:var(--grey)}
-.title{font-family:'EB Garamond',Georgia,serif;font-size:34px;color:var(--ink);margin-bottom:8px;font-weight:500;letter-spacing:-1px;line-height:1.1}
+.title{font-family:'EB Garamond',Georgia,serif;font-size:42px;color:var(--ink);margin-bottom:10px;font-weight:500;letter-spacing:-1.4px;line-height:1.05;text-wrap:balance}
 .sub{font-size:14px;color:var(--grey);margin-bottom:26px;line-height:1.6}
 .group{margin-bottom:16px}
 .label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
@@ -353,26 +363,37 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-st
 .control::placeholder{color:#9AA2A4}
 .control:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 4px rgba(169,99,61,0.12)}
 .hint{font-size:12px;color:var(--grey);margin-top:6px}
-.btn{width:100%;padding:14px;background:var(--ink);color:var(--cream);border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,box-shadow .2s,transform .12s;margin-top:8px;box-shadow:0 1px 2px rgba(32,40,43,0.2),inset 0 1px 0 rgba(255,255,255,0.08)}
+.btn{text-transform:lowercase;width:100%;padding:14px;background:var(--ink);color:var(--cream);border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,box-shadow .2s,transform .12s;margin-top:8px;box-shadow:0 1px 2px rgba(32,40,43,0.2),inset 0 1px 0 rgba(255,255,255,0.08)}
 .btn:hover{background:var(--ink-deep);box-shadow:0 6px 16px rgba(32,40,43,0.18)}
 .btn:active{transform:translateY(1px) scale(.99)}
 .alt{text-align:center;margin-top:20px;font-size:13px;color:var(--grey)}
 .err{background:var(--danger-tint);border:1px solid var(--danger-line);color:var(--danger);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:18px;line-height:1.6}
 .err a{color:#A94442}
-.foot{text-align:center;margin-top:24px;font-size:12px;color:var(--grey)}
+.foot{margin-top:40px;font-size:12px;color:var(--grey)}
 .trial,.plan-badge{background:var(--ochre-tint);border:1px solid var(--ochre-line);border-radius:14px;padding:14px 16px;font-size:13px;color:var(--ink);line-height:1.65;margin-bottom:22px}
 .plan-badge strong{color:var(--ink)}
 .terms-check{margin-bottom:20px}
 .terms-label{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--grey);line-height:1.6;cursor:pointer}
 .terms-label input{margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:var(--ink);cursor:pointer}
 .terms-label a{color:var(--ink);font-weight:600}
-@media(max-width:520px){body{padding:16px;align-items:flex-start}.card{padding:32px 22px 28px}.title{font-size:30px}}
+@media(max-width:860px){.auth{grid-template-columns:1fr}.auth-art{position:relative;height:240px}.auth-art-copy{padding:24px}.auth-art h2,.auth-art p{display:none}.auth-main{padding:36px 20px 48px;justify-content:flex-start}.logo{display:none}.title{font-size:36px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>`;
 
 function shell(title, inner) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title} — CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
+<div class="auth">
+<aside class="auth-art">
+  <img src="/img/igc-hero-clay-mobile.webp" alt=""/>
+  <div class="auth-art-copy">
+    <div class="auth-art-mark"><img src="/img/care-mark.svg" alt=""/>care 360</div>
+    <h2>leadership, seen from every side.</h2>
+    <p>360-degree feedback built around connect, accountable, reach and empower.</p>
+  </div>
+</aside>
+<main class="auth-main">
 <div class="wrap"><div class="card">
   <div class="logo">
     <img class="logo-mark" src="/img/igc-wordmark.svg" alt="in good company."/>
@@ -381,6 +402,8 @@ function shell(title, inner) {
   ${inner}
 </div>
 <div class="foot">Thoughtful &nbsp;&middot;&nbsp; Innovative &nbsp;&middot;&nbsp; Human</div>
+</div>
+</main>
 </div></body></html>`;
 }
 
@@ -397,7 +420,7 @@ function signupPage(error, prev, tier, products, billing) {
     : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.</div>`;
 
   return shell(label ? `Sign up for ${label}` : 'Start your free trial', `
-    <div class="title">${label ? `Set up your ${label} account` : 'Start your free trial'}</div>
+    <div class="title">${label ? `set up your ${label} account.` : 'start your free trial.'}</div>
     <div class="sub">${label ? 'Create your login, then continue to payment.' : 'Run one full 360 at no cost, from invitations through to the finished report.'}</div>
     ${error ? `<div class="err">${error}</div>` : ''}
     ${contextBlock}
@@ -430,7 +453,7 @@ function signupPage(error, prev, tier, products, billing) {
 
 function signinPage(error, email) {
   return shell('Sign in', `
-    <div class="title">Welcome back</div>
+    <div class="title">welcome back.</div>
     <div class="sub">Sign in to manage your Groups, leaders and reports.</div>
     ${error ? `<div class="err">${error}</div>` : ''}
     <form method="POST" action="/signin">
@@ -450,7 +473,7 @@ function signinPage(error, email) {
 
 function forgotPasswordPage({ submitted } = {}) {
   return shell('Forgot password', `
-    <div class="title">Reset your password</div>
+    <div class="title">reset your password.</div>
     ${submitted
       ? `<div class="sub">If an account exists for that email, we've sent a link to reset your password. Check your inbox.</div>`
       : `<div class="sub">Enter your email and we'll send you a link to set a new password.</div>
@@ -474,18 +497,18 @@ function resetPasswordPage() {
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
 
     <section id="loading">
-      <div class="title">Checking your link</div>
+      <div class="title">checking your link.</div>
       <div class="sub">One moment.</div>
     </section>
 
     <section id="invalid" hidden>
-      <div class="title">This link is not valid</div>
+      <div class="title">this link isn't valid.</div>
       <div class="sub">It may have expired, or already been used. Request a new one below.</div>
       <div class="alt"><a href="/forgot-password">Request a new link</a></div>
     </section>
 
     <section id="form" hidden>
-      <div class="title">Set a new password</div>
+      <div class="title">set a new password.</div>
       <div class="sub">Choose a new password for your account.</div>
       <form id="reset-form">
         <div class="group">
@@ -502,7 +525,7 @@ function resetPasswordPage() {
     </section>
 
     <section id="success" hidden>
-      <div class="title">Password updated</div>
+      <div class="title">password updated.</div>
       <div class="sub">Your password has been changed. You can sign in with it now.</div>
       <div class="alt"><a href="/signin">Go to sign in</a></div>
     </section>
@@ -576,8 +599,8 @@ function inviteAcceptPage(invite, error) {
   const accountName = invite.accounts ? invite.accounts.name : 'CARE 360';
 
   return shell(`Join ${accountName}`, `
-    <div class="title">Join ${accountName}</div>
-    <div class="sub">You have been invited to join this account on CARE 360. Set a password to finish.</div>
+    <div class="title">join ${accountName}.</div>
+    <div class="sub">You have been invited to join this account on care 360. Set a password to finish.</div>
     ${error ? `<div class="err">${error}</div>` : ''}
     <form method="POST" action="/invite/${invite.token}">
       <div class="group">

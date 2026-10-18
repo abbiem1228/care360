@@ -4,6 +4,7 @@ const supabase = require('../db/client');
 const { nanoid } = require('nanoid');
 const { sendRaterInvite, sendTeammateInvite } = require('../email');
 const { generateHandoffToken } = require('../auth');
+const { icon } = require('../icons');
 
 const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.ingoodcocollective.com';
 
@@ -426,7 +427,7 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-st
 .admin-main{max-width:1120px;margin:0 auto;padding:52px 40px 104px}
 .admin-main>*{animation:igc-rise .55s var(--ease) both}
 .admin-main>*:nth-child(2){animation-delay:.05s}.admin-main>*:nth-child(3){animation-delay:.1s}.admin-main>*:nth-child(4){animation-delay:.15s}.admin-main>*:nth-child(5){animation-delay:.2s}.admin-main>*:nth-child(n+6){animation-delay:.25s}
-.page-header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:36px}
+.page-header{position:relative;z-index:10;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:36px}
 .page-title{font-family:'EB Garamond',Georgia,serif;font-size:50px;font-weight:500;color:var(--ink);letter-spacing:-1.8px;line-height:1.04;margin-bottom:10px;font-feature-settings:"lnum" 1}
 .page-sub{font-size:15px;color:var(--grey)}
 .eyebrow{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--grey);text-transform:lowercase}
@@ -434,17 +435,24 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-st
 /* ── Cards: white on white ─────────────────────────────────── */
 .card{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:28px 30px;margin-bottom:20px;box-shadow:var(--shadow)}
 .card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-.card-title{font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:500;color:var(--ink);letter-spacing:-0.6px}
+.card-title{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:500;color:var(--ink);letter-spacing:-0.6px}
 .card-meta{font-size:13px;color:var(--grey)}
 
 /* ── Stat tiles ────────────────────────────────────────────── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px}
-.stat-card{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:24px 26px 22px;box-shadow:var(--shadow);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.stat-card{position:relative;background:var(--white);border:1px solid var(--line);border-radius:20px;padding:24px 26px 22px;box-shadow:var(--shadow);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
 .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}
+.i{width:1.15em;height:1.15em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;vertical-align:-0.2em}
+.btn .i{width:15px;height:15px;margin:0 -1px}
+.btn-sm .i{width:13px;height:13px}
+.stat-card>.i{position:absolute;top:22px;right:22px;width:18px;height:18px;color:var(--grey);opacity:.55}
+.sent{display:inline-flex;align-items:center;gap:5px;color:#56603F}.sent .i{width:14px;height:14px}
+.remove-rater-btn .i{width:15px;height:15px}
+.add-rater-btn .i{width:16px;height:16px}
 .stat-card-ring{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .stat-num{font-family:'EB Garamond',Georgia,serif;font-size:56px;font-weight:500;color:var(--ink);line-height:.95;letter-spacing:-1.6px;font-feature-settings:"lnum" 1,"tnum" 1}
 .stat-num small{font-size:28px;letter-spacing:-0.5px;margin-left:2px;color:var(--grey)}
-.stat-lbl{font-size:13px;font-weight:500;color:var(--grey);margin-top:10px}
+.stat-lbl{text-transform:lowercase;font-size:13px;font-weight:500;color:var(--grey);margin-top:10px}
 .stat-bar{height:4px;border-radius:999px;background:rgba(48,56,59,0.07);margin-top:16px;overflow:hidden}
 .stat-bar span{display:block;height:100%;border-radius:999px;background:var(--ink);transform-origin:left;animation:igc-grow .9s .2s var(--ease) both}
 .stat-bar-clay span{background:var(--clay)}.stat-bar-ochre span{background:var(--ochre-light)}.stat-bar-sage span{background:var(--sage)}
@@ -454,7 +462,7 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-st
 @keyframes igc-ring{from{stroke-dashoffset:var(--ring-len)}to{stroke-dashoffset:0}}
 
 /* ── Buttons ───────────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:background .15s,color .15s,border-color .15s,box-shadow .2s var(--ease),transform .12s var(--ease);line-height:1.1;font-family:inherit;text-decoration:none;white-space:nowrap}
+.btn{text-transform:lowercase;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:background .15s,color .15s,border-color .15s,box-shadow .2s var(--ease),transform .12s var(--ease);line-height:1.1;font-family:inherit;text-decoration:none;white-space:nowrap}
 .btn:hover{text-decoration:none}
 .btn:active{transform:translateY(1px) scale(.98)}
 .btn-primary,.btn-ink{background:var(--ink);color:var(--cream);box-shadow:0 1px 2px rgba(32,40,43,0.2),inset 0 1px 0 rgba(255,255,255,0.08)}
@@ -509,7 +517,7 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-st
 
 /* ── Forms ─────────────────────────────────────────────────── */
 .form-section{margin-bottom:28px}
-.form-section-title{font-family:'EB Garamond',Georgia,serif;font-size:24px;font-weight:500;color:var(--ink);letter-spacing:-0.5px;margin-bottom:16px}
+.form-section-title{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:24px;font-weight:500;color:var(--ink);letter-spacing:-0.5px;margin-bottom:16px}
 .form-group{margin-bottom:18px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .form-label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:7px}
@@ -527,10 +535,27 @@ select.form-control{cursor:pointer}
 .rater-row-header span{font-size:12px;font-weight:600;color:var(--grey)}
 .remove-rater-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line-strong);background:var(--white);color:var(--grey);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit}
 .remove-rater-btn:hover{background:var(--danger);border-color:var(--danger);color:var(--white)}
-.add-rater-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border:1px dashed var(--line-strong);border-radius:999px;color:var(--ink);background:var(--white);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;margin-top:12px;transition:all .15s}
+.add-rater-btn{text-transform:lowercase;display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border:1px dashed var(--line-strong);border-radius:999px;color:var(--ink);background:var(--white);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;margin-top:12px;transition:all .15s}
 .add-rater-btn:hover{border-color:var(--clay);color:var(--clay)}
 
 .actions-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn-icon{padding:11px 13px}
+.btn-locked{background:var(--wash);color:var(--grey);border-color:var(--line);cursor:not-allowed;gap:8px}
+.btn-locked:active{transform:none}
+.lock-count{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;text-transform:none}
+.lock-bar{display:inline-block;width:36px;height:4px;border-radius:999px;background:rgba(48,56,59,0.1);overflow:hidden}
+.lock-bar i{display:block;height:100%;background:var(--ochre-light);border-radius:999px}
+.menu{position:relative}
+.menu>summary{list-style:none}
+.menu>summary::-webkit-details-marker{display:none}
+.menu[open]>summary{border-color:var(--ink)}
+.menu-list{position:absolute;right:0;top:calc(100% + 8px);min-width:250px;background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-md);padding:6px;z-index:60;animation:igc-pop .18s var(--ease) both}
+.menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:14px;color:var(--ink);text-decoration:none;white-space:nowrap}
+.menu-item:hover{background:var(--wash);color:var(--ink)}
+.menu-item .i{width:16px;height:16px;color:var(--grey)}
+.menu-item small{margin-left:auto;padding-left:12px;font-size:12px;color:var(--grey)}
+.menu-item-off{color:var(--grey);cursor:default}
+.menu-item-off:hover{background:none;color:var(--grey)}
 
 /* ── Empty states ──────────────────────────────────────────── */
 .empty-state{text-align:center;padding:56px 24px 52px;color:var(--grey)}
@@ -642,7 +667,7 @@ function adminShell(title, content, req) {
     </div>
   </nav>
   <div class="admin-main">${billingBanners(req)}${content}</div>
-  <script>(function(){var n=document.querySelector('.admin-nav');function f(){n.classList.toggle('scrolled',window.scrollY>4)}window.addEventListener('scroll',f,{passive:true});f()})();</script>
+  <script>(function(){var n=document.querySelector('.admin-nav');function f(){n.classList.toggle('scrolled',window.scrollY>4)}window.addEventListener('scroll',f,{passive:true});f();document.addEventListener('click',function(e){document.querySelectorAll('details.menu[open],details.nav-logo-switcher[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})})})();</script>
   </body></html>`;
 }
 
@@ -658,7 +683,7 @@ function loginPage(error) {
   .login-logo-sub{font-size:13px;color:var(--grey)}
   .login-title{font-family:'EB Garamond',Georgia,serif;font-size:34px;color:var(--ink);margin-bottom:8px;font-weight:500;letter-spacing:-1px;line-height:1.1}
   .login-sub{font-size:14px;color:var(--grey);margin-bottom:28px;line-height:1.6}
-  .login-btn{width:100%;padding:14px;background:var(--ink);color:var(--cream);border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s}
+  .login-btn{text-transform:lowercase;width:100%;padding:14px;background:var(--ink);color:var(--cream);border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s}
   .login-btn:hover{background:var(--ink-deep)}
   .login-btn:active{transform:translateY(1px) scale(.99)}
   .login-footer{text-align:center;margin-top:28px;font-size:12px;color:var(--grey)}
@@ -669,7 +694,7 @@ function loginPage(error) {
       <img class="login-logo-mark" src="/img/igc-wordmark.svg" alt="in good company."/>
       <div class="login-logo-sub">care 360 leadership survey</div>
     </div>
-    <div class="login-title">Recovery sign in</div>
+    <div class="login-title">recovery sign in.</div>
     <div class="login-sub">This is the legacy shared password. Most people should <a href="/signin">sign in with their email</a> instead.</div>
     ${error ? '<div class="alert-error">Incorrect password. Please try again.</div>' : ''}
     <form method="POST" action="/admin/login">
@@ -699,20 +724,20 @@ function dashboardPage(cycles, req) {
   return adminShell('Dashboard', `
     <div class="page-header">
       <div>
-        <div class="page-title">Groups</div>
-        <div class="page-sub">Manage your CARE 360 Groups, leaders, and raters.</div>
+        <div class="page-title">groups.</div>
+        <div class="page-sub">Manage your care 360 groups, leaders and raters.</div>
       </div>
-      <a href="/admin/cycles/new" class="btn btn-primary">+ New Group</a>
+      <a href="/admin/cycles/new" class="btn btn-primary">${icon('plus')}New Group</a>
     </div>
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${cycles.length}</div><div class="stat-lbl">Total Groups</div>${statBar(cycles.length, cycles.length, '')}</div>
-      <div class="stat-card"><div class="stat-num">${active}</div><div class="stat-lbl">Active</div>${statBar(active, cycles.length, 'clay')}</div>
-      <div class="stat-card"><div class="stat-num">${draft}</div><div class="stat-lbl">Drafts</div>${statBar(draft, cycles.length, 'ochre')}</div>
+      <div class="stat-card">${icon('folder')}<div class="stat-num">${cycles.length}</div><div class="stat-lbl">Total Groups</div>${statBar(cycles.length, cycles.length, '')}</div>
+      <div class="stat-card">${icon('activity')}<div class="stat-num">${active}</div><div class="stat-lbl">Active</div>${statBar(active, cycles.length, 'clay')}</div>
+      <div class="stat-card">${icon('pencil')}<div class="stat-num">${draft}</div><div class="stat-lbl">Drafts</div>${statBar(draft, cycles.length, 'ochre')}</div>
     </div>
     <div class="card">
       <div class="card-header">
         <span class="card-title">All Groups</span>
-        <a href="/admin/cycles/new" class="btn btn-ghost btn-sm">+ New</a>
+        <a href="/admin/cycles/new" class="btn btn-ghost btn-sm">${icon('plus')}New</a>
       </div>
       ${cycles.length ? `
       <table class="data-table">
@@ -722,7 +747,7 @@ function dashboardPage(cycles, req) {
       <div class="empty-state">
         <img class="empty-state-mark" src="/img/care-mark.svg" alt=""/>
         <div class="empty-state-text">no groups yet.</div>
-        <a href="/admin/cycles/new" class="btn btn-primary">Create Group</a>
+        <a href="/admin/cycles/new" class="btn btn-primary">${icon('plus')}Create Group</a>
       </div>`}
     </div>`, req);
 }
@@ -747,7 +772,7 @@ function teamPage(teammates, invites, req) {
   return adminShell('Team', `
     <div class="page-header">
       <div>
-        <div class="page-title">Team</div>
+        <div class="page-title">team.</div>
         <div class="page-sub">Invite a teammate to sign in and manage this same account with you.</div>
       </div>
     </div>
@@ -762,7 +787,7 @@ function teamPage(teammates, invites, req) {
           <label class="form-label">Email *</label>
           <input class="form-control" type="email" name="email" required placeholder="jane@acme.com"/>
         </div>
-        <button class="btn btn-primary" type="submit">Send invite</button>
+        <button class="btn btn-primary" type="submit">${icon('send')}Send invite</button>
       </form>
     </div>
     <div class="card" style="margin-bottom:20px">
@@ -785,7 +810,7 @@ function teamPage(teammates, invites, req) {
 function cycleFormPage(req) {
   return adminShell('New Group', `
     <div class="page-header">
-      <div><div class="page-title">New Group</div>
+      <div><div class="page-title">new group.</div>
       <div class="page-sub">A Group holds the leaders being assessed together, with one close date for everyone in it.</div></div>
     </div>
     <div class="card" style="max-width:580px">
@@ -817,7 +842,7 @@ function cycleFormPage(req) {
           </div>
         </div>
         <div class="actions-row">
-          <button class="btn btn-primary" type="submit">Create Group</button>
+          <button class="btn btn-primary" type="submit">${icon('plus')}Create Group</button>
           <a href="/admin" class="btn btn-ghost">Cancel</a>
         </div>
       </form>
@@ -875,9 +900,9 @@ function cycleDetailPage(cycle, leaders, req) {
       <td>${total}</td>
       <td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-label">${completed}/${total}</span></div></td>
       <td class="row-actions"><div class="actions-row">
-        <a href="/admin/leaders/${l.id}" class="btn btn-ghost btn-sm">Manage</a>
+        <a href="/admin/leaders/${l.id}" class="btn btn-ghost btn-sm">Manage${icon('arrow-right')}</a>
         <form method="POST" action="/admin/leaders/${l.id}/send-invites" style="display:inline">
-          <button class="btn btn-sage btn-sm" type="submit">Send Invites</button>
+          <button class="btn btn-sage btn-sm" type="submit">${icon('send')}Send Invites</button>
         </form>
       </div></td>
     </tr>`;
@@ -890,9 +915,9 @@ function cycleDetailPage(cycle, leaders, req) {
         <div class="page-sub"><span class="badge badge-${cycle.status}">${cycle.status}</span>${cycle.client_name ? ' &nbsp;·&nbsp; ' + cycle.client_name : ''}</div>
       </div>
       <div class="actions-row">
-        ${statusBtns.map(([s,l]) => `<form method="POST" action="/admin/cycles/${cycle.id}/status" style="display:inline"><input type="hidden" name="status" value="${s}"/><button class="btn ${s==='active'?'btn-sage':s==='closed'?'btn-red':'btn-ghost'}" type="submit">${l}</button></form>`).join('')}
-        ${cycle.status === 'draft' ? `<a href="/admin/cycles/${cycle.id}/custom-questions" class="btn btn-ghost">Custom Questions</a>` : ''}
-        <a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">+ Add Leader</a>
+        ${statusBtns.map(([s,l]) => `<form method="POST" action="/admin/cycles/${cycle.id}/status" style="display:inline"><input type="hidden" name="status" value="${s}"/><button class="btn ${s==='active'?'btn-sage':s==='closed'?'btn-red':'btn-ghost'}" type="submit">${icon({ active: 'play', closed: 'circle-x', draft: 'rotate' }[s])}${l}</button></form>`).join('')}
+        ${cycle.status === 'draft' ? `<a href="/admin/cycles/${cycle.id}/custom-questions" class="btn btn-ghost">${icon('list-checks')}Custom Questions</a>` : ''}
+        <a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">${icon('plus')}Add Leader</a>
       </div>
     </div>
     ${flash}
@@ -900,7 +925,7 @@ function cycleDetailPage(cycle, leaders, req) {
     <div class="card alert-card">
       <div style="font-size:14px;font-weight:600;color:#A94442;margin-bottom:6px">This Group is not active</div>
       <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:14px">Raters will not be able to open their survey until you activate this Group. If you send invites now, everyone will receive a link that does not work.</div>
-      <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">Activate Group</button></form>
+      <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">${icon('play')}Activate Group</button></form>
     </div>` : ''}
     <div class="card" style="max-width:580px">
       <div class="card-header"><span class="card-title">Dates</span></div>
@@ -918,7 +943,7 @@ function cycleDetailPage(cycle, leaders, req) {
           </div>
         </div>
         <div class="actions-row">
-          <button class="btn btn-primary" type="submit">Save Dates</button>
+          <button class="btn btn-primary" type="submit">${icon('calendar')}Save Dates</button>
         </div>
       </form>
     </div>
@@ -929,14 +954,14 @@ function cycleDetailPage(cycle, leaders, req) {
         <thead><tr><th>Leader</th><th>Title</th><th>Department</th><th>Raters</th><th>Responses</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>` : `
-      <div class="empty-state"><img class="empty-state-mark" src="/img/care-mark.svg" alt=""/><div class="empty-state-text">no leaders yet.</div><a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">Add First Leader</a></div>`}
+      <div class="empty-state"><img class="empty-state-mark" src="/img/care-mark.svg" alt=""/><div class="empty-state-text">no leaders yet.</div><a href="/admin/cycles/${cycle.id}/leaders/new" class="btn btn-primary">${icon('plus')}Add First Leader</a></div>`}
     </div>`, req);
 }
 
 function leaderFormPage(cycleId, req) {
   return adminShell('Add Leader', `
     <div class="page-header"><div>
-      <div class="page-title">Add Leader</div>
+      <div class="page-title">add a leader.</div>
       <div class="page-sub">The leader being assessed. A self-assessment link is created automatically.</div>
     </div></div>
     <div class="card" style="max-width:580px">
@@ -972,7 +997,7 @@ function raterRow(prefill) {
       <option value="direct_report" ${g==='direct_report'?'selected':''}>Direct Report</option>
       <option value="skip_level" ${g==='skip_level'?'selected':''}>Skip-Level</option>
     </select></div>
-    <button type="button" class="remove-rater-btn" onclick="this.closest('.rater-row').remove()">&#215;</button>
+    <button type="button" class="remove-rater-btn" onclick="this.closest('.rater-row').remove()" aria-label="Remove this row">${icon('x')}</button>
   </div>`;
 }
 
@@ -990,7 +1015,7 @@ function raterFormPage(leader, req, error, prevValues) {
 
   return adminShell('Add Raters', `
     <div class="page-header"><div>
-      <div class="page-title">Add Raters</div>
+      <div class="page-title">add raters.</div>
       <div class="page-sub">Adding raters for <strong>${leader.name}</strong>. Each person receives a unique anonymous survey link.</div>
     </div></div>
     ${error ? `<div class="flash flash-warn">${error}</div>` : ''}
@@ -1000,11 +1025,11 @@ function raterFormPage(leader, req, error, prevValues) {
           <div class="form-section-title">Rater Information</div>
           <div class="rater-row-header"><span>Full Name *</span><span>Email Address *</span><span>Relationship to Leader *</span><span></span></div>
           <div class="rater-rows" id="rater-rows">${initialRows}</div>
-          <button type="button" class="add-rater-btn" onclick="addRaterRow()"><span style="font-size:18px;line-height:1">+</span> Add Another Rater</button>
+          <button type="button" class="add-rater-btn" onclick="addRaterRow()">${icon('user-plus')}Add Another Rater</button>
           <div class="form-hint" style="margin-top:10px">All three fields are required for each rater you add. Leave a row completely blank to skip it. Three completed rater responses are needed before a report can be generated, and the self-assessment does not count toward that.</div>
         </div>
         <div class="actions-row" style="margin-top:8px">
-          <button class="btn btn-primary" type="submit">Save Raters</button>
+          <button class="btn btn-primary" type="submit">${icon('check')}Save Raters</button>
           <a href="/admin/leaders/${leader.id}" class="btn btn-ghost">Cancel</a>
         </div>
       </form>
@@ -1023,7 +1048,7 @@ function raterFormPage(leader, req, error, prevValues) {
           <option value="direct_report">Direct Report</option>
           <option value="skip_level">Skip-Level</option>
         </select></div>
-        <button type="button" class="remove-rater-btn" onclick="this.closest('.rater-row').remove()">&#215;</button>
+        <button type="button" class="remove-rater-btn" onclick="this.closest('.rater-row').remove()" aria-label="Remove this row">${icon('x')}</button>
       \`;
       document.getElementById('rater-rows').appendChild(div);
     }
@@ -1042,32 +1067,39 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount, re
     <td>${r.name}</td>
     <td>${r.email}</td>
     <td><span class="badge badge-${r.rater_group}">${r.rater_group.replace(/_/g,' ')}</span></td>
-    <td>${r.email_sent_at ? '<span style="color:var(--sage)">&#10003; Sent ' + new Date(r.email_sent_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</span>' : '<span style="color:#ccc">Not sent</span>'}</td>
+    <td>${r.email_sent_at ? '<span class="sent">' + icon('check') + 'Sent ' + new Date(r.email_sent_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</span>' : '<span style="color:#ccc">Not sent</span>'}</td>
     <td><span class="badge ${r.completed_at?'badge-complete':'badge-pending'}">${r.completed_at?'Complete':'Pending'}</span></td>
     <td class="row-actions"><div class="actions-row">
-      <a href="${process.env.APP_URL||''}/survey/${r.token}" target="_blank" class="btn btn-ghost btn-sm">Open Link</a>
-      ${!r.completed_at?`<form method="POST" action="/admin/raters/${r.id}/delete" style="display:inline" onsubmit="return confirm('Remove this rater?')"><button class="btn btn-red btn-sm">Remove</button></form>`:''}
+      <a href="${process.env.APP_URL||''}/survey/${r.token}" target="_blank" class="btn btn-ghost btn-sm">${icon('external-link')}Open Link</a>
+      ${!r.completed_at?`<form method="POST" action="/admin/raters/${r.id}/delete" style="display:inline" onsubmit="return confirm('Remove this rater?')"><button class="btn btn-red btn-sm">${icon('trash')}Remove</button></form>`:''}
     </div></td>
   </tr>`).join('');
 
   return adminShell(leader.name, `
     <div class="page-header">
       <div>
-        <a href="/admin/cycles/${leader.cycle_id}" style="color:var(--clay);font-size:13px;font-weight:600;text-decoration:none;display:inline-block;margin-bottom:10px">&larr; Back to ${leader.cycles ? leader.cycles.name : 'Group'}</a>
+        <a href="/admin/cycles/${leader.cycle_id}" style="color:var(--clay);font-size:13px;font-weight:600;text-decoration:none;display:inline-block;margin-bottom:10px">${icon('arrow-left')} Back to ${leader.cycles ? leader.cycles.name : 'Group'}</a>
         <div class="page-title">${leader.name}</div>
         <div class="page-sub">${leader.title||''}${leader.department?' &nbsp;·&nbsp; '+leader.department:''}</div>
       </div>
       <div class="actions-row">
-        <a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">+ Add Raters</a>
-        <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-sage" type="submit">Send Pending Invites</button></form>
-        ${raterCompleted>=3?`<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating... please wait (30-60 sec)'"><button class="btn btn-ink" type="submit">Generate AI Report</button></form>`:`<span style="font-size:12px;color:var(--grey);align-self:center">Need 3+ rater responses to generate report (currently ${raterCompleted})</span>`}
-        ${report?`<a href="/report/pdf/${report.id}" class="btn btn-outline" target="_blank" rel="noopener">Download PDF</a>`:''}
-        <a href="/CARE_360_Leadership_Action_Plan.pptx" class="btn btn-ghost" download>Action Plan Template</a>
+        <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-ghost" type="submit">${icon('send')}Send Invites</button></form>
+        <a href="/admin/leaders/${leader.id}/raters/new" class="btn ${raterCompleted>=3?'btn-ghost':'btn-primary'}">${icon('user-plus')}Add Raters</a>
+        ${raterCompleted>=3
+          ? `<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating report… (30–60 sec)'"><button class="btn btn-sage" type="submit">${icon('sparkles')}${report ? 'Regenerate Report' : 'Generate Report'}</button></form>`
+          : `<span class="btn btn-locked" aria-disabled="true" title="The report unlocks after 3 rater responses. The self-assessment doesn't count.">${icon('lock')}Report<span class="lock-count">${raterCompleted} of 3</span><span class="lock-bar"><i style="width:${Math.round(Math.min(raterCompleted, 3) / 3 * 100)}%"></i></span></span>`}
+        <details class="menu">
+          <summary class="btn btn-ghost btn-icon" aria-label="More actions">${icon('more')}</summary>
+          <div class="menu-list">
+            ${report ? `<a href="/report/pdf/${report.id}" class="menu-item" target="_blank" rel="noopener">${icon('download')}Download PDF report</a>` : `<span class="menu-item menu-item-off">${icon('download')}PDF report<small>after the report runs</small></span>`}
+            <a href="/CARE_360_Leadership_Action_Plan.pptx" class="menu-item" download>${icon('presentation')}Action plan template</a>
+          </div>
+        </details>
       </div>
     </div>
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${totalCount}</div><div class="stat-lbl">Total Raters</div>${statBar(totalCount - completedCount, totalCount, 'ochre')}</div>
-      <div class="stat-card"><div class="stat-num">${completedCount}</div><div class="stat-lbl">Completed</div>${statBar(completedCount, totalCount, 'sage')}</div>
+      <div class="stat-card">${icon('users')}<div class="stat-num">${totalCount}</div><div class="stat-lbl">Total Raters</div>${statBar(totalCount - completedCount, totalCount, 'ochre')}</div>
+      <div class="stat-card">${icon('check-circle')}<div class="stat-num">${completedCount}</div><div class="stat-lbl">Completed</div>${statBar(completedCount, totalCount, 'sage')}</div>
       <div class="stat-card stat-card-ring"><div><div class="stat-num">${pct}<small>%</small></div><div class="stat-lbl">Response Rate</div></div>${ring(pct)}</div>
     </div>
     <div class="card">
@@ -1080,7 +1112,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount, re
         <thead><tr><th>Name</th><th>Email</th><th>Relationship</th><th>Invite</th><th>Status</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`:`
-      <div class="empty-state"><img class="empty-state-mark" src="/img/care-mark.svg" alt=""/><div class="empty-state-text">no raters yet.</div><a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">Add Raters</a></div>`}
+      <div class="empty-state"><img class="empty-state-mark" src="/img/care-mark.svg" alt=""/><div class="empty-state-text">no raters yet.</div><a href="/admin/leaders/${leader.id}/raters/new" class="btn btn-primary">${icon('plus')}Add Raters</a></div>`}
     </div>`, req);
 }
 

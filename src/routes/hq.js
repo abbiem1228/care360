@@ -197,9 +197,9 @@ a{color:var(--ink);text-decoration:none}
 .stat{background:#ffffff;border:1px solid var(--line);border-radius:20px;padding:22px 24px;box-shadow:var(--shadow);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}
 .stat-n{font-family:'EB Garamond',Georgia,serif;font-size:50px;font-weight:500;line-height:.95;letter-spacing:-1.4px;font-feature-settings:"lnum" 1,"tnum" 1}
-.stat-l{font-size:13px;font-weight:500;color:var(--grey);margin-top:8px}
+.stat-l{text-transform:lowercase;font-size:13px;font-weight:500;color:var(--grey);margin-top:8px}
 .card{background:#ffffff;border:1px solid var(--line);border-radius:20px;padding:28px 30px;overflow-x:auto;box-shadow:var(--shadow)}
-.card-title{font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:-0.5px;margin-bottom:16px}
+.card-title{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:-0.5px;margin-bottom:16px}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 th{background:transparent;color:var(--grey);padding:0 12px 12px;text-align:left;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:lowercase;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:13px 12px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:top}
@@ -241,8 +241,8 @@ tbody tr:hover td{background:var(--wash)}
 </div>
 
 <div class="wrap">
-  <div class="h1">Accounts</div>
-  <p class="lede">Everyone using CARE 360, and how far they have actually got. Metadata only, no feedback content.</p>
+  <div class="h1">accounts.</div>
+  <p class="lede">Everyone using care 360, and how far they have actually got. Metadata only, no feedback content.</p>
 
   <div class="stats">
     <div class="stat"><div class="stat-n">${d.total}</div><div class="stat-l">Total accounts</div></div>

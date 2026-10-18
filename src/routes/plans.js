@@ -317,13 +317,13 @@ a{text-decoration:none}
 
 .product-toggle{display:flex;justify-content:center;margin-bottom:18px}
 .product-toggle-inner{display:inline-flex;background:var(--wash);border:1px solid var(--line);border-radius:999px;padding:4px}
-.product-opt{padding:9px 22px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey);transition:color .15s,background .2s}
+.product-opt{text-transform:lowercase;padding:9px 22px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey);transition:color .15s,background .2s}
 .product-opt:hover{color:var(--ink)}
 .product-opt.on{background:var(--ink);color:var(--cream);box-shadow:0 2px 8px rgba(32,40,43,0.18)}
 
 .toggle{display:flex;justify-content:center;margin-bottom:12px}
 .toggle-inner{display:inline-flex;background:var(--wash);border:1px solid var(--line);border-radius:999px;padding:4px}
-.toggle-opt{padding:9px 22px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey);transition:color .15s}
+.toggle-opt{text-transform:lowercase;padding:9px 22px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey);transition:color .15s}
 .toggle-opt:hover{color:var(--ink)}
 .toggle-opt.on{background:#ffffff;color:var(--ink);box-shadow:0 1px 2px rgba(48,56,59,0.08),0 2px 8px rgba(48,56,59,0.06)}
 .save{text-align:center;font-size:13px;color:var(--ochre);font-weight:600;margin-bottom:36px;min-height:18px}
@@ -337,14 +337,14 @@ a{text-decoration:none}
 .plan-featured{border:1.5px solid var(--ink);box-shadow:0 2px 4px rgba(48,56,59,0.06),0 20px 44px rgba(48,56,59,0.1)}
 .plan-soft{background:var(--wash)}
 .plan-tag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--ochre-light);color:var(--ink);box-shadow:0 2px 8px rgba(168,123,44,0.25);font-size:12px;font-weight:600;padding:4px 14px;border-radius:999px;white-space:nowrap;text-transform:lowercase}
-.plan-name{font-family:'EB Garamond',Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-0.6px;margin-bottom:6px}
+.plan-name{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-0.6px;margin-bottom:6px}
 .plan-blurb{font-size:13px;color:var(--grey);line-height:1.6;margin-bottom:20px;min-height:42px}
 .plan-price{font-family:'EB Garamond',Georgia,serif;font-size:54px;font-weight:500;letter-spacing:-1.6px;line-height:1;font-feature-settings:"lnum" 1}
 .plan-sub{font-size:12px;color:var(--grey);margin-top:6px;margin-bottom:22px;min-height:17px}
 .plan-features{list-style:none;margin:0 0 26px;flex:1;border-top:1px solid var(--line);padding-top:14px}
 .plan-features li{font-size:13.5px;color:var(--ink);line-height:1.55;padding:6px 0 6px 20px;position:relative}
 .plan-features li::before{content:'';position:absolute;left:0;top:13px;width:7px;height:7px;border-radius:50%;background:var(--clay)}
-.plan-btn{display:block;text-align:center;padding:13px;border-radius:999px;font-size:14px;font-weight:600;background:#ffffff;color:var(--ink);border:1px solid var(--line-strong);transition:background .15s,color .15s,border-color .15s,transform .12s}
+.plan-btn{text-transform:lowercase;display:block;text-align:center;padding:13px;border-radius:999px;font-size:14px;font-weight:600;background:#ffffff;color:var(--ink);border:1px solid var(--line-strong);transition:background .15s,color .15s,border-color .15s,transform .12s}
 .plan-btn:active{transform:translateY(1px) scale(.99)}
 .plan-btn:hover{border-color:var(--ink)}
 .plan-btn-primary{background:var(--ink);color:var(--cream);border-color:var(--ink);box-shadow:0 1px 2px rgba(32,40,43,0.2),inset 0 1px 0 rgba(255,255,255,0.08)}
@@ -371,7 +371,7 @@ a{text-decoration:none}
 
 <div class="wrap">
   <div class="head">
-    <div class="h1">${p.label} plans</div>
+    <div class="h1">${p.label.toLowerCase()} plans.</div>
     <p class="lede">${p.tagline}</p>
   </div>
 

@@ -118,7 +118,7 @@ textarea::placeholder { color: #9AA2A4; }
 /* ── Submit ─────────────────────────────────────────────────── */
 .submit-block { background: var(--white); border: 1px solid var(--line); border-radius: 24px; padding: 48px; margin-top: 20px; text-align: center; box-shadow: var(--shadow); }
 .submit-note { font-size: 14px; color: var(--grey); margin-bottom: 22px; }
-.submit-btn { display: inline-block; background: var(--ink); color: var(--cream); font-size: 15px; font-weight: 600; font-family: inherit; padding: 16px 56px; border: none; border-radius: 999px; cursor: pointer; box-shadow: 0 1px 2px rgba(32,40,43,0.2), inset 0 1px 0 rgba(255,255,255,0.08); transition: background .15s, box-shadow .2s var(--ease), transform .12s var(--ease); }
+.submit-btn { text-transform: lowercase; display: inline-block; background: var(--ink); color: var(--cream); font-size: 15px; font-weight: 600; font-family: inherit; padding: 16px 56px; border: none; border-radius: 999px; cursor: pointer; box-shadow: 0 1px 2px rgba(32,40,43,0.2), inset 0 1px 0 rgba(255,255,255,0.08); transition: background .15s, box-shadow .2s var(--ease), transform .12s var(--ease); }
 .submit-btn:hover { background: var(--ink-deep); box-shadow: 0 8px 22px rgba(32,40,43,0.2); }
 .submit-btn:active { transform: translateY(1px) scale(.98); }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }

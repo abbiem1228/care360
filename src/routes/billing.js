@@ -263,7 +263,7 @@ function upgradeConfirmPage(products, error) {
     .terms-label input{margin-top:4px;accent-color:#30383B}
     .terms-label a{color:#30383B;font-weight:600}
     .actions{display:flex;gap:10px}
-    button,.ghost{font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;border-radius:999px;border:1px solid transparent;padding:12px 22px}
+    button,.ghost{text-transform:lowercase;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;border-radius:999px;border:1px solid transparent;padding:12px 22px}
     .primary{background:#30383B;color:#F7F3EA;flex:1}
     .primary:hover{background:#20282B}
     .ghost{background:transparent;border-color:rgba(48,56,59,0.22);color:#30383B;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}

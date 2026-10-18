@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { adminShell } = require('./admin');
+const { icon } = require('../icons');
 
 function requireAuth(req, res, next) {
   if (req.isAdmin) return next();
@@ -253,11 +254,12 @@ router.get('/', requireAuth, (req, res) => {
 .search-box{width:100%;padding:15px 18px 15px 46px;border:1px solid var(--line-strong);border-radius:999px;font-size:15px;font-family:inherit;color:var(--ink);background:white;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s}
 .search-box:hover{border-color:rgba(48,56,59,0.3)}
 .search-box:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 4px rgba(169,99,61,0.12)}
-.search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--grey);font-size:15px}
+.search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--grey);display:flex}
+.search-icon .i{width:17px;height:17px}
 .search-count{font-size:12px;color:var(--grey);margin-bottom:22px;min-height:16px;padding-left:18px}
 
 .toc{background:var(--wash);border:1px solid var(--line);border-radius:20px;padding:22px 28px;margin-bottom:32px}
-.toc-title{font-family:'EB Garamond',Georgia,serif;font-size:20px;font-weight:500;color:var(--ink);margin-bottom:8px}
+.toc-title{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:20px;font-weight:500;color:var(--ink);margin-bottom:8px}
 .toc ol{margin:0;padding-left:20px}
 .toc li{font-size:14px;line-height:2;color:var(--ink)}
 .toc li::marker{color:var(--clay)}
@@ -302,13 +304,13 @@ router.get('/', requireAuth, (req, res) => {
 </style>
 
 <div class="guide-main">
-  <div class="guide-title">How CARE 360 works</div>
+  <div class="guide-title">how care 360 works.</div>
   <p class="guide-lede">Setup takes about ten minutes. Everything then runs itself until the close date you set. You come back at the end to generate the report.</p>
 
   <div class="callout callout-clay">Have both CARE 360 and the Element Profile? Click the logo in the top-left corner, right where it says "care 360." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
 
   <div class="search-wrap">
-    <span class="search-icon">&#9906;</span>
+    <span class="search-icon">${icon('search')}</span>
     <input class="search-box" id="q" type="text" placeholder="Search. Try 'spam', 'deadline' or 'custom questions'" autocomplete="off"/>
   </div>
   <div class="search-count" id="count"></div>

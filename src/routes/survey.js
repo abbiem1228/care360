@@ -264,7 +264,7 @@ function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions, custo
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CARE 360 Survey</title>
+<title>care 360 survey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -290,7 +290,7 @@ function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions, custo
 <div class="survey-container">
   <div class="survey-intro">
     <h1>Your feedback matters.</h1>
-    <p>You have been asked to provide CARE 360 feedback for <strong>${leaderName}</strong>. This is a developmental tool, and your responses help this leader understand how their leadership lands and where they have the greatest opportunity to grow.</p>
+    <p>You have been asked to give care 360 feedback for <strong>${leaderName}</strong>. This is a developmental tool, and your responses help this leader understand how their leadership lands and where they have the greatest opportunity to grow.</p>
     <p>All responses are <strong>completely anonymous</strong>. Answer based on your direct, observed experience. The open-text sections are optional but are often the most valuable part.</p>
     <div class="scale-legend">
       <div class="legend-title">Rating Scale</div>

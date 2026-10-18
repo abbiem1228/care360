@@ -246,16 +246,17 @@ router.get('/', requireAuth, (req, res) => {
   const content = `
 <style>
 .guide-main{max-width:840px;margin:0 auto;padding:16px 0 80px}
-.guide-title{font-family:'EB Garamond',Georgia,serif;font-size:48px;font-weight:500;letter-spacing:-1.6px;line-height:1.08;margin-bottom:10px}
+.guide-title{font-family:'EB Garamond',Georgia,serif;font-size:54px;font-weight:500;letter-spacing:-2px;line-height:1.08;margin-bottom:10px}
 .guide-lede{font-size:16px;color:var(--grey);line-height:1.7;margin-bottom:28px}
 
 .search-wrap{position:relative;margin-bottom:14px}
-.search-box{width:100%;padding:14px 18px 14px 46px;border:1px solid var(--line-strong);border-radius:999px;font-size:15px;font-family:inherit;color:var(--ink);background:white;transition:border-color .15s,box-shadow .15s}
-.search-box:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(48,56,59,0.08)}
+.search-box{width:100%;padding:15px 18px 15px 46px;border:1px solid var(--line-strong);border-radius:999px;font-size:15px;font-family:inherit;color:var(--ink);background:white;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s}
+.search-box:hover{border-color:rgba(48,56,59,0.3)}
+.search-box:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 4px rgba(169,99,61,0.12)}
 .search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--grey);font-size:15px}
 .search-count{font-size:12px;color:var(--grey);margin-bottom:22px;min-height:16px;padding-left:18px}
 
-.toc{background:var(--paper);border-radius:20px;padding:22px 28px;margin-bottom:32px}
+.toc{background:var(--wash);border:1px solid var(--line);border-radius:20px;padding:22px 28px;margin-bottom:32px}
 .toc-title{font-family:'EB Garamond',Georgia,serif;font-size:20px;font-weight:500;color:var(--ink);margin-bottom:8px}
 .toc ol{margin:0;padding-left:20px}
 .toc li{font-size:14px;line-height:2;color:var(--ink)}
@@ -263,7 +264,8 @@ router.get('/', requireAuth, (req, res) => {
 
 .section-label{font-family:'EB Garamond',Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-0.6px;color:var(--ink);margin:44px 0 16px}
 
-.guide-block{background:var(--paper);border-radius:20px;padding:26px 30px;margin-bottom:14px}
+.guide-block{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:26px 30px;margin-bottom:14px;box-shadow:var(--shadow);transition:box-shadow .25s var(--ease)}
+.guide-block:hover{box-shadow:var(--shadow-lift)}
 .step-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .step-num{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--cream);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
 .step-num-plain{background:var(--clay);font-size:13px}
@@ -274,13 +276,13 @@ router.get('/', requireAuth, (req, res) => {
 .step-body li{font-size:14.5px;line-height:1.85;color:var(--ink)}
 .step-body strong{color:var(--ink);font-weight:600}
 
-.callout{border-radius:14px;padding:14px 18px;margin:14px 0;font-size:14px;line-height:1.75;color:var(--ink)}
-.callout-sand{background:#ffffff}
-.callout-clay{background:#F3E6DC}
-.callout-sage{background:#E6EADD}
+.callout{border-radius:14px;padding:14px 18px;margin:14px 0;font-size:14px;line-height:1.75;color:var(--ink);border:1px solid transparent}
+.callout-sand{background:var(--wash);border-color:var(--line)}
+.callout-clay{background:var(--ochre-tint);border-color:var(--ochre-line)}
+.callout-sage{background:var(--sage-tint);border-color:#DCE2D2}
 
 .guide-table{width:100%;border-collapse:collapse;margin:12px 0 14px}
-.guide-table th{background:transparent;color:var(--grey);padding:9px 13px;text-align:left;font-size:12px;font-weight:600;border-bottom:1px solid var(--line-strong)}
+.guide-table th{background:transparent;color:var(--grey);padding:0 13px 10px;text-align:left;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:lowercase;border-bottom:1px solid var(--line)}
 .guide-table td{padding:11px 13px;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink);line-height:1.6}
 .guide-table tr:last-child td{border-bottom:none}
 

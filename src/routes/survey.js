@@ -28,7 +28,7 @@ router.get('/:token', async (req, res) => {
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Link not found', 'This survey link was not found. Please check your email for the correct link.'));
     if (await surveyLocked(rater.leaders.cycles)) return res.send(statusPage('!', 'Survey not open', 'This survey is no longer open.'));
-    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `You have already completed the survey for <strong>${rater.leaders.name}</strong>. Thank you for your contribution.`, '#1F6B3A'));
+    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `You have already completed the survey for <strong>${rater.leaders.name}</strong>. Thank you for your contribution.`, '#A9633D'));
     if (rater.leaders.cycles.status !== 'active') return res.send(statusPage('!', 'Survey not open', 'This survey is not currently open. Please contact your survey administrator.'));
 
     // Check closes_at date
@@ -70,7 +70,7 @@ router.post('/:token', async (req, res) => {
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Invalid link', 'Survey link not found.'));
     if (await surveyLocked(rater.leaders.cycles)) return res.status(410).send(statusPage('!', 'Survey not open', 'This survey is no longer open.'));
-    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `Already submitted for <strong>${rater.leaders.name}</strong>.`, '#1F6B3A'));
+    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `Already submitted for <strong>${rater.leaders.name}</strong>.`, '#A9633D'));
     if (rater.leaders.cycles.status !== 'active') return res.status(400).send(statusPage('!', 'Survey closed', 'This survey is no longer accepting responses.'));
     if (rater.leaders.cycles.closes_at && new Date() > new Date(rater.leaders.cycles.closes_at)) {
       return res.status(400).send(statusPage('!', 'Survey closed', 'The deadline for this survey has passed. Your responses could not be submitted. Please contact your survey administrator.'));
@@ -172,7 +172,7 @@ router.post('/:token', async (req, res) => {
     } catch (e) {
       console.error('Completion notice failed:', e.message);
     }
-    res.send(statusPage('✓', 'Thank you', `Your feedback for <strong>${rater.leaders.name}</strong> has been received. Your responses are anonymous and will be included in their development report.`, '#1F6B3A'));
+    res.send(statusPage('✓', 'Thank you', `Your feedback for <strong>${rater.leaders.name}</strong> has been received. Your responses are anonymous and will be included in their development report.`, '#A9633D'));
 
   } catch (err) {
     console.error(err);
@@ -280,8 +280,11 @@ function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions, custo
       <span class="context-name">${leaderName}</span>
       <span class="context-sep">·</span>
       <span class="context-group">${groupLabel}</span>
+      <span class="context-sep">·</span>
+      <span class="progress-count" id="progress-count" aria-live="polite"><strong>0</strong> of ${sections.reduce((n, s) => n + s.questions.length, 0) + customQuestions.length} answered</span>
     </div>
   </div>
+  <div class="survey-progress" aria-hidden="true"><div class="survey-progress-fill" id="progress-fill"></div></div>
 </header>
 
 <div class="survey-container">
@@ -340,15 +343,16 @@ function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions, custo
 </html>`;
 }
 
-function statusPage(icon, title, msg, color = '#A9633D') {
+function statusPage(icon, title, msg, color = '#A87B2C') {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title>
   <link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet">
-  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;-webkit-font-smoothing:antialiased}
-  .card{background:#F5F2ED;border-radius:24px;padding:52px 56px;max-width:520px;text-align:center}
-  .icon{width:56px;height:56px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;font-family:'EB Garamond',serif}
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;-webkit-font-smoothing:antialiased}
+  .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:52px 56px;max-width:520px;text-align:center}
+  .icon{width:60px;height:60px;border-radius:50%;background:${color};color:#fff;box-shadow:0 0 0 8px ${color}1A;animation:pop .45s cubic-bezier(.2,.7,.2,1) both;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;font-family:'EB Garamond',serif}
   .title{font-family:'EB Garamond',serif;font-size:38px;font-weight:500;letter-spacing:-1.2px;line-height:1.1;color:#30383B;margin-bottom:12px;text-transform:lowercase}
   .msg{font-size:15px;color:#637074;line-height:1.75}
+  @keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
   .brand{margin-top:36px}.brand img{height:16px;width:auto;opacity:0.85}
   @media(max-width:520px){.card{padding:40px 24px}}</style></head>
   <body><div class="card">

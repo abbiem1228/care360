@@ -176,51 +176,55 @@ function hqPage(d) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--ink:#30383B;--clay:#A9633D;--clay-dark:#925433;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F3EA;--paper:#F5F2ED;--warm:#EDE8DF;--grey:#637074;--line:rgba(48,56,59,0.12);--line-strong:rgba(48,56,59,0.22)}
+:root{--ink:#30383B;--clay:#A9633D;--clay-dark:#925433;--clay-tint:#F7ECE5;--ochre:#A87B2C;--ochre-light:#E3C785;--ochre-tint:#FBF5E6;--ochre-line:#EEDFB8;--sage:#7C8863;--sage-tint:#EEF1E8;--danger:#A94442;--danger-tint:#FBEFED;--sand:#D9CBB2;--cream:#F7F3EA;--wash:#FAF8F4;--warm:#EDE8DF;--grey:#637074;--line:rgba(48,56,59,0.09);--line-strong:rgba(48,56,59,0.18);--shadow:0 1px 2px rgba(48,56,59,0.04),0 2px 10px rgba(48,56,59,0.04);--shadow-lift:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);--ease:cubic-bezier(.2,.7,.2,1)}
+@keyframes igc-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 body{font-family:'Noto Sans',Arial,sans-serif;background:#ffffff;color:var(--ink);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
 a{color:var(--ink);text-decoration:none}
-.top{background:#ffffff;height:76px;display:flex;align-items:center;padding:0 40px;gap:24px;box-shadow:0 1px 0 var(--line);position:sticky;top:0;z-index:100}
+.top{background:rgba(255,255,255,0.78);-webkit-backdrop-filter:saturate(180%) blur(16px);backdrop-filter:saturate(180%) blur(16px);height:72px;display:flex;align-items:center;padding:0 40px;gap:24px;box-shadow:0 1px 0 var(--line);position:sticky;top:0;z-index:100}
 .top-mark{width:30px;height:30px;display:block}
 .top-brand{color:var(--ink);font-weight:500;font-size:23px;font-family:'EB Garamond',Georgia,serif;letter-spacing:-0.5px}
 .top-logo{display:flex;align-items:center;gap:10px}
-.top-tag{color:var(--ink);font-size:12px;font-weight:500;background:var(--paper);padding:3px 10px;border-radius:999px}
+.top-tag{color:var(--ochre);font-size:12px;font-weight:600;background:var(--ochre-tint);border:1px solid var(--ochre-line);padding:3px 10px;border-radius:999px}
 .top-spacer{flex:1}
 .top-link{color:var(--ink);font-size:14px;opacity:.78;text-transform:lowercase}
 .top-link:hover{opacity:1;text-decoration:underline;text-decoration-color:var(--clay);text-underline-offset:6px}
-.wrap{max-width:1240px;margin:0 auto;padding:48px 40px 80px}
-.h1{font-family:'EB Garamond',Georgia,serif;font-size:44px;font-weight:500;letter-spacing:-1.4px;line-height:1.08;margin-bottom:8px}
+.wrap{max-width:1240px;margin:0 auto;padding:52px 40px 96px;animation:igc-rise .55s var(--ease) both}
+.h1{font-family:'EB Garamond',Georgia,serif;font-size:50px;font-weight:500;letter-spacing:-1.8px;line-height:1.08;margin-bottom:8px}
 .lede{font-size:15px;color:var(--grey);margin-bottom:30px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:20px}
-.stat{background:var(--paper);border-radius:20px;padding:22px 24px}
-.stat-n{font-family:'EB Garamond',Georgia,serif;font-size:42px;font-weight:500;line-height:1;letter-spacing:-1px}
+.stat{background:#ffffff;border:1px solid var(--line);border-radius:20px;padding:22px 24px;box-shadow:var(--shadow);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}
+.stat-n{font-family:'EB Garamond',Georgia,serif;font-size:50px;font-weight:500;line-height:.95;letter-spacing:-1.4px;font-feature-settings:"lnum" 1,"tnum" 1}
 .stat-l{font-size:13px;font-weight:500;color:var(--grey);margin-top:8px}
-.card{background:var(--paper);border-radius:20px;padding:28px 30px;overflow-x:auto}
-.card-title{font-family:'EB Garamond',Georgia,serif;font-size:24px;font-weight:500;letter-spacing:-0.5px;margin-bottom:16px}
-table{width:100%;border-collapse:collapse}
-th{background:transparent;color:var(--grey);padding:10px 12px;text-align:left;font-size:12px;font-weight:600;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+.card{background:#ffffff;border:1px solid var(--line);border-radius:20px;padding:28px 30px;overflow-x:auto;box-shadow:var(--shadow)}
+.card-title{font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:-0.5px;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{background:transparent;color:var(--grey);padding:0 12px 12px;text-align:left;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:lowercase;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:13px 12px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:top}
 tr:last-child td{border-bottom:none}
-tbody tr:hover td{background:rgba(255,255,255,0.55)}
+tbody tr:hover td{background:var(--wash)}
 .num{text-align:center;font-variant-numeric:tabular-nums}
 .acct{font-weight:600}
 .acct-email{font-size:12px;color:var(--grey);margin-top:2px}
 .plan{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;text-transform:lowercase}
-.plan-trial{background:#E9E6E0;color:var(--grey)}
-.plan-starter{background:#E6EADD;color:#56603F}
-.plan-growth{background:#F3E6DC;color:var(--clay-dark)}
+.plan-trial{background:var(--ochre-tint);color:var(--ochre)}
+.plan-starter{background:var(--sage-tint);color:#56603F}
+.plan-growth{background:var(--clay-tint);color:var(--clay-dark)}
 .plan-community{background:#E3E7EA;color:#3D5A7A}
 .plan-enterprise{background:var(--ink);color:var(--cream)}
 .product{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}
 .product-bundle{background:var(--ink);color:var(--cream)}
-.product-care360{background:#F3E6DC;color:var(--clay-dark)}
+.product-care360{background:var(--clay-tint);color:var(--clay-dark)}
 .product-element{background:#E3E5E5;color:var(--ink)}
 .product-none{background:#E9E6E0;color:var(--grey)}
 .flag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;margin-bottom:3px}
-.flag-over{background:#F2E1DD;color:#A94442}
-.flag-near{background:#F3E6DC;color:var(--clay-dark)}
+.flag-over{background:var(--danger-tint);color:var(--danger)}
+.flag-near{background:var(--ochre-tint);color:var(--ochre)}
 .flag-multi{background:#E3E7EA;color:#3D5A7A}
 .flag-cold{background:#E9E6E0;color:var(--grey)}
-.flag-warm{background:#E6EADD;color:#56603F}
+.flag-warm{background:var(--sage-tint);color:#56603F}
 .legend{margin-top:20px;font-size:13px;color:var(--grey);line-height:1.9}
 @media(max-width:800px){.top{padding:0 16px;gap:14px}.wrap{padding:28px 16px}td,th{padding:8px}}
 </style></head><body>
@@ -242,10 +246,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.55)}
 
   <div class="stats">
     <div class="stat"><div class="stat-n">${d.total}</div><div class="stat-l">Total accounts</div></div>
-    <div class="stat" style="border-color:var(--sage)"><div class="stat-n" style="color:var(--sage)">${d.paying}</div><div class="stat-l">Paying</div></div>
-    <div class="stat" style="border-color:var(--sand)"><div class="stat-n" style="color:var(--grey)">${d.trials}</div><div class="stat-l">On trial</div></div>
+    <div class="stat"><div class="stat-n">${d.paying}</div><div class="stat-l">Paying</div></div>
+    <div class="stat"><div class="stat-n">${d.trials}</div><div class="stat-l">On trial</div></div>
     <div class="stat"><div class="stat-n">${d.newThisMonth}</div><div class="stat-l">New in 30 days</div></div>
-    <div class="stat" style="border-color:#A94442"><div class="stat-n" style="color:#A94442">${d.dormant}</div><div class="stat-l">Trials not started</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--clay)">${d.dormant}</div><div class="stat-l">Trials not started</div></div>
   </div>
 
   <div class="card">
@@ -311,20 +315,20 @@ function retentionPage(items, flash, scan) {
     <h1 style="font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:44px;letter-spacing:-1.4px;line-height:1.1;margin:16px 0 10px">Data retention</h1>
     <p style="color:#637074;max-width:720px">Products whose subscription has ended. Data is deleted 60 days after the end date, and only after the owner has had 7 days' warning and you approve it here. The counts are a dry run: nothing is deleted until you press Delete now.</p>
     ${scanLine(scan)}
-    ${flash ? `<div style="background:#E6EADD;color:#3F4A2E;border-radius:14px;padding:14px 18px;margin:16px 0">${flash}</div>` : ''}
-    ${items.length ? `<table style="width:100%;border-collapse:collapse;background:#F5F2ED;border-radius:20px;overflow:hidden"><tr style="text-align:left;font-size:12px;color:#637074"><th style="padding:12px">Account</th><th style="padding:12px">Product</th><th style="padding:12px">Status</th><th style="padding:12px">What happens</th></tr>${rows}</table>`
-      : '<p style="background:#F5F2ED;padding:20px 22px;border-radius:20px">Nothing has ended. Nothing to review.</p>'}
+    ${flash ? `<div style="background:#FBF5E6;border:1px solid #EEDFB8;color:#30383B;border-radius:14px;padding:14px 18px;margin:16px 0">${flash}</div>` : ''}
+    ${items.length ? `<table style="width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid rgba(48,56,59,0.09);border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(48,56,59,0.04),0 2px 10px rgba(48,56,59,0.04)"><tr style="text-align:left;font-size:12px;color:#637074"><th style="padding:12px">Account</th><th style="padding:12px">Product</th><th style="padding:12px">Status</th><th style="padding:12px">What happens</th></tr>${rows}</table>`
+      : '<p style="background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 1px 2px rgba(48,56,59,0.04),0 2px 10px rgba(48,56,59,0.04);padding:20px 22px;border-radius:20px">Nothing has ended. Nothing to review.</p>'}
   </div></body></html>`;
 }
 
 // The daily job's last run. Over 26 hours ago means it has stopped.
 function scanLine(scan) {
-  if (!scan) return '<div style="background:#F6E7E3;color:#A94442;border-radius:14px;padding:12px 16px;margin:12px 0">The daily retention check has never run.</div>';
+  if (!scan) return '<div style="background:#FBEFED;border:1px solid #F1D3CF;color:#A94442;border-radius:14px;padding:12px 16px;margin:12px 0">The daily retention check has never run.</div>';
   const at = new Date(scan.created_at);
   const stale = Date.now() - at.getTime() > 26 * 60 * 60 * 1000;
   const when = at.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
   return stale
-    ? `<div style="background:#F6E7E3;color:#A94442;border-radius:14px;padding:12px 16px;margin:12px 0"><strong>The daily retention check last ran ${when} UTC, more than a day ago.</strong> It may have stopped. Check the server logs for "Retention run failed".</div>`
+    ? `<div style="background:#FBEFED;border:1px solid #F1D3CF;color:#A94442;border-radius:14px;padding:12px 16px;margin:12px 0"><strong>The daily retention check last ran ${when} UTC, more than a day ago.</strong> It may have stopped. Check the server logs for "Retention run failed".</div>`
     : `<p style="color:#637074;font-size:13px;margin:8px 0 16px">Daily check last ran ${when} UTC.</p>`;
 }
 

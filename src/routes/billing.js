@@ -160,8 +160,8 @@ checkoutRouter.get('/checkout/success', requireAuth, (req, res) => {
   <meta http-equiv="refresh" content="3;url=/admin"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
-  <style>body{font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;-webkit-font-smoothing:antialiased}
-  .card{background:#F5F2ED;border-radius:24px;padding:48px;max-width:440px;text-align:center}
+  <style>body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;-webkit-font-smoothing:antialiased}
+  .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:48px;max-width:440px;text-align:center}
   h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:40px;letter-spacing:-1.2px;margin:0 0 10px;text-transform:lowercase}p{color:#637074;font-size:15px;line-height:1.7;margin:0}</style></head>
   <body><div class="card"><h2>Thank you</h2><p>Your subscription is being set up. This takes a few seconds. You will be taken to your dashboard automatically.</p></div></body></html>`);
 });
@@ -254,8 +254,8 @@ function upgradeConfirmPage(products, error) {
   <title>Add ${productName} — CARE 360</title>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
   <style>
-    body{font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;-webkit-font-smoothing:antialiased}
-    .card{background:#F5F2ED;border-radius:24px;padding:44px;max-width:480px;width:100%}
+    body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;-webkit-font-smoothing:antialiased}
+    .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:44px;max-width:480px;width:100%}
     h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:34px;letter-spacing:-1px;line-height:1.1;margin:0 0 12px}
     p{color:#637074;font-size:14px;line-height:1.7;margin:0 0 22px}
     .err{background:#F6E7E3;color:#A94442;border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:18px}

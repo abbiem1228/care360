@@ -66,8 +66,8 @@ function errorPage(msg) {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Error</title>
   <link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
-  <style>body{font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;-webkit-font-smoothing:antialiased}
-  .card{background:#F5F2ED;border-radius:24px;padding:48px;max-width:440px;text-align:center}
+  <style>body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;-webkit-font-smoothing:antialiased}
+  .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:48px;max-width:440px;text-align:center}
   h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:40px;letter-spacing:-1.2px;margin:0 0 10px}.p{color:#637074;font-size:15px;line-height:1.7;margin:0 0 24px}
   a{display:inline-block;background:#30383B;color:#F7F3EA;text-decoration:none;font-size:14px;font-weight:600;padding:11px 22px;border-radius:999px}</style></head>
   <body><div class="card"><h2>oops.</h2><p class="p">${msg}</p><a href="/admin">back to care 360</a></div></body></html>`;

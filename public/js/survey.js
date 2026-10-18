@@ -3,12 +3,27 @@
   const form = document.getElementById('survey-form');
   if (!form) return;
 
+  // Progress: thin bar under the header plus an "x of y answered" count.
+  const blocks        = document.querySelectorAll('.question-block');
+  const progressFill  = document.getElementById('progress-fill');
+  const progressCount = document.getElementById('progress-count');
+  function updateProgress() {
+    if (!progressFill || !progressCount) return;
+    let done = 0;
+    blocks.forEach(b => { if (b.querySelector('input[type="radio"]:checked')) done++; });
+    progressFill.style.width = (blocks.length ? done / blocks.length * 100 : 0) + '%';
+    progressCount.innerHTML = '<strong>' + done + '</strong> of ' + blocks.length + ' answered';
+    progressCount.classList.toggle('done', done === blocks.length);
+  }
+
   document.querySelectorAll('input[type="radio"]').forEach(input => {
     input.addEventListener('change', () => {
       const block = input.closest('.question-block');
       if (block) block.classList.add('answered');
+      updateProgress();
     });
   });
+  updateProgress();
 
   const submitBtn   = document.getElementById('submit-btn');
   const submitError = document.getElementById('submit-error');
@@ -52,12 +67,12 @@
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
           e.preventDefault();
           const next = options[idx + 1];
-          if (next) { next.checked = true; next.focus(); next.closest('.question-block')?.classList.add('answered'); }
+          if (next) { next.checked = true; next.focus(); next.closest('.question-block')?.classList.add('answered'); updateProgress(); }
         }
         if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
           e.preventDefault();
           const prev = options[idx - 1];
-          if (prev) { prev.checked = true; prev.focus(); }
+          if (prev) { prev.checked = true; prev.focus(); prev.closest('.question-block')?.classList.add('answered'); updateProgress(); }
         }
       });
     });

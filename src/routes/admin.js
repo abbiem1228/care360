@@ -129,7 +129,7 @@ router.post('/cycles/:id/status', requireAuth, async (req, res) => {
     const { data: leaders } = await db(req).from('leaders').select('raters(email_sent_at)').eq('cycle_id', req.params.id);
     const anyInviteSent = (leaders || []).some(l => (l.raters || []).some(r => r.email_sent_at));
     if (anyInviteSent) {
-      return res.send(adminShell('Cannot reopen to draft', `<div class="card" style="border-left:4px solid #A94442;background:#FFF7F6;max-width:520px">
+      return res.send(adminShell('Cannot reopen to draft', `<div class="card alert-card" style="max-width:520px">
         <div style="font-size:15px;font-weight:600;color:#A94442;margin-bottom:8px">Invitations have already been sent</div>
         <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:16px">At least one rater has already received a link for this Group. Reopening it to draft could let leaders, raters, or questions be edited while someone is mid-way through their survey. This Group can still be closed or re-activated, just not returned to draft.</div>
         <a href="/admin/cycles/${req.params.id}" class="btn btn-ghost">Back to Group</a>
@@ -178,7 +178,7 @@ router.post('/cycles/:id/dates', requireAuth, async (req, res) => {
   const wouldReopenAlreadyClosedGroup = cycle.status === 'closed' && cycle.closed_notified_at && new Date(closes_at) > new Date();
   if (wouldReopenAlreadyClosedGroup && !confirm) {
     return res.send(adminShell('Confirm reopening this Group', `
-      <div class="card" style="border-left:4px solid #A9633D;background:#FBF5EC;max-width:560px">
+      <div class="card notice-card" style="max-width:560px">
         <div style="font-size:15px;font-weight:600;color:#30383B;margin-bottom:8px">This Group already closed, and that closure was already reported</div>
         <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:18px">"${cycle.name}" closed automatically, and the admin notice for any leader with unanswered raters already went out. Saving a close date in the future will also reactivate this Group so raters can respond again. If that's what you want, confirm below.</div>
         <form method="POST" action="/admin/cycles/${cycle.id}/dates">
@@ -231,7 +231,7 @@ router.post('/cycles/:cycleId/leaders', requireAuth, async (req, res) => {
     const { count } = await db(req).from('leaders').select('id', { count: 'exact', head: true });
     if ((count || 0) >= 1) {
       return res.send(adminShell('Trial limit reached', `
-        <div class="card" style="border-left:4px solid #A9633D;background:#FBF5EC;max-width:520px">
+        <div class="card notice-card" style="max-width:520px">
           <div style="font-size:16px;font-weight:600;color:#30383B;margin-bottom:8px">You've used your free trial</div>
           <div style="font-size:13px;color:var(--grey);line-height:1.75;margin-bottom:18px">Your trial covers one leader, and you've already run one. Upgrade to add more leaders, unlimited Groups, and everything else CARE 360 offers.</div>
           <a href="/plans" class="btn btn-primary">See plans</a>
@@ -356,7 +356,7 @@ router.post('/raters/:raterId/delete', requireAuth, async (req, res) => {
   const { data: rater } = await db(req).from('raters').select('leader_id, name, completed_at').eq('id', req.params.raterId).maybeSingle();
   if (!rater) return res.redirect('/admin');
   if (rater.completed_at) {
-    return res.send(adminShell('Cannot remove rater', `<div class="card" style="border-left:4px solid #A94442;background:#FFF7F6">
+    return res.send(adminShell('Cannot remove rater', `<div class="card alert-card">
       <div style="font-size:15px;font-weight:600;color:#A94442;margin-bottom:8px">This rater has already submitted</div>
       <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:16px">${rater.name} completed their survey. Removing them would permanently delete their scores and comments, and that cannot be undone. Raters can only be removed before they respond.</div>
       <a href="/admin/leaders/${rater.leader_id}" class="btn btn-ghost">Back to leader</a>
@@ -372,118 +372,127 @@ router.post('/raters/:raterId/delete', requireAuth, async (req, res) => {
 
 const CSS = `
 <style>
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--ink:#30383B;--clay:#A9633D;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F4EF;--warm:#EDE8DF;--white:#ffffff;--grey:#595959;--lgrey:#EAE6DE;--shadow:0 1px 4px rgba(48,56,59,0.10);--shadow-md:0 4px 16px rgba(48,56,59,0.12)}
-body{font-family:'Inter',Arial,sans-serif;background:var(--cream);color:var(--ink);font-size:14px}
-a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
+:root{--ink:#30383B;--clay:#A9633D;--clay-dark:#925433;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F3EA;--paper:#F5F2ED;--warm:#EDE8DF;--white:#ffffff;--grey:#637074;--lgrey:#EAE6DE;--line:rgba(48,56,59,0.12);--line-strong:rgba(48,56,59,0.22);--shadow:none;--shadow-md:0 12px 32px rgba(48,56,59,0.12)}
+body{font-family:'Noto Sans',Arial,sans-serif;background:var(--white);color:var(--ink);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}a:hover{color:var(--clay);text-decoration-color:currentColor}
 
-.admin-nav{background:var(--ink);height:56px;display:flex;align-items:center;padding:0 32px;gap:28px;box-shadow:0 2px 8px rgba(0,0,0,0.2);position:sticky;top:0;z-index:100}
+.admin-nav{background:var(--white);height:76px;display:flex;align-items:center;padding:0 40px;gap:28px;box-shadow:0 1px 0 var(--line);position:sticky;top:0;z-index:100}
 .nav-logo{display:flex;align-items:center;gap:10px}
-.nav-logo-mark{width:32px;height:32px;background:var(--clay);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:11px;font-family:'EB Garamond',serif;letter-spacing:0}
-.nav-brand{color:white;font-weight:600;font-size:15px;font-family:'EB Garamond',serif;letter-spacing:0.3px}
+.nav-logo-mark{width:30px;height:30px;display:block;flex-shrink:0}
+.nav-brand{color:var(--ink);font-weight:500;font-size:23px;font-family:'EB Garamond',Georgia,serif;letter-spacing:-0.5px;line-height:1}
 .nav-logo-switcher{position:relative;cursor:pointer}
 .nav-logo-switcher summary{list-style:none}
 .nav-logo-switcher summary::-webkit-details-marker{display:none}
-.nav-logo-switcher summary:focus-visible{outline:2px solid var(--sand);outline-offset:4px;border-radius:4px}
-.nav-logo-dropdown{position:absolute;top:100%;left:0;margin-top:10px;background:white;border-radius:8px;box-shadow:var(--shadow-md);padding:6px;min-width:220px;z-index:200}
-.nav-logo-dropdown-item{display:block;padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink);border-radius:6px;white-space:nowrap}
-.nav-logo-dropdown-item:hover{background:var(--warm);text-decoration:none}
-.nav-link{color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;transition:color 0.15s}
-.nav-link:hover{color:white;text-decoration:none}
+.nav-logo-switcher summary::after{content:'';width:6px;height:6px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);transform:rotate(45deg);margin:-4px 0 0 4px;opacity:0.6}
+.nav-logo-switcher summary:focus-visible{outline:2px solid var(--clay);outline-offset:4px;border-radius:4px}
+.nav-logo-dropdown{position:absolute;top:100%;left:0;margin-top:14px;background:var(--white);border-radius:16px;box-shadow:var(--shadow-md);padding:6px;min-width:220px;z-index:200}
+.nav-logo-dropdown-item{display:block;padding:10px 14px;font-size:14px;font-weight:500;color:var(--ink);border-radius:10px;white-space:nowrap;text-decoration:none}
+.nav-logo-dropdown-item:hover{background:var(--paper);color:var(--ink)}
+.nav-link{color:var(--ink);font-size:14px;font-weight:400;text-transform:lowercase;text-decoration:none;opacity:0.78;transition:opacity 0.15s,color 0.15s}
+.nav-link:hover{opacity:1;color:var(--ink);text-decoration:underline;text-decoration-color:var(--clay);text-underline-offset:6px}
+.nav-link-accent{color:var(--clay);font-weight:600;opacity:1}
 .nav-link-btn{background:none;border:none;font-family:inherit;padding:0;cursor:pointer}
 .nav-spacer{flex:1}
-.nav-user{display:flex;align-items:center;gap:9px;color:rgba(255,255,255,0.6);font-size:13px}
-.nav-acct{color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-plan{font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;background:rgba(255,255,255,0.14);color:rgba(255,255,255,0.75);padding:3px 7px;border-radius:10px}
-.nav-avatar{width:28px;height:28px;border-radius:50%;background:var(--clay);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.nav-user{display:flex;align-items:center;gap:14px;color:var(--grey);font-size:14px}
+.nav-acct{color:var(--ink);font-size:14px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-plan{font-size:12px;font-weight:500;background:var(--paper);color:var(--ink);padding:3px 10px;border-radius:999px}
+.nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--cream);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
 
-.admin-main{max-width:1100px;margin:0 auto;padding:32px 24px}
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px}
-.page-title{font-family:'EB Garamond',serif;font-size:28px;font-weight:600;color:var(--ink);margin-bottom:4px}
-.page-sub{font-size:14px;color:var(--grey)}
+.admin-main{max-width:1120px;margin:0 auto;padding:48px 40px 96px}
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px}
+.page-title{font-family:'EB Garamond',Georgia,serif;font-size:44px;font-weight:500;color:var(--ink);letter-spacing:-1.4px;line-height:1.08;margin-bottom:8px}
+.page-sub{font-size:15px;color:var(--grey)}
 
-.card{background:white;border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);border:1px solid var(--warm)}
-.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.card-title{font-family:'EB Garamond',serif;font-size:18px;font-weight:600;color:var(--ink)}
+.card{background:var(--paper);border-radius:20px;padding:28px 30px;margin-bottom:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.card-title{font-family:'EB Garamond',Georgia,serif;font-size:24px;font-weight:500;color:var(--ink);letter-spacing:-0.5px}
 
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
-.stat-card{background:white;border-radius:10px;padding:20px;border-left:4px solid var(--clay);box-shadow:var(--shadow)}
-.stat-num{font-family:'EB Garamond',serif;font-size:36px;font-weight:600;color:var(--ink);line-height:1}
-.stat-lbl{font-size:11px;font-weight:600;color:var(--grey);margin-top:6px;text-transform:uppercase;letter-spacing:0.6px}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px}
+.stat-card{background:var(--paper);border-radius:20px;padding:24px 26px}
+.stat-num{font-family:'EB Garamond',Georgia,serif;font-size:46px;font-weight:500;color:var(--ink);line-height:1;letter-spacing:-1px}
+.stat-lbl{font-size:13px;font-weight:500;color:var(--grey);margin-top:8px}
 
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;line-height:1;font-family:inherit;text-decoration:none}
-.btn:hover{opacity:0.88;text-decoration:none}
-.btn-primary{background:var(--clay);color:white;box-shadow:0 2px 6px rgba(169,99,61,0.3)}
-.btn-ink{background:var(--ink);color:white}
-.btn-sage{background:var(--sage);color:white}
-.btn-red{background:#A94442;color:white}
-.btn-outline{background:transparent;color:var(--clay);border:1.5px solid var(--clay)}
-.btn-ghost{background:var(--warm);color:var(--ink);border:1.5px solid var(--sand)}
-.btn-sm{padding:6px 12px;font-size:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:background 0.15s,color 0.15s,border-color 0.15s;line-height:1.1;font-family:inherit;text-decoration:none;white-space:nowrap}
+.btn:hover{text-decoration:none}
+.btn-primary,.btn-ink{background:var(--ink);color:var(--cream)}
+.btn-primary:hover,.btn-ink:hover{background:#20282B;color:var(--cream)}
+.btn-sage{background:var(--clay);color:var(--white)}
+.btn-sage:hover{background:var(--clay-dark);color:var(--white)}
+.btn-red{background:transparent;color:#A94442;border-color:rgba(169,68,66,0.4)}
+.btn-red:hover{background:#A94442;color:var(--white);border-color:#A94442}
+.btn-outline{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn-outline:hover{background:var(--ink);color:var(--cream)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-sm{padding:7px 14px;font-size:12px}
 
 .data-table{width:100%;border-collapse:collapse}
-.data-table th{background:var(--ink);color:rgba(255,255,255,0.9);padding:11px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase}
-.data-table th:first-child{border-radius:6px 0 0 0}.data-table th:last-child{border-radius:0 6px 0 0}
-.data-table td{padding:12px 14px;border-bottom:1px solid var(--warm);font-size:13px}
+.data-table th{background:transparent;color:var(--grey);padding:10px 14px;text-align:left;font-size:12px;font-weight:600;border-bottom:1px solid var(--line-strong)}
+.data-table td{padding:14px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
 .data-table tr:last-child td{border-bottom:none}
-.data-table tr:hover td{background:var(--cream)}
+.data-table tbody tr:hover td{background:rgba(255,255,255,0.55)}
 
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;text-transform:lowercase;white-space:nowrap}
 .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
-.badge-draft{background:#F0EDE8;color:#888}
-.badge-active{background:#EEF5EE;color:#1A6B36}
-.badge-closed{background:#FDECEA;color:#A94442}
-.badge-complete{background:#EEF5EE;color:#1A6B36}
-.badge-pending{background:#FBF5EC;color:#8B6914}
-.badge-self{background:var(--warm);color:var(--ink)}
-.badge-supervisor{background:#FDECEA;color:#A94442}
-.badge-peer{background:#EEF5EE;color:#1A6B36}
-.badge-direct_report{background:#FBF5EC;color:#8B6914}
-.badge-skip_level{background:#F0EDE8;color:#595959}
+.badge-draft{background:#E9E6E0;color:var(--grey)}
+.badge-active{background:#E6EADD;color:#56603F}
+.badge-closed{background:#F2E1DD;color:#A94442}
+.badge-complete{background:#E6EADD;color:#56603F}
+.badge-pending{background:#F3E6DC;color:var(--clay-dark)}
+.badge-self{background:#E3E5E5;color:var(--ink)}
+.badge-supervisor{background:#F2E1DD;color:#A94442}
+.badge-peer{background:#E6EADD;color:#56603F}
+.badge-direct_report{background:#F3E6DC;color:var(--clay-dark)}
+.badge-skip_level{background:#E9E6E0;color:var(--grey)}
 
 .progress-wrap{display:flex;align-items:center;gap:10px}
-.progress-bar{height:6px;background:var(--warm);border-radius:3px;overflow:hidden;width:80px;flex-shrink:0}
-.progress-fill{height:100%;background:var(--clay);border-radius:3px;transition:width 0.3s}
+.progress-bar{height:6px;background:rgba(48,56,59,0.1);border-radius:999px;overflow:hidden;width:80px;flex-shrink:0}
+.progress-fill{height:100%;background:var(--clay);border-radius:999px;transition:width 0.3s}
 .progress-label{font-size:12px;color:var(--grey);white-space:nowrap}
 
 .form-section{margin-bottom:28px}
-.form-section-title{font-size:12px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--sand)}
+.form-section-title{font-family:'EB Garamond',Georgia,serif;font-size:22px;font-weight:500;color:var(--ink);letter-spacing:-0.4px;margin-bottom:16px}
 .form-group{margin-bottom:18px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.form-label{display:block;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px}
-.form-control{width:100%;padding:9px 12px;border:1.5px solid var(--sand);border-radius:6px;font-size:14px;font-family:inherit;color:var(--ink);background:white;transition:border-color 0.15s,box-shadow 0.15s}
-.form-control:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 3px rgba(169,99,61,0.12)}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.form-control{width:100%;padding:11px 14px;border:1px solid var(--line-strong);border-radius:12px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--white);transition:border-color 0.15s,box-shadow 0.15s}
+.form-control::placeholder{color:#9AA2A4}
+.form-control:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(48,56,59,0.08)}
 select.form-control{cursor:pointer}
-.form-hint{font-size:11px;color:var(--grey);margin-top:5px}
+.form-hint{font-size:12px;color:var(--grey);margin-top:6px;line-height:1.55}
 
 .rater-rows{display:flex;flex-direction:column;gap:10px}
-.rater-row{display:grid;grid-template-columns:1fr 1fr 180px 40px;gap:10px;align-items:end;background:var(--cream);border-radius:8px;padding:12px 14px;border:1.5px solid var(--sand)}
-.rater-row-incomplete{border-color:#A94442;background:#FFF7F6}
-.rater-row-header{display:grid;grid-template-columns:1fr 1fr 180px 40px;gap:10px;padding:0 14px}
-.rater-row-header span{font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px}
-.remove-rater-btn{width:32px;height:32px;border-radius:6px;border:1.5px solid #FDECEA;background:#FDECEA;color:#A94442;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:inherit}
-.remove-rater-btn:hover{background:#A94442;color:white}
-.add-rater-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1.5px dashed var(--clay);border-radius:6px;color:var(--clay);background:transparent;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;margin-top:4px;transition:all 0.15s}
-.add-rater-btn:hover{background:var(--warm)}
+.rater-row{display:grid;grid-template-columns:1fr 1fr 180px 40px;gap:10px;align-items:center;background:var(--white);border-radius:16px;padding:12px 14px;border:1px solid var(--line)}
+.rater-row-incomplete{border-color:#A94442;background:#FDF5F3}
+.rater-row-header{display:grid;grid-template-columns:1fr 1fr 180px 40px;gap:10px;padding:0 14px 6px}
+.rater-row-header span{font-size:12px;font-weight:600;color:var(--grey)}
+.remove-rater-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line-strong);background:transparent;color:var(--grey);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:inherit}
+.remove-rater-btn:hover{background:#A94442;border-color:#A94442;color:var(--white)}
+.add-rater-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border:1px dashed var(--ink);border-radius:999px;color:var(--ink);background:transparent;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;margin-top:12px;transition:all 0.15s}
+.add-rater-btn:hover{background:var(--white)}
 
 .actions-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .empty-state{text-align:center;padding:48px 24px;color:var(--grey)}
 .empty-state-icon{font-size:36px;margin-bottom:12px;opacity:0.4}
-.empty-state-text{font-size:14px;margin-bottom:16px}
+.empty-state-text{font-size:15px;margin-bottom:18px}
 
-.flash{border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px;line-height:1.6}
-.flash-ok{background:#EEF5EE;border:1px solid #CFE3D2;color:#1A6B36}
-.flash-warn{background:#FFF7F6;border:1px solid #FDDDD9;color:#A94442}
+.flash{border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:14px;line-height:1.6}
+.flash-ok{background:#E6EADD;color:#3F4A2E}
+.flash-warn{background:#F6E7E3;color:#A94442}
+.alert-card{background:#F6E7E3}
+.notice-card{background:#F3E6DC}
 
-@media(max-width:700px){.admin-main{padding:16px 12px}.form-row{grid-template-columns:1fr}.rater-row{grid-template-columns:1fr}.rater-row-header{display:none}.data-table{font-size:12px}.data-table td,.data-table th{padding:8px 10px}.nav-acct{display:none}}
+@media(max-width:900px){.admin-nav{height:auto;flex-wrap:wrap;padding:14px 20px;gap:10px 20px}.nav-spacer{display:none}.nav-user{width:100%;flex-wrap:wrap;gap:8px 14px}}
+@media(max-width:700px){.admin-main{padding:28px 16px 64px}.page-title{font-size:34px}.form-row{grid-template-columns:1fr}.rater-row{grid-template-columns:1fr}.rater-row-header{display:none}.card{padding:22px 18px;overflow-x:auto}.data-table{font-size:13px}.data-table td,.data-table th{padding:10px}.nav-acct{display:none}}
 </style>`;
 
 // Shown at the top of every adminShell page while CARE 360 is past due,
 // or while a CARE 360 payment awaits card verification (both set per
 // request by src/routes/access-gate.js).
 function billingBanner(message, req) {
-  return `<div style="background:#FFF7E8;border:1px solid #E8C98A;border-left:4px solid #C08A3E;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13.5px;color:#30383B;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+  return `<div style="background:#F3E6DC;border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:14px;color:#30383B;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
     <span style="flex:1;min-width:220px">${message}</span>
     ${req.account && req.account.stripe_customer_id ? '<a href="/billing/portal" style="font-weight:700;color:#A9633D">Manage billing</a>' : ''}
   </div>`;
@@ -523,20 +532,20 @@ function adminShell(title, content, req) {
   const navLogo = hasBothProducts
     ? `<details class="nav-logo nav-logo-switcher">
       <summary class="nav-logo-summary" style="display:flex;align-items:center;gap:10px">
-        <div class="nav-logo-mark">C</div>
-        <span class="nav-brand">CARE 360 Survey</span>
+        <img class="nav-logo-mark" src="/img/care-mark.svg" alt=""/>
+        <span class="nav-brand">care 360</span>
       </summary>
       <div class="nav-logo-dropdown">
         <a href="/admin/handoff/element-profile" class="nav-logo-dropdown-item">Switch to Element Profile</a>
       </div>
     </details>`
     : `<div class="nav-logo">
-      <div class="nav-logo-mark">C</div>
-      <span class="nav-brand">CARE 360 Survey</span>
+      <img class="nav-logo-mark" src="/img/care-mark.svg" alt=""/>
+      <span class="nav-brand">care 360</span>
     </div>`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${title} — CARE 360</title>${CSS}</head><body>
+  <title>${title} — CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
   <nav class="admin-nav">
     ${navLogo}
     <a href="/admin" class="nav-link">Groups</a>
@@ -547,8 +556,8 @@ function adminShell(title, content, req) {
       <div class="nav-avatar">${initial}</div>
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
-      ${acct && acct.plan === 'trial' ? `<a href="/plans" class="nav-link" style="color:#F0C987;font-weight:700">Upgrade</a>` : ''}
-      ${bundleReminder ? `<a href="/billing/upgrade-to-bundle" class="nav-link" style="color:#F0C987;font-weight:700">${bundleReminder}</a>` : ''}
+      ${acct && acct.plan === 'trial' ? `<a href="/plans" class="nav-link nav-link-accent">Upgrade</a>` : ''}
+      ${bundleReminder ? `<a href="/billing/upgrade-to-bundle" class="nav-link nav-link-accent">${bundleReminder}</a>` : ''}
       ${acct && acct.stripe_customer_id ? '<a href="/billing/portal" class="nav-link">Manage billing</a>' : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
@@ -558,29 +567,25 @@ function adminShell(title, content, req) {
 
 function loginPage(error) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Sign In — CARE 360</title>${CSS}
+  <title>Sign In — CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}
   <style>
-  body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--ink)}
-  .login-wrap{width:100%;max-width:420px;padding:20px}
-  .login-card{background:white;border-radius:14px;padding:48px;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
-  .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:36px}
-  .login-logo-mark{width:46px;height:46px;background:var(--clay);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-family:'EB Garamond',serif;color:white;font-weight:600}
-  .login-logo-name{font-family:'EB Garamond',serif;font-size:20px;color:var(--ink);line-height:1.2}
-  .login-logo-sub{font-size:12px;color:var(--grey)}
-  .login-title{font-family:'EB Garamond',serif;font-size:26px;color:var(--ink);margin-bottom:6px;font-weight:600}
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--white)}
+  .login-wrap{width:100%;max-width:440px;padding:20px}
+  .login-card{background:var(--paper);border-radius:24px;padding:44px 44px 40px}
+  .login-logo{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:36px}
+  .login-logo-mark{height:20px;width:auto;display:block}
+  .login-logo-sub{font-size:13px;color:var(--grey)}
+  .login-title{font-family:'EB Garamond',Georgia,serif;font-size:34px;color:var(--ink);margin-bottom:8px;font-weight:500;letter-spacing:-1px;line-height:1.1}
   .login-sub{font-size:14px;color:var(--grey);margin-bottom:28px;line-height:1.6}
-  .login-btn{width:100%;padding:13px;background:var(--ink);color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s}
-  .login-btn:hover{background:var(--clay)}
-  .login-footer{text-align:center;margin-top:28px;font-size:11px;color:var(--grey);letter-spacing:0.5px}
-  .alert-error{background:#FFF0EE;color:#A94442;border:1px solid #FDDDD9;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:20px}
+  .login-btn{width:100%;padding:14px;background:var(--ink);color:var(--cream);border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s}
+  .login-btn:hover{background:#20282B}
+  .login-footer{text-align:center;margin-top:28px;font-size:12px;color:var(--grey)}
+  .alert-error{background:#F6E7E3;color:#A94442;border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:20px}
   </style></head>
   <body><div class="login-wrap"><div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-mark">C</div>
-      <div>
-        <div class="login-logo-name">in good company.</div>
-        <div class="login-logo-sub">CARE 360 Leadership Survey</div>
-      </div>
+      <img class="login-logo-mark" src="/img/igc-wordmark.svg" alt="in good company."/>
+      <div class="login-logo-sub">care 360 leadership survey</div>
     </div>
     <div class="login-title">Recovery sign in</div>
     <div class="login-sub">This is the legacy shared password. Most people should <a href="/signin">sign in with their email</a> instead.</div>
@@ -810,7 +815,7 @@ function cycleDetailPage(cycle, leaders, req) {
     </div>
     ${flash}
     ${cycle.status === 'draft' && leaders.length ? `
-    <div class="card" style="border-left:4px solid #A94442;background:#FFF7F6">
+    <div class="card alert-card">
       <div style="font-size:14px;font-weight:600;color:#A94442;margin-bottom:6px">This Group is not active</div>
       <div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:14px">Raters will not be able to open their survey until you activate this Group. If you send invites now, everyone will receive a link that does not work.</div>
       <form method="POST" action="/admin/cycles/${cycle.id}/status"><input type="hidden" name="status" value="active"/><button class="btn btn-sage" type="submit">Activate Group</button></form>
@@ -966,7 +971,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount, re
   return adminShell(leader.name, `
     <div class="page-header">
       <div>
-        <a href="/admin/cycles/${leader.cycle_id}" class="nav-link" style="color:var(--clay);font-size:12px;font-weight:600;display:inline-block;margin-bottom:6px">&larr; Back to ${leader.cycles ? leader.cycles.name : 'Group'}</a>
+        <a href="/admin/cycles/${leader.cycle_id}" style="color:var(--clay);font-size:13px;font-weight:600;text-decoration:none;display:inline-block;margin-bottom:10px">&larr; Back to ${leader.cycles ? leader.cycles.name : 'Group'}</a>
         <div class="page-title">${leader.name}</div>
         <div class="page-sub">${leader.title||''}${leader.department?' &nbsp;·&nbsp; '+leader.department:''}</div>
       </div>

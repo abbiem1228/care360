@@ -331,49 +331,47 @@ router.get('/handoff', async (req, res) => {
 
 const CSS = `
 <style>
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--ink:#30383B;--clay:#A9633D;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F4EF;--warm:#EDE8DF;--grey:#595959}
-body{font-family:'Inter',Arial,sans-serif;background:var(--ink);color:var(--ink);font-size:14px;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-a{color:var(--clay);text-decoration:none}a:hover{text-decoration:underline}
+:root{--ink:#30383B;--clay:#A9633D;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F3EA;--paper:#F5F2ED;--warm:#EDE8DF;--grey:#637074;--line:rgba(48,56,59,0.12);--line-strong:rgba(48,56,59,0.22)}
+body{font-family:'Noto Sans',Arial,sans-serif;background:#ffffff;color:var(--ink);font-size:14px;line-height:1.6;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;-webkit-font-smoothing:antialiased}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}a:hover{color:var(--clay);text-decoration-color:currentColor}
 .wrap{width:100%;max-width:460px}
-.card{background:white;border-radius:14px;padding:44px 46px;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
-.logo{display:flex;align-items:center;gap:12px;margin-bottom:30px}
-.logo-mark{width:46px;height:46px;background:var(--clay);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-family:'EB Garamond',serif;color:white;font-weight:600}
-.logo-name{font-family:'EB Garamond',serif;font-size:20px;color:var(--ink);line-height:1.2}
-.logo-sub{font-size:12px;color:var(--grey)}
-.title{font-family:'EB Garamond',serif;font-size:26px;color:var(--ink);margin-bottom:6px;font-weight:600}
-.sub{font-size:14px;color:var(--grey);margin-bottom:24px;line-height:1.6}
+.card{background:var(--paper);border-radius:24px;padding:44px 44px 40px}
+.logo{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:34px}
+.logo-mark{height:20px;width:auto;display:block}
+.logo-sub{font-size:13px;color:var(--grey)}
+.title{font-family:'EB Garamond',Georgia,serif;font-size:34px;color:var(--ink);margin-bottom:8px;font-weight:500;letter-spacing:-1px;line-height:1.1}
+.sub{font-size:14px;color:var(--grey);margin-bottom:26px;line-height:1.6}
 .group{margin-bottom:16px}
-.label{display:block;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px}
-.control{width:100%;padding:11px 13px;border:1.5px solid var(--sand);border-radius:6px;font-size:15px;font-family:inherit;color:var(--ink);background:white;transition:border-color .15s,box-shadow .15s}
-.control:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 3px rgba(169,99,61,0.12)}
-.hint{font-size:11px;color:var(--grey);margin-top:5px}
-.btn{width:100%;padding:13px;background:var(--ink);color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:6px}
-.btn:hover{background:var(--clay)}
+.label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.control{width:100%;padding:12px 14px;border:1px solid var(--line-strong);border-radius:12px;font-size:15px;font-family:inherit;color:var(--ink);background:#ffffff;transition:border-color .15s,box-shadow .15s}
+.control::placeholder{color:#9AA2A4}
+.control:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(48,56,59,0.08)}
+.hint{font-size:12px;color:var(--grey);margin-top:6px}
+.btn{width:100%;padding:14px;background:var(--ink);color:var(--cream);border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:8px}
+.btn:hover{background:#20282B}
 .alt{text-align:center;margin-top:20px;font-size:13px;color:var(--grey)}
-.err{background:#FFF0EE;color:#A94442;border:1px solid #FDDDD9;border-radius:6px;padding:11px 14px;font-size:13px;margin-bottom:18px;line-height:1.6}
-.foot{text-align:center;margin-top:24px;font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:0.5px}
-.trial{background:var(--cream);border-left:4px solid var(--sage);border-radius:0 6px 6px 0;padding:12px 15px;font-size:12.5px;color:#4A5154;line-height:1.65;margin-bottom:22px}
-.plan-badge{background:var(--cream);border-left:4px solid var(--clay);border-radius:0 6px 6px 0;padding:12px 15px;font-size:12.5px;color:#4A5154;line-height:1.65;margin-bottom:22px}
+.err{background:#F6E7E3;color:#A94442;border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:18px;line-height:1.6}
+.err a{color:#A94442}
+.foot{text-align:center;margin-top:24px;font-size:12px;color:var(--grey)}
+.trial,.plan-badge{background:#ffffff;border-radius:14px;padding:14px 16px;font-size:13px;color:var(--ink);line-height:1.65;margin-bottom:22px}
 .plan-badge strong{color:var(--ink)}
 .terms-check{margin-bottom:20px}
-.terms-label{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--grey);line-height:1.6;cursor:pointer}
-.terms-label input{margin-top:3px;flex-shrink:0;width:15px;height:15px;accent-color:var(--clay);cursor:pointer}
-.terms-label a{color:var(--clay);font-weight:600}
+.terms-label{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--grey);line-height:1.6;cursor:pointer}
+.terms-label input{margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:var(--ink);cursor:pointer}
+.terms-label a{color:var(--ink);font-weight:600}
+@media(max-width:520px){body{padding:16px;align-items:flex-start}.card{padding:32px 22px 28px}.title{font-size:30px}}
 </style>`;
 
 function shell(title, inner) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${title} — CARE 360</title>${CSS}</head><body>
+<title>${title} — CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
 <div class="wrap"><div class="card">
   <div class="logo">
-    <div class="logo-mark">C</div>
-    <div>
-      <div class="logo-name">in good company.</div>
-      <div class="logo-sub">CARE 360 Leadership Survey</div>
-    </div>
+    <img class="logo-mark" src="/img/igc-wordmark.svg" alt="in good company."/>
+    <div class="logo-sub">care 360 leadership survey</div>
   </div>
   ${inner}
 </div>

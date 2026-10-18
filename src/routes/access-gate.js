@@ -114,8 +114,8 @@ function footerLinks(req) {
 
 function readOnlyBlockedPage(req) {
   return adminShell('Paused while billing is past due', `<div class="card" style="max-width:560px">
-    <h2 style="font-family:'EB Garamond',serif;font-size:22px;margin-bottom:8px">This is paused for now</h2>
-    <p style="font-size:14px;color:#595959;line-height:1.7;margin-bottom:16px">While your last payment is past due, you can still view everything, including existing reports, close a survey early, change an open Group's dates and remove a rater, but you can't make other changes or start anything new. Updating your billing restores full access right away.</p>
+    <h2 style="font-family:'EB Garamond',Georgia,serif;font-size:30px;font-weight:500;letter-spacing:-0.8px;line-height:1.15;margin-bottom:10px">This is paused for now</h2>
+    <p style="font-size:14px;color:var(--grey);line-height:1.7;margin-bottom:20px">While your last payment is past due, you can still view everything, including existing reports, close a survey early, change an open Group's dates and remove a rater, but you can't make other changes or start anything new. Updating your billing restores full access right away.</p>
     ${req.account && req.account.stripe_customer_id ? '<a href="/billing/portal" class="btn btn-primary">Manage billing</a>' : ''}
     <a href="/admin" class="btn btn-ghost">Back to dashboard</a>
   </div>`, req);

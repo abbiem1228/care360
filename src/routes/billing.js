@@ -158,9 +158,11 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
 checkoutRouter.get('/checkout/success', requireAuth, (req, res) => {
   res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
   <meta http-equiv="refresh" content="3;url=/admin"/>
-  <style>body{font-family:Arial,sans-serif;background:#F7F4EF;display:flex;align-items:center;justify-content:center;min-height:100vh}
-  .card{background:#fff;border-radius:10px;padding:48px;max-width:440px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08);border-top:4px solid #7C8863}
-  h2{color:#30383B;font-size:20px;margin-bottom:10px}p{color:#595959;font-size:14px;line-height:1.6}</style></head>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
+  <style>body{font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;-webkit-font-smoothing:antialiased}
+  .card{background:#F5F2ED;border-radius:24px;padding:48px;max-width:440px;text-align:center}
+  h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:40px;letter-spacing:-1.2px;margin:0 0 10px;text-transform:lowercase}p{color:#637074;font-size:15px;line-height:1.7;margin:0}</style></head>
   <body><div class="card"><h2>Thank you</h2><p>Your subscription is being set up. This takes a few seconds. You will be taken to your dashboard automatically.</p></div></body></html>`);
 });
 
@@ -250,19 +252,22 @@ function upgradeConfirmPage(products, error) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Add ${productName} — CARE 360</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
   <style>
-    body{font-family:Arial,sans-serif;background:#F7F4EF;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px}
-    .card{background:#fff;border-radius:10px;padding:40px;max-width:460px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08);border-top:4px solid #A9633D}
-    h2{color:#30383B;font-size:20px;margin:0 0 10px}
-    p{color:#595959;font-size:14px;line-height:1.6;margin:0 0 20px}
-    .err{background:#FFF7F6;border:1px solid #FDDDD9;color:#A94442;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:18px}
-    .terms-label{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;color:#30383B;margin-bottom:22px}
-    .terms-label input{margin-top:3px}
-    .terms-label a{color:#A9633D}
+    body{font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;-webkit-font-smoothing:antialiased}
+    .card{background:#F5F2ED;border-radius:24px;padding:44px;max-width:480px;width:100%}
+    h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:34px;letter-spacing:-1px;line-height:1.1;margin:0 0 12px}
+    p{color:#637074;font-size:14px;line-height:1.7;margin:0 0 22px}
+    .err{background:#F6E7E3;color:#A94442;border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:18px}
+    .terms-label{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;color:#30383B;margin-bottom:24px;line-height:1.6}
+    .terms-label input{margin-top:4px;accent-color:#30383B}
+    .terms-label a{color:#30383B;font-weight:600}
     .actions{display:flex;gap:10px}
-    button{font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;border-radius:6px;border:none;padding:11px 20px}
-    .primary{background:#30383B;color:#fff;flex:1}
-    .ghost{background:#EDE8DF;color:#30383B;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    button,.ghost{font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;border-radius:999px;border:1px solid transparent;padding:12px 22px}
+    .primary{background:#30383B;color:#F7F3EA;flex:1}
+    .primary:hover{background:#20282B}
+    .ghost{background:transparent;border-color:rgba(48,56,59,0.22);color:#30383B;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    .ghost:hover{border-color:#30383B}
   </style></head>
   <body><div class="card">
     <h2>Add ${productName} to your account</h2>

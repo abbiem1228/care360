@@ -339,20 +339,28 @@ const CSS = `
 ::selection{background:var(--ochre-light)}
 body{font-family:'Noto Sans',Arial,sans-serif;background:#ffffff;color:var(--ink);font-size:14px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
 .auth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:100vh}
-.auth-art{position:sticky;top:0;height:100vh;overflow:hidden;background:#B0673F;color:#F7F3EA}
-.auth-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;animation:igc-zoom 14s ease-out both}
+.auth-art{position:sticky;top:0;height:100vh;overflow:hidden;background:#B0673F;color:#F7F3EA;display:flex;flex-direction:column;justify-content:space-between}
+.auth-art::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(122,64,36,0.88) 0%,rgba(122,64,36,0.45) 32%,rgba(122,64,36,0) 58%),linear-gradient(to bottom,rgba(122,64,36,0.35),rgba(122,64,36,0) 22%);pointer-events:none}
+.auth-art>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:30% 35%;animation:igc-zoom 14s ease-out both}
+.auth-art-top{position:relative;z-index:1;padding:40px 56px}
 @keyframes igc-zoom{from{transform:scale(1.06)}to{transform:scale(1)}}
-.auth-art-copy{position:relative;padding:48px 56px;display:flex;flex-direction:column;gap:18px;max-width:560px;animation:igc-rise .8s .15s var(--ease) both}
+.auth-art-copy{position:relative;z-index:1;padding:0 56px 56px;display:flex;flex-direction:column;gap:14px;max-width:600px;animation:igc-rise .8s .15s var(--ease) both}
 .auth-art-mark{display:flex;align-items:center;gap:10px;font-family:'EB Garamond',Georgia,serif;font-size:22px;font-weight:500;letter-spacing:-0.4px;color:#F7F3EA}
 .auth-art-mark img{position:static;width:28px;height:28px;animation:none;filter:brightness(0) invert(96%) sepia(8%) saturate(300%)}
-.auth-art h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:clamp(40px,4.4vw,60px);line-height:1.02;letter-spacing:-2px;margin-top:28px;text-wrap:balance}
+.auth-art h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:clamp(40px,4.4vw,60px);line-height:1.02;letter-spacing:-2px;text-wrap:balance}
 .auth-art p{font-size:15px;line-height:1.65;color:rgba(247,243,234,0.86);max-width:400px}
 .auth-main{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(24px,6vw,96px)}
 a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}a:hover{color:var(--clay);text-decoration-color:currentColor}
 .wrap{width:100%;max-width:420px;margin:0 auto}
 .card{animation:igc-rise .55s var(--ease) both}
 .logo{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:40px}
-.logo-mark{height:20px;width:auto;display:block}
+.logo-mark{height:28px;width:auto;display:block}
+.logo-by{font-family:'EB Garamond',Georgia,serif;font-size:15px;color:var(--grey)}
+.product-switch{display:inline-flex;gap:2px;padding:3px;margin-bottom:36px;background:var(--wash);border:1px solid var(--line);border-radius:999px}
+.product-switch a{display:inline-flex;align-items:center;gap:7px;padding:6px 14px 6px 8px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey);text-decoration:none;transition:color .15s,background .2s,box-shadow .2s}
+.product-switch a:hover{color:var(--ink)}
+.product-switch a.on{background:#ffffff;color:var(--ink);box-shadow:0 1px 2px rgba(48,56,59,0.08),0 3px 10px rgba(48,56,59,0.07)}
+.product-switch img{width:18px;height:18px}
 .logo-sub{font-size:13px;color:var(--grey)}
 .title{font-family:'EB Garamond',Georgia,serif;font-size:42px;color:var(--ink);margin-bottom:10px;font-weight:500;letter-spacing:-1.4px;line-height:1.05;text-wrap:balance}
 .sub{font-size:14px;color:var(--grey);margin-bottom:26px;line-height:1.6}
@@ -390,28 +398,34 @@ input[type=checkbox]{appearance:none;-webkit-appearance:none;width:18px;height:1
 input[type=checkbox]:hover{border-color:#30383B}
 input[type=checkbox]:checked{border-color:#30383B;background:#30383B url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.3l2.6 2.6L12 5.5' fill='none' stroke='%23F7F3EA' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
 input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
-@media(max-width:860px){.auth{grid-template-columns:1fr}.auth-art{position:relative;height:240px}.auth-art-copy{padding:24px}.auth-art h2,.auth-art p{display:none}.auth-main{padding:36px 20px 48px;justify-content:flex-start}.logo{display:none}.title{font-size:36px}}
+@media(max-width:860px){.auth{grid-template-columns:1fr}.auth-art{position:relative;height:220px}.auth-art-top{padding:20px 24px;display:flex;justify-content:flex-end}.auth-art-copy{padding:0 24px 24px}.auth-art h2,.auth-art p{display:none}.auth-main{padding:36px 20px 48px;justify-content:flex-start}.logo{display:none}.product-switch{margin-bottom:28px}.title{font-size:36px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>`;
 
-function shell(title, inner) {
+// opts.switcher adds the care 360 / element switch above the form, for the
+// sign-in page only, matching the sign-in menu on ingoodcocollective.com.
+function shell(title, inner, opts = {}) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title} | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
 <div class="auth">
 <aside class="auth-art">
-  <img src="/img/igc-hero-clay-mobile.webp" alt=""/>
+  <img src="/img/care360-photo.jpg" alt=""/>
+  <div class="auth-art-top"><div class="auth-art-mark"><img src="/img/care-mark.svg" alt=""/>care 360</div></div>
   <div class="auth-art-copy">
-    <div class="auth-art-mark"><img src="/img/care-mark.svg" alt=""/>care 360</div>
-    <h2>leadership, seen from every side.</h2>
-    <p>360-degree feedback built around connect, accountable, reach and empower.</p>
+    <h2>turn feedback into a place to start.</h2>
+    <p>360-degree leadership feedback built around connect, accountable, reach and empower.</p>
   </div>
 </aside>
 <main class="auth-main">
 <div class="wrap"><div class="card">
+  ${opts.switcher ? `<nav class="product-switch" aria-label="Choose a product">
+    <a class="on" href="/signin" aria-current="page"><img src="/img/care-mark.svg" alt=""/>care 360</a>
+    <a href="${ELEMENT_PROFILE_URL}/signin"><img src="/img/element-mark.svg" alt=""/>element</a>
+  </nav>` : ''}
   <div class="logo">
-    <img class="logo-mark" src="/img/igc-wordmark.svg" alt="in good company."/>
-    <div class="logo-sub">care 360 leadership survey</div>
+    <img class="logo-mark" src="/img/care360-wordmark.svg" alt="care 360."/>
+    <div class="logo-by">by in good company.</div>
   </div>
   ${inner}
 </div>
@@ -484,7 +498,7 @@ function signinPage(error, email) {
       <button class="btn" type="submit">Sign in</button>
     </form>
     <div class="alt"><a href="/forgot-password">Forgot password?</a></div>
-    <div class="alt">No account yet? <a href="/plans">See plans</a></div>`);
+    <div class="alt">No account yet? <a href="/plans">See plans</a></div>`, { switcher: true });
 }
 
 function forgotPasswordPage({ submitted } = {}) {

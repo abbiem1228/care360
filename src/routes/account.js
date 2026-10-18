@@ -419,7 +419,7 @@ function shell(title, inner) {
 </div>
 </main>
 </div>
-<script>document.addEventListener('submit',function(e){if(e.defaultPrevented)return;var b=e.submitter||e.target.querySelector('button[type=submit],button:not([type])');if(!b||b.classList.contains('is-loading'))return;b.classList.add('is-loading');b.setAttribute('aria-busy','true');setTimeout(function(){b.disabled=true},0)});</script>
+<script>document.addEventListener('submit',function(e){if(e.defaultPrevented)return;var b=e.submitter||e.target.querySelector('button[type=submit],button:not([type])');if(!b||b.classList.contains('is-loading'))return;b.classList.add('is-loading');b.setAttribute('aria-busy','true');setTimeout(function(){b.disabled=true},0)});window.addEventListener('pageshow',function(e){if(e.persisted)document.querySelectorAll('.is-loading').forEach(function(b){b.classList.remove('is-loading');b.disabled=false;b.removeAttribute('aria-busy')})});</script>
 </body></html>`;
 }
 

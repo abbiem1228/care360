@@ -430,10 +430,34 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-st
 .page-header{position:relative;z-index:10;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:36px}
 .page-title{font-family:'EB Garamond',Georgia,serif;font-size:50px;font-weight:500;color:var(--ink);letter-spacing:-1.8px;line-height:1.04;margin-bottom:10px;font-feature-settings:"lnum" 1}
 .page-sub{font-size:15px;color:var(--grey)}
+.person{display:inline-flex;align-items:center;gap:10px;font-weight:600;white-space:nowrap}
+.avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;letter-spacing:.02em;flex-shrink:0}
+.avatar-0{background:var(--clay-tint);color:var(--clay-dark)}
+.avatar-1{background:var(--ochre-tint);color:var(--ochre);box-shadow:inset 0 0 0 1px var(--ochre-line)}
+.avatar-2{background:var(--sage-tint);color:#56603F}
+.avatar-3{background:#EEF0F0;color:var(--ink)}
+.when{display:inline-flex;align-items:center;gap:5px;margin-top:3px;font-size:12px;color:var(--grey);white-space:nowrap}
+.when .i{width:13px;height:13px}
+.when-soon{color:var(--ochre);font-weight:600}
+.when-past{color:var(--danger)}
+.page-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.page-meta .when{margin-top:0}
+.greeting{font-size:14px;font-weight:500;color:var(--clay);margin-bottom:6px}
+.next-step{display:flex;align-items:center;gap:18px;background:var(--white);border:1px solid var(--line);border-radius:20px;padding:18px 20px 18px 18px;margin-bottom:20px;box-shadow:var(--shadow)}
+.next-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.next-icon .i{width:20px;height:20px}
+.next-ochre .next-icon{background:var(--ochre-tint);color:var(--ochre);border:1px solid var(--ochre-line)}
+.next-clay .next-icon{background:var(--clay-tint);color:var(--clay)}
+.next-text{flex:1;min-width:0}
+.next-label{font-size:11.5px;font-weight:600;letter-spacing:.05em;color:var(--grey);margin-bottom:2px}
+.next-text p{font-size:15px;line-height:1.5}
+.next-text strong{font-weight:600}
+.next-step .btn .i{margin-left:2px}
+@media(max-width:700px){.next-step{flex-wrap:wrap}.next-step .btn{width:100%}}
 .eyebrow{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--grey);text-transform:lowercase}
 
 /* ── Cards: white on white ─────────────────────────────────── */
-.card{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:28px 30px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:28px 30px;margin-bottom:20px;box-shadow:var(--shadow);overflow-x:auto}
 .card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 .card-title{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:500;color:var(--ink);letter-spacing:-0.6px}
 .card-meta{font-size:13px;color:var(--grey)}
@@ -446,7 +470,7 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-st
 .btn .i{width:15px;height:15px;margin:0 -1px}
 .btn-sm .i{width:13px;height:13px}
 .stat-card>.i{position:absolute;top:22px;right:22px;width:18px;height:18px;color:var(--grey);opacity:.55}
-.sent{display:inline-flex;align-items:center;gap:5px;color:#56603F}.sent .i{width:14px;height:14px}
+.sent{display:inline-flex;align-items:center;gap:5px;color:#56603F;white-space:nowrap}.sent .i{width:14px;height:14px}
 .remove-rater-btn .i{width:15px;height:15px}
 .add-rater-btn .i{width:16px;height:16px}
 .stat-card-ring{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -557,6 +581,29 @@ select.form-control{cursor:pointer}
 .menu-item-off{color:var(--grey);cursor:default}
 .menu-item-off:hover{background:none;color:var(--grey)}
 
+/* ── Form controls: custom dropdown chevron, calendar button, checkbox ── */
+select.form-control,select.control{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23637074' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 12px center/16px no-repeat;padding-right:38px;cursor:pointer}
+input[type=datetime-local],input[type=date]{font-variant-numeric:tabular-nums;min-height:44px;color:var(--ink)}
+input[type=datetime-local]::-webkit-datetime-edit,input[type=date]::-webkit-datetime-edit{padding:0}
+input[type=datetime-local]:not(:valid)::-webkit-datetime-edit,input[type=datetime-local][value=""]::-webkit-datetime-edit{color:#9AA2A4}
+input[type=datetime-local]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;width:18px;height:18px;padding:5px;margin-right:-6px;border-radius:8px;opacity:1;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A9633D' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M16 2v4'/%3E%3Cpath d='M8 2v4'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E") center/18px no-repeat;transition:background-color .15s}
+input[type=datetime-local]::-webkit-calendar-picker-indicator:hover,input[type=date]::-webkit-calendar-picker-indicator:hover{background-color:#F7ECE5}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:18px;height:18px;margin:2px 0 0;border:1.5px solid rgba(48,56,59,0.3);border-radius:6px;background:#fff;cursor:pointer;flex-shrink:0;transition:background-color .15s,border-color .15s,box-shadow .15s}
+input[type=checkbox]:hover{border-color:#30383B}
+input[type=checkbox]:checked{border-color:#30383B;background:#30383B url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.3l2.6 2.6L12 5.5' fill='none' stroke='%23F7F3EA' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
+/* ── Toasts and busy buttons ─────────────────────────────── */
+.admin-main>.flash-ok{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));z-index:300;margin:0;width:max-content;max-width:min(560px,calc(100% - 32px));background:var(--ink);color:var(--cream);border-color:var(--ink);border-radius:999px;padding:12px 22px 12px 40px;box-shadow:0 16px 40px rgba(32,40,43,0.28);pointer-events:none;animation:igc-toast-in .45s var(--ease) both,igc-toast-out .4s 4.6s var(--ease) forwards}
+.admin-main>.flash-ok::before{background:var(--ochre-light);box-shadow:none;top:50%;margin-top:-4px}
+@keyframes igc-toast-in{from{opacity:0;transform:translate(-50%,18px) scale(.97)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes igc-toast-out{to{opacity:0;transform:translate(-50%,18px)}}
+@keyframes igc-spin{to{transform:rotate(360deg)}}
+.btn.is-loading{position:relative;color:transparent!important;pointer-events:none}
+.btn.is-loading .i{visibility:hidden}
+.btn.is-loading::after{content:'';position:absolute;inset:0;margin:auto;width:16px;height:16px;border-radius:50%;border:2px solid rgba(247,243,234,0.35);border-top-color:#F7F3EA;animation:igc-spin .7s linear infinite}
+.btn-ghost.is-loading::after,.btn-outline.is-loading::after,.btn-red.is-loading::after{border-color:rgba(48,56,59,0.18);border-top-color:var(--ink)}
+.btn.is-loading.keep-label{color:var(--white)!important;padding-left:42px}
+.btn.is-loading.keep-label::after{right:auto;left:17px}
 /* ── Empty states ──────────────────────────────────────────── */
 .empty-state{text-align:center;padding:56px 24px 52px;color:var(--grey)}
 .empty-state-mark{width:52px;height:52px;opacity:0.22;margin:0 auto 18px;display:block;filter:grayscale(1)}
@@ -573,7 +620,7 @@ select.form-control{cursor:pointer}
 
 @media(max-width:900px){.admin-nav{height:auto;flex-wrap:wrap;padding:14px 20px;gap:10px 20px}.nav-spacer{display:none}.nav-user{width:100%;flex-wrap:wrap;gap:8px 14px}}
 @media(max-width:700px){.admin-main{padding:28px 16px 64px}.page-title{font-size:38px}.stat-num{font-size:46px}.form-row{grid-template-columns:1fr}.rater-row{grid-template-columns:1fr}.rater-row-header{display:none}.card{padding:22px 18px;overflow-x:auto}.data-table{font-size:13px}.data-table td,.data-table th{padding:10px}.nav-acct{display:none}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.admin-main>.flash-ok{position:static;transform:none;width:auto;max-width:none;border-radius:14px;margin-bottom:20px;box-shadow:none}.btn.is-loading::after{animation:igc-spin 1.4s linear infinite!important}}
 </style>`;
 
 // Shown at the top of every adminShell page while CARE 360 is past due,
@@ -667,7 +714,7 @@ function adminShell(title, content, req) {
     </div>
   </nav>
   <div class="admin-main">${billingBanners(req)}${content}</div>
-  <script>(function(){var n=document.querySelector('.admin-nav');function f(){n.classList.toggle('scrolled',window.scrollY>4)}window.addEventListener('scroll',f,{passive:true});f();document.addEventListener('click',function(e){document.querySelectorAll('details.menu[open],details.nav-logo-switcher[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})})})();</script>
+  <script>(function(){var n=document.querySelector('.admin-nav');function f(){n.classList.toggle('scrolled',window.scrollY>4)}window.addEventListener('scroll',f,{passive:true});f();document.addEventListener('submit',function(e){if(e.defaultPrevented)return;var b=e.submitter||e.target.querySelector('button[type=submit],button:not([type])');if(!b||b.classList.contains('is-loading'))return;b.classList.add('is-loading');b.setAttribute('aria-busy','true');setTimeout(function(){b.disabled=true},0)});document.addEventListener('click',function(e){document.querySelectorAll('details.menu[open],details.nav-logo-switcher[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})})})();</script>
   </body></html>`;
 }
 
@@ -708,6 +755,52 @@ function loginPage(error) {
   </div></div></body></html>`;
 }
 
+// Whole days from now until an ISO date (negative once it has passed).
+function daysUntil(iso) {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+}
+
+function inDays(n) {
+  return n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`;
+}
+
+// The single most useful thing to do next, read from the account's Groups.
+function nextStep(cycles) {
+  const open = cycles
+    .filter(c => c.status === 'active' && c.closes_at && daysUntil(c.closes_at) >= 0)
+    .sort((a, b) => daysUntil(a.closes_at) - daysUntil(b.closes_at));
+  const closing = open[0];
+  const draft = cycles.find(c => c.status === 'draft');
+
+  if (!cycles.length)
+    return { tone: 'clay', icon: 'plus', text: 'Create your first Group to start a 360.', cta: 'New Group', href: '/admin/cycles/new' };
+  if (closing && daysUntil(closing.closes_at) <= 3)
+    return { tone: 'ochre', icon: 'calendar', text: `<strong>${closing.name}</strong> closes ${inDays(daysUntil(closing.closes_at))}. Check who still needs to respond, or move the close date.`, cta: 'Open Group', href: `/admin/cycles/${closing.id}` };
+  if (draft)
+    return { tone: 'ochre', icon: 'play', text: `<strong>${draft.name}</strong> is still a draft. Activate it so raters can open their surveys.`, cta: 'Review and activate', href: `/admin/cycles/${draft.id}` };
+  if (closing)
+    return { tone: 'clay', icon: 'activity', text: `<strong>${closing.name}</strong> is open and closes ${inDays(daysUntil(closing.closes_at))}.`, cta: 'Check responses', href: `/admin/cycles/${closing.id}` };
+  return { tone: 'clay', icon: 'plus', text: 'Every Group is closed. Start a new one when you’re ready.', cta: 'New Group', href: '/admin/cycles/new' };
+}
+
+// Small initials circle shown before a person's name. The tint is picked
+// from the name so the same person always gets the same color.
+function avatar(name) {
+  const clean = String(name || '').replace(/<[^>]*>/g, '').trim();
+  const parts = clean.split(/[\s@._-]+/).filter(Boolean);
+  const initials = ((parts[0] || '?')[0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  let h = 0; for (const ch of clean) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `<span class="avatar avatar-${h % 4}" aria-hidden="true">${initials}</span>`;
+}
+
+// "closes in 3 days" chip for Groups that are still open or in draft.
+function closesChip(c) {
+  if (!c.closes_at || c.status === 'closed') return '';
+  const n = daysUntil(c.closes_at);
+  if (n < 0) return '<span class="when when-past">past close date</span>';
+  return `<span class="when${n <= 3 ? ' when-soon' : ''}">${icon('calendar')}closes ${inDays(n)}</span>`;
+}
+
 function dashboardPage(cycles, req) {
   const active = cycles.filter(c => c.status === 'active').length;
   const draft  = cycles.filter(c => c.status === 'draft').length;
@@ -717,18 +810,28 @@ function dashboardPage(cycles, req) {
       <td style="color:var(--grey)">${c.client_name || c.description || '<span style="color:#ccc">&mdash;</span>'}</td>
       <td><span class="badge badge-${c.status}">${c.status}</span></td>
       <td>${c.opens_at ? new Date(c.opens_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '<span style="color:#ccc">&mdash;</span>'}</td>
-      <td>${c.closes_at ? new Date(c.closes_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '<span style="color:#ccc">&mdash;</span>'}</td>
+      <td>${c.closes_at ? `<div>${new Date(c.closes_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>${closesChip(c)}` : '<span style="color:#ccc">&mdash;</span>'}</td>
       <td class="row-actions"><a href="/admin/cycles/${c.id}" class="btn btn-outline btn-sm">Open</a></td>
     </tr>`).join('');
+
+  const step = nextStep(cycles);
+  const acctName = req && req.account ? req.account.name : '';
 
   return adminShell('Dashboard', `
     <div class="page-header">
       <div>
+        <div class="greeting" data-greeting><span>welcome back</span>${acctName ? `, ${acctName}` : ''}.</div>
         <div class="page-title">groups.</div>
         <div class="page-sub">Manage your care 360 groups, leaders and raters.</div>
       </div>
       <a href="/admin/cycles/new" class="btn btn-primary">${icon('plus')}New Group</a>
     </div>
+    <div class="next-step next-${step.tone}">
+      <span class="next-icon">${icon(step.icon)}</span>
+      <div class="next-text"><div class="next-label">next step</div><p>${step.text}</p></div>
+      <a href="${step.href}" class="btn btn-primary btn-sm">${step.cta}${icon('arrow-right')}</a>
+    </div>
+    <script>(function(){var g=document.querySelector('[data-greeting] span');if(!g)return;var h=new Date().getHours();g.textContent=h<12?'good morning':h<18?'good afternoon':'good evening';})();</script>
     <div class="stats-row">
       <div class="stat-card">${icon('folder')}<div class="stat-num">${cycles.length}</div><div class="stat-lbl">Total Groups</div>${statBar(cycles.length, cycles.length, '')}</div>
       <div class="stat-card">${icon('activity')}<div class="stat-num">${active}</div><div class="stat-lbl">Active</div>${statBar(active, cycles.length, 'clay')}</div>
@@ -755,7 +858,7 @@ function dashboardPage(cycles, req) {
 function teamPage(teammates, invites, req) {
   const teammateRows = teammates.map(t => `
     <tr>
-      <td style="font-weight:600">${t.name || '<span style="color:#ccc">&mdash;</span>'}</td>
+      <td><span class="person">${avatar(t.name || t.email)}${t.name || '<span style="color:#ccc">&mdash;</span>'}</span></td>
       <td style="color:var(--grey)">${t.email}</td>
       <td><span class="badge badge-active">${t.role}</span></td>
       <td>${new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
@@ -763,7 +866,7 @@ function teamPage(teammates, invites, req) {
 
   const inviteRows = invites.map(i => `
     <tr>
-      <td style="font-weight:600">${i.name || '<span style="color:#ccc">&mdash;</span>'}</td>
+      <td><span class="person">${avatar(i.name || i.email)}${i.name || '<span style="color:#ccc">&mdash;</span>'}</span></td>
       <td style="color:var(--grey)">${i.email}</td>
       <td><span class="badge badge-draft">Pending</span></td>
       <td>${new Date(i.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
@@ -884,9 +987,9 @@ function cycleDetailPage(cycle, leaders, req) {
   if (sent || failed) {
     flash = failed
       ? `<div class="flash flash-warn"><strong>${sent} invitation${sent===1?'':'s'} sent, ${failed} failed.</strong> Failures are usually a bad email address or a sending limit. Check the logs, then click Send Invites again to retry the ones that did not go.</div>`
-      : `<div class="flash flash-ok">${sent} invitation${sent===1?'':'s'} sent.</div>`;
+      : `<div class="flash flash-ok" role="status">${sent} invitation${sent===1?'':'s'} sent.</div>`;
   } else if (req.query.datesUpdated === '1') {
-    flash = `<div class="flash flash-ok">Dates updated.</div>`;
+    flash = `<div class="flash flash-ok" role="status">Dates updated.</div>`;
   }
 
   const rows = leaders.map(l => {
@@ -894,7 +997,7 @@ function cycleDetailPage(cycle, leaders, req) {
     const completed = l.raters?.filter(r => r.completed_at).length || 0;
     const pct       = total ? Math.round(completed/total*100) : 0;
     return `<tr>
-      <td><a href="/admin/leaders/${l.id}">${l.name}</a></td>
+      <td><span class="person">${avatar(l.name)}<a href="/admin/leaders/${l.id}">${l.name}</a></span></td>
       <td style="color:var(--grey)">${l.title || '&mdash;'}</td>
       <td style="color:var(--grey)">${l.department || '&mdash;'}</td>
       <td>${total}</td>
@@ -912,7 +1015,7 @@ function cycleDetailPage(cycle, leaders, req) {
     <div class="page-header">
       <div>
         <div class="page-title">${cycle.name}</div>
-        <div class="page-sub"><span class="badge badge-${cycle.status}">${cycle.status}</span>${cycle.client_name ? ' &nbsp;·&nbsp; ' + cycle.client_name : ''}</div>
+        <div class="page-sub page-meta"><span class="badge badge-${cycle.status}">${cycle.status}</span>${closesChip(cycle)}${cycle.client_name ? `<span>${cycle.client_name}</span>` : ''}</div>
       </div>
       <div class="actions-row">
         ${statusBtns.map(([s,l]) => `<form method="POST" action="/admin/cycles/${cycle.id}/status" style="display:inline"><input type="hidden" name="status" value="${s}"/><button class="btn ${s==='active'?'btn-sage':s==='closed'?'btn-red':'btn-ghost'}" type="submit">${icon({ active: 'play', closed: 'circle-x', draft: 'rotate' }[s])}${l}</button></form>`).join('')}
@@ -1064,7 +1167,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount, re
   const sorted = [...raters].sort((a,b) => groupOrder.indexOf(a.rater_group)-groupOrder.indexOf(b.rater_group));
 
   const rows = sorted.map(r => `<tr>
-    <td>${r.name}</td>
+    <td><span class="person">${avatar(r.name)}${r.name}</span></td>
     <td>${r.email}</td>
     <td><span class="badge badge-${r.rater_group}">${r.rater_group.replace(/_/g,' ')}</span></td>
     <td>${r.email_sent_at ? '<span class="sent">' + icon('check') + 'Sent ' + new Date(r.email_sent_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</span>' : '<span style="color:#ccc">Not sent</span>'}</td>
@@ -1086,7 +1189,7 @@ function leaderDetailPage(leader, raters, report, completedCount, totalCount, re
         <form method="POST" action="/admin/leaders/${leader.id}/send-invites"><button class="btn btn-ghost" type="submit">${icon('send')}Send Invites</button></form>
         <a href="/admin/leaders/${leader.id}/raters/new" class="btn ${raterCompleted>=3?'btn-ghost':'btn-primary'}">${icon('user-plus')}Add Raters</a>
         ${raterCompleted>=3
-          ? `<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating report… (30–60 sec)'"><button class="btn btn-sage" type="submit">${icon('sparkles')}${report ? 'Regenerate Report' : 'Generate Report'}</button></form>`
+          ? `<form method="POST" action="/admin/leaders/${leader.id}/generate-report" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Generating report… (30–60 sec)'"><button class="btn btn-sage keep-label" type="submit">${icon('sparkles')}${report ? 'Regenerate Report' : 'Generate Report'}</button></form>`
           : `<span class="btn btn-locked" aria-disabled="true" title="The report unlocks after 3 rater responses. The self-assessment doesn't count.">${icon('lock')}Report<span class="lock-count">${raterCompleted} of 3</span><span class="lock-bar"><i style="width:${Math.round(Math.min(raterCompleted, 3) / 3 * 100)}%"></i></span></span>`}
         <details class="menu">
           <summary class="btn btn-ghost btn-icon" aria-label="More actions">${icon('more')}</summary>

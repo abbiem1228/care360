@@ -352,11 +352,19 @@ function statusPage(icon, title, msg, color = '#A87B2C') {
   .icon{width:60px;height:60px;border-radius:50%;background:${color};color:#fff;box-shadow:0 0 0 8px ${color}1A;animation:pop .45s cubic-bezier(.2,.7,.2,1) both;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;font-family:'EB Garamond',serif}
   .title{font-family:'EB Garamond',serif;font-size:38px;font-weight:500;letter-spacing:-1.2px;line-height:1.1;color:#30383B;margin-bottom:12px;text-transform:lowercase}
   .msg{font-size:15px;color:#637074;line-height:1.75}
+  .done-ring{width:76px;height:76px;margin:0 auto 22px;display:block}
+  .done-track{fill:none;stroke:rgba(48,56,59,0.08);stroke-width:5}
+  .done-arc{fill:none;stroke:#A9633D;stroke-width:5;stroke-linecap:round;stroke-dasharray:188.5;stroke-dashoffset:188.5;animation:draw 1s .15s cubic-bezier(.65,0,.35,1) forwards}
+  .done-check{fill:none;stroke:#30383B;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:36;stroke-dashoffset:36;animation:draw .45s 1s cubic-bezier(.65,0,.35,1) forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @media(prefers-reduced-motion:reduce){.done-arc,.done-check{animation:none;stroke-dashoffset:0}}
   @keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
   .brand{margin-top:36px}.brand img{height:16px;width:auto;opacity:0.85}
   @media(max-width:520px){.card{padding:40px 24px}}</style></head>
   <body><div class="card">
-    <div class="icon">${icon}</div>
+    ${(icon === '✓' || icon === '&#10003;')
+      ? `<svg class="done-ring" viewBox="0 0 72 72" aria-hidden="true"><circle class="done-track" cx="36" cy="36" r="30"/><circle class="done-arc" cx="36" cy="36" r="30" transform="rotate(-90 36 36)"/><path class="done-check" d="M24.5 36.5l7.5 7.5 15.5-16"/></svg>`
+      : `<div class="icon">${icon}</div>`}
     <div class="title">${title}</div>
     <div class="msg">${msg}</div>
     <div class="brand"><img src="/img/igc-wordmark.svg" alt="in good company."/></div>

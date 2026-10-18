@@ -262,6 +262,17 @@ function upgradeConfirmPage(products, error) {
     .terms-label{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;color:#30383B;margin-bottom:24px;line-height:1.6}
     .terms-label input{margin-top:4px;accent-color:#30383B}
     .terms-label a{color:#30383B;font-weight:600}
+/* ── Form controls: custom dropdown chevron, calendar button, checkbox ── */
+select.form-control,select.control{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23637074' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 12px center/16px no-repeat;padding-right:38px;cursor:pointer}
+input[type=datetime-local],input[type=date]{font-variant-numeric:tabular-nums;min-height:44px;color:var(--ink)}
+input[type=datetime-local]::-webkit-datetime-edit,input[type=date]::-webkit-datetime-edit{padding:0}
+input[type=datetime-local]:not(:valid)::-webkit-datetime-edit,input[type=datetime-local][value=""]::-webkit-datetime-edit{color:#9AA2A4}
+input[type=datetime-local]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;width:18px;height:18px;padding:5px;margin-right:-6px;border-radius:8px;opacity:1;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A9633D' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M16 2v4'/%3E%3Cpath d='M8 2v4'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E") center/18px no-repeat;transition:background-color .15s}
+input[type=datetime-local]::-webkit-calendar-picker-indicator:hover,input[type=date]::-webkit-calendar-picker-indicator:hover{background-color:#F7ECE5}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:18px;height:18px;margin:2px 0 0;border:1.5px solid rgba(48,56,59,0.3);border-radius:6px;background:#fff;cursor:pointer;flex-shrink:0;transition:background-color .15s,border-color .15s,box-shadow .15s}
+input[type=checkbox]:hover{border-color:#30383B}
+input[type=checkbox]:checked{border-color:#30383B;background:#30383B url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.3l2.6 2.6L12 5.5' fill='none' stroke='%23F7F3EA' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
     .actions{display:flex;gap:10px}
     button,.ghost{text-transform:lowercase;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;border-radius:999px;border:1px solid transparent;padding:12px 22px}
     .primary{background:#30383B;color:#F7F3EA;flex:1}

@@ -171,62 +171,69 @@ function hqPage(d) {
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>HQ — CARE 360</title>
+<title>HQ | CARE 360</title>
+<link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--ink:#30383B;--clay:#A9633D;--sage:#7C8863;--sand:#D9CBB2;--cream:#F7F4EF;--warm:#EDE8DF;--grey:#595959}
-body{font-family:'Inter',Arial,sans-serif;background:var(--cream);color:var(--ink);font-size:14px}
-a{color:var(--clay);text-decoration:none}
-.top{background:var(--ink);height:56px;display:flex;align-items:center;padding:0 32px;gap:24px}
-.top-mark{width:32px;height:32px;background:var(--clay);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:11px;font-family:'EB Garamond',serif}
-.top-brand{color:white;font-weight:600;font-size:15px;font-family:'EB Garamond',serif}
-.top-tag{color:var(--sand);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;background:rgba(255,255,255,0.12);padding:3px 8px;border-radius:10px}
+:root{--ink:#30383B;--clay:#A9633D;--clay-dark:#925433;--clay-tint:#F7ECE5;--ochre:#A87B2C;--ochre-light:#E3C785;--ochre-tint:#FBF5E6;--ochre-line:#EEDFB8;--sage:#7C8863;--sage-tint:#EEF1E8;--danger:#A94442;--danger-tint:#FBEFED;--sand:#D9CBB2;--cream:#F7F3EA;--wash:#FAF8F4;--warm:#EDE8DF;--grey:#637074;--line:rgba(48,56,59,0.09);--line-strong:rgba(48,56,59,0.18);--shadow:0 1px 2px rgba(48,56,59,0.04),0 2px 10px rgba(48,56,59,0.04);--shadow-lift:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);--ease:cubic-bezier(.2,.7,.2,1)}
+@keyframes igc-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+body{font-family:'Noto Sans',Arial,sans-serif;background:#ffffff;color:var(--ink);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--ink);text-decoration:none}
+.top{background:rgba(255,255,255,0.78);-webkit-backdrop-filter:saturate(180%) blur(16px);backdrop-filter:saturate(180%) blur(16px);height:72px;display:flex;align-items:center;padding:0 40px;gap:24px;box-shadow:0 1px 0 var(--line);position:sticky;top:0;z-index:100}
+.top-mark{width:30px;height:30px;display:block}
+.top-brand{color:var(--ink);font-weight:500;font-size:23px;font-family:'EB Garamond',Georgia,serif;letter-spacing:-0.5px}
+.top-logo{display:flex;align-items:center;gap:10px}
+.top-tag{color:var(--ochre);font-size:12px;font-weight:600;background:var(--ochre-tint);border:1px solid var(--ochre-line);padding:3px 10px;border-radius:999px}
 .top-spacer{flex:1}
-.top-link{color:rgba(255,255,255,0.65);font-size:13px;font-weight:500}
-.top-link:hover{color:white}
-.wrap{max-width:1240px;margin:0 auto;padding:32px 24px 70px}
-.h1{font-family:'EB Garamond',serif;font-size:28px;font-weight:600;margin-bottom:4px}
-.lede{font-size:13.5px;color:var(--grey);margin-bottom:26px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:26px}
-.stat{background:white;border-radius:10px;padding:18px 20px;border-left:4px solid var(--clay);box-shadow:0 1px 4px rgba(48,56,59,.1)}
-.stat-n{font-family:'EB Garamond',serif;font-size:32px;font-weight:600;line-height:1}
-.stat-l{font-size:10.5px;font-weight:600;color:var(--grey);margin-top:6px;text-transform:uppercase;letter-spacing:.6px}
-.card{background:white;border:1px solid var(--warm);border-radius:10px;padding:22px;box-shadow:0 1px 4px rgba(48,56,59,.1)}
-.card-title{font-family:'EB Garamond',serif;font-size:18px;font-weight:600;margin-bottom:16px}
-table{width:100%;border-collapse:collapse}
-th{background:var(--ink);color:rgba(255,255,255,.9);padding:10px 12px;text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
-th:first-child{border-radius:6px 0 0 0}th:last-child{border-radius:0 6px 0 0}
-td{padding:12px;border-bottom:1px solid var(--warm);font-size:13px;vertical-align:top}
+.top-link{color:var(--ink);font-size:14px;opacity:.78;text-transform:lowercase}
+.top-link:hover{opacity:1;text-decoration:underline;text-decoration-color:var(--clay);text-underline-offset:6px}
+.wrap{max-width:1240px;margin:0 auto;padding:52px 40px 96px;animation:igc-rise .55s var(--ease) both}
+.h1{font-family:'EB Garamond',Georgia,serif;font-size:50px;font-weight:500;letter-spacing:-1.8px;line-height:1.08;margin-bottom:8px}
+.lede{font-size:15px;color:var(--grey);margin-bottom:30px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:20px}
+.stat{background:#ffffff;border:1px solid var(--line);border-radius:20px;padding:22px 24px;box-shadow:var(--shadow);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}
+.stat-n{font-family:'EB Garamond',Georgia,serif;font-size:50px;font-weight:500;line-height:.95;letter-spacing:-1.4px;font-feature-settings:"lnum" 1,"tnum" 1}
+.stat-l{text-transform:lowercase;font-size:13px;font-weight:500;color:var(--grey);margin-top:8px}
+.card{background:#ffffff;border:1px solid var(--line);border-radius:20px;padding:28px 30px;overflow-x:auto;box-shadow:var(--shadow)}
+.card-title{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:-0.5px;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{background:transparent;color:var(--grey);padding:0 12px 12px;text-align:left;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:lowercase;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:13px 12px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:top}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--cream)}
+tbody tr:hover td{background:var(--wash)}
 .num{text-align:center;font-variant-numeric:tabular-nums}
 .acct{font-weight:600}
-.acct-email{font-size:11.5px;color:var(--grey);margin-top:2px}
-.plan{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.plan-trial{background:#F0EDE8;color:#7a7a7a}
-.plan-starter{background:#EEF5EE;color:#1A6B36}
-.plan-growth{background:#FBF5EC;color:#8B6914}
-.plan-community{background:#EDF1F5;color:#3D5A7A}
-.plan-enterprise{background:var(--ink);color:white}
-.product{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
-.product-bundle{background:var(--ink);color:white}
-.product-care360{background:#EDF1F5;color:#3D5A7A}
-.product-element{background:#F4F0FA;color:#6B4FA0}
-.product-none{background:#F0EDE8;color:#8a8a8a}
-.flag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;white-space:nowrap;margin-bottom:3px}
-.flag-over{background:#FDECEA;color:#A94442}
-.flag-near{background:#FBF5EC;color:#8B6914}
-.flag-multi{background:#EDF1F5;color:#3D5A7A}
-.flag-cold{background:#F0EDE8;color:#8a8a8a}
-.flag-warm{background:#EEF5EE;color:#1A6B36}
-.legend{margin-top:18px;font-size:12px;color:var(--grey);line-height:1.9}
-@media(max-width:800px){.wrap{padding:18px 12px}td,th{padding:8px}}
+.acct-email{font-size:12px;color:var(--grey);margin-top:2px}
+.plan{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;text-transform:lowercase}
+.plan-trial{background:var(--ochre-tint);color:var(--ochre)}
+.plan-starter{background:var(--sage-tint);color:#56603F}
+.plan-growth{background:var(--clay-tint);color:var(--clay-dark)}
+.plan-community{background:#E3E7EA;color:#3D5A7A}
+.plan-enterprise{background:var(--ink);color:var(--cream)}
+.product{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}
+.product-bundle{background:var(--ink);color:var(--cream)}
+.product-care360{background:var(--clay-tint);color:var(--clay-dark)}
+.product-element{background:#E3E5E5;color:var(--ink)}
+.product-none{background:#E9E6E0;color:var(--grey)}
+.flag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;margin-bottom:3px}
+.flag-over{background:var(--danger-tint);color:var(--danger)}
+.flag-near{background:var(--ochre-tint);color:var(--ochre)}
+.flag-multi{background:#E3E7EA;color:#3D5A7A}
+.flag-cold{background:#E9E6E0;color:var(--grey)}
+.flag-warm{background:var(--sage-tint);color:#56603F}
+.legend{margin-top:20px;font-size:13px;color:var(--grey);line-height:1.9}
+@media(max-width:800px){.top{padding:0 16px;gap:14px}.wrap{padding:28px 16px}td,th{padding:8px}}
 </style></head><body>
 
 <div class="top">
-  <div class="top-mark">C</div>
-  <span class="top-brand">in good company.</span>
+  <div class="top-logo">
+    <img class="top-mark" src="/img/care-mark.svg" alt=""/>
+    <span class="top-brand">care 360</span>
+  </div>
   <span class="top-tag">HQ</span>
   <div class="top-spacer"></div>
   <a href="/admin" class="top-link">Back to surveys</a>
@@ -234,15 +241,15 @@ tr:hover td{background:var(--cream)}
 </div>
 
 <div class="wrap">
-  <div class="h1">Accounts</div>
-  <p class="lede">Everyone using CARE 360, and how far they have actually got. Metadata only, no feedback content.</p>
+  <div class="h1">accounts.</div>
+  <p class="lede">Everyone using care 360, and how far they have actually got. Metadata only, no feedback content.</p>
 
   <div class="stats">
     <div class="stat"><div class="stat-n">${d.total}</div><div class="stat-l">Total accounts</div></div>
-    <div class="stat" style="border-color:var(--sage)"><div class="stat-n" style="color:var(--sage)">${d.paying}</div><div class="stat-l">Paying</div></div>
-    <div class="stat" style="border-color:var(--sand)"><div class="stat-n" style="color:var(--grey)">${d.trials}</div><div class="stat-l">On trial</div></div>
+    <div class="stat"><div class="stat-n">${d.paying}</div><div class="stat-l">Paying</div></div>
+    <div class="stat"><div class="stat-n">${d.trials}</div><div class="stat-l">On trial</div></div>
     <div class="stat"><div class="stat-n">${d.newThisMonth}</div><div class="stat-l">New in 30 days</div></div>
-    <div class="stat" style="border-color:#A94442"><div class="stat-n" style="color:#A94442">${d.dormant}</div><div class="stat-l">Trials not started</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--clay)">${d.dormant}</div><div class="stat-l">Trials not started</div></div>
   </div>
 
   <div class="card">
@@ -294,35 +301,35 @@ function retentionPage(items, flash, scan) {
       ? `<form method="POST" action="/hq/retention/delete" style="margin-top:8px">
           <input type="hidden" name="account_id" value="${esc(i.accountId)}"/><input type="hidden" name="product" value="${esc(i.product)}"/>
           <label style="display:block;font-size:12px;color:#595959;margin-bottom:4px">Type <strong>${esc(i.accountName)}</strong> to confirm. This can't be undone.</label>
-          <input name="confirm_name" autocomplete="off" required style="padding:7px 9px;border:1px solid #D9CBB2;border-radius:6px;font-size:13px;width:220px"/>
-          <button style="background:#A94442;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer">Delete now</button></form>`
+          <input name="confirm_name" autocomplete="off" required style="padding:7px 9px;border:1px solid rgba(48,56,59,0.22);border-radius:10px;font-size:13px;width:220px;font-family:inherit"/>
+          <button style="background:#A94442;color:#fff;border:none;border-radius:999px;padding:8px 16px;font-weight:600;cursor:pointer;font-family:inherit">Delete now</button></form>`
       : '';
     return `<tr><td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top"><strong>${esc(i.accountName)}</strong><div style="font-size:11px;color:#999">${esc(i.accountId)}</div></td>
       <td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top">${RET_LABEL[i.product]}<div style="font-size:12px;color:#595959">${esc(i.state)} since ${esc(i.endedOn)}</div></td>
       <td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top">${RET_STATUS[i.status] || i.status}<div style="font-size:12px;color:#595959">${i.status === 'deleted' ? 'on ' + esc(i.deletedOn) : 'deletion date ' + esc(i.deletionDate)}${i.warnedOn ? ', warned ' + esc(i.warnedOn) : ''}</div></td>
       <td style="padding:12px;border-bottom:1px solid #EDE8DF;vertical-align:top;font-size:12.5px">${counts ? 'Would delete: ' + esc(counts) : ''}${i.counts ? acct : ''}${action}</td></tr>`;
   }).join('');
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Data retention | HQ</title></head>
-  <body style="font-family:Arial,sans-serif;background:#F7F4EF;color:#30383B;margin:0;padding:32px 20px"><div style="max-width:1100px;margin:0 auto">
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Data retention | HQ</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/><link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet"/></head>
+  <body style="font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;margin:0;padding:48px 20px;line-height:1.6"><div style="max-width:1100px;margin:0 auto">
     <p><a href="/hq" style="color:#A9633D">Back to HQ</a></p>
-    <h1 style="font-family:Georgia,serif;font-weight:600">Data retention</h1>
-    <p style="color:#595959;max-width:720px">Products whose subscription has ended. Data is deleted 60 days after the end date, and only after the owner has had 7 days' warning and you approve it here. The counts are a dry run: nothing is deleted until you press Delete now.</p>
+    <h1 style="font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:44px;letter-spacing:-1.4px;line-height:1.1;margin:16px 0 10px">Data retention</h1>
+    <p style="color:#637074;max-width:720px">Products whose subscription has ended. Data is deleted 60 days after the end date, and only after the owner has had 7 days' warning and you approve it here. The counts are a dry run: nothing is deleted until you press Delete now.</p>
     ${scanLine(scan)}
-    ${flash ? `<div style="background:#fff;border-left:4px solid #7C8863;padding:12px 16px;margin:16px 0">${flash}</div>` : ''}
-    ${items.length ? `<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px"><tr style="text-align:left;font-size:12px;color:#595959"><th style="padding:12px">Account</th><th style="padding:12px">Product</th><th style="padding:12px">Status</th><th style="padding:12px">What happens</th></tr>${rows}</table>`
-      : '<p style="background:#fff;padding:16px;border-radius:10px">Nothing has ended. Nothing to review.</p>'}
+    ${flash ? `<div style="background:#FBF5E6;border:1px solid #EEDFB8;color:#30383B;border-radius:14px;padding:14px 18px;margin:16px 0">${flash}</div>` : ''}
+    ${items.length ? `<table style="width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid rgba(48,56,59,0.09);border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(48,56,59,0.04),0 2px 10px rgba(48,56,59,0.04)"><tr style="text-align:left;font-size:12px;color:#637074"><th style="padding:12px">Account</th><th style="padding:12px">Product</th><th style="padding:12px">Status</th><th style="padding:12px">What happens</th></tr>${rows}</table>`
+      : '<p style="background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 1px 2px rgba(48,56,59,0.04),0 2px 10px rgba(48,56,59,0.04);padding:20px 22px;border-radius:20px">Nothing has ended. Nothing to review.</p>'}
   </div></body></html>`;
 }
 
 // The daily job's last run. Over 26 hours ago means it has stopped.
 function scanLine(scan) {
-  if (!scan) return '<div style="background:#FFF0EE;border-left:4px solid #A94442;padding:10px 14px;margin:12px 0">The daily retention check has never run.</div>';
+  if (!scan) return '<div style="background:#FBEFED;border:1px solid #F1D3CF;color:#A94442;border-radius:14px;padding:12px 16px;margin:12px 0">The daily retention check has never run.</div>';
   const at = new Date(scan.created_at);
   const stale = Date.now() - at.getTime() > 26 * 60 * 60 * 1000;
   const when = at.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
   return stale
-    ? `<div style="background:#FFF0EE;border-left:4px solid #A94442;padding:10px 14px;margin:12px 0"><strong>The daily retention check last ran ${when} UTC, more than a day ago.</strong> It may have stopped. Check the server logs for "Retention run failed".</div>`
-    : `<p style="color:#595959;font-size:13px;margin:8px 0 16px">Daily check last ran ${when} UTC.</p>`;
+    ? `<div style="background:#FBEFED;border:1px solid #F1D3CF;color:#A94442;border-radius:14px;padding:12px 16px;margin:12px 0"><strong>The daily retention check last ran ${when} UTC, more than a day ago.</strong> It may have stopped. Check the server logs for "Retention run failed".</div>`
+    : `<p style="color:#637074;font-size:13px;margin:8px 0 16px">Daily check last ran ${when} UTC.</p>`;
 }
 
 async function retentionItems() {

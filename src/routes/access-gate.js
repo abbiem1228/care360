@@ -114,8 +114,8 @@ function footerLinks(req) {
 
 function readOnlyBlockedPage(req) {
   return adminShell('Paused while billing is past due', `<div class="card" style="max-width:560px">
-    <h2 style="font-family:'EB Garamond',serif;font-size:22px;margin-bottom:8px">This is paused for now</h2>
-    <p style="font-size:14px;color:#595959;line-height:1.7;margin-bottom:16px">While your last payment is past due, you can still view everything, including existing reports, close a survey early, change an open Group's dates and remove a rater, but you can't make other changes or start anything new. Updating your billing restores full access right away.</p>
+    <h2 style="font-family:'EB Garamond',Georgia,serif;font-size:30px;font-weight:500;letter-spacing:-0.8px;line-height:1.15;margin-bottom:10px">this is paused for now.</h2>
+    <p style="font-size:14px;color:var(--grey);line-height:1.7;margin-bottom:20px">While your last payment is past due, you can still view everything, including existing reports, close a survey early, change an open Group's dates and remove a rater, but you can't make other changes or start anything new. Updating your billing restores full access right away.</p>
     ${req.account && req.account.stripe_customer_id ? '<a href="/billing/portal" class="btn btn-primary">Manage billing</a>' : ''}
     <a href="/admin" class="btn btn-ghost">Back to dashboard</a>
   </div>`, req);
@@ -123,15 +123,15 @@ function readOnlyBlockedPage(req) {
 
 function pendingPage(req) {
   return shell('Payment pending', `
-    <div class="title">Your payment is pending verification</div>
-    <div class="sub">As soon as your card is verified, you'll have full access to CARE 360. If your bank asked you to confirm the payment, you can finish that in Manage billing.</div>
+    <div class="title">your payment is being verified.</div>
+    <div class="sub">As soon as your card is verified, you'll have full access to care 360. If your bank asked you to confirm the payment, you can finish that in Manage billing.</div>
     ${manageBillingLink(req)}
     ${footerLinks(req)}`);
 }
 
 function pausedPage(req) {
   return shell('Subscription paused', `
-    <div class="title">Your subscription is paused</div>
+    <div class="title">your subscription is paused.</div>
     <div class="sub">Your subscription is paused because payment didn't go through. Update your billing to restore access. Paying the open invoice in Manage billing restores everything automatically.</div>
     ${manageBillingLink(req)}
     ${footerLinks(req)}`);
@@ -141,7 +141,7 @@ function pausedPage(req) {
 // 60 days after cancellation, then permanently deleted.
 function endedPage(req) {
   return shell('Subscription ended', `
-    <div class="title">Your CARE 360 subscription has ended</div>
+    <div class="title">your care 360 subscription has ended.</div>
     <div class="sub">Your account and data are kept ${req.care360KeptUntil ? `until ${req.care360KeptUntil}` : 'for 60 days after your subscription ends'}, so you can resubscribe and pick up where you left off, or ask us for an export. After that, they're permanently deleted.</div>
     <a href="/plans?product=care360" class="btn" style="display:block;text-align:center;text-decoration:none">Resubscribe</a>
     ${req.account && req.account.stripe_customer_id ? '<div class="alt"><a href="/billing/portal">Manage billing and past invoices</a></div>' : ''}

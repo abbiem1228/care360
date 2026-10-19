@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { adminShell } = require('./admin');
+const { icon } = require('../icons');
 
 function requireAuth(req, res, next) {
   if (req.isAdmin) return next();
@@ -245,69 +246,71 @@ router.get('/', requireAuth, (req, res) => {
 
   const content = `
 <style>
-.guide-main{max-width:840px;margin:0 auto;padding:36px 24px 80px}
-.guide-title{font-family:'EB Garamond',serif;font-size:30px;font-weight:600;margin-bottom:6px}
-.guide-lede{font-size:14px;color:var(--grey);line-height:1.7;margin-bottom:24px}
+.guide-main{max-width:840px;margin:0 auto;padding:16px 0 80px}
+.guide-title{font-family:'EB Garamond',Georgia,serif;font-size:54px;font-weight:500;letter-spacing:-2px;line-height:1.08;margin-bottom:10px}
+.guide-lede{font-size:16px;color:var(--grey);line-height:1.7;margin-bottom:28px}
 
 .search-wrap{position:relative;margin-bottom:14px}
-.search-box{width:100%;padding:13px 16px 13px 42px;border:1.5px solid var(--sand);border-radius:8px;font-size:15px;font-family:inherit;color:var(--ink);background:white;transition:border-color .15s,box-shadow .15s}
-.search-box:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 3px rgba(169,99,61,0.12)}
-.search-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--sand);font-size:15px}
-.search-count{font-size:12px;color:var(--grey);margin-bottom:22px;min-height:16px}
+.search-box{width:100%;padding:15px 18px 15px 46px;border:1px solid var(--line-strong);border-radius:999px;font-size:15px;font-family:inherit;color:var(--ink);background:white;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s}
+.search-box:hover{border-color:rgba(48,56,59,0.3)}
+.search-box:focus{outline:none;border-color:var(--clay);box-shadow:0 0 0 4px rgba(169,99,61,0.12)}
+.search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--grey);display:flex}
+.search-icon .i{width:17px;height:17px}
+.search-count{font-size:12px;color:var(--grey);margin-bottom:22px;min-height:16px;padding-left:18px}
 
-.toc{background:white;border:1px solid var(--warm);border-radius:10px;padding:18px 22px;margin-bottom:28px;box-shadow:var(--shadow)}
-.toc-title{font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px}
+.toc{background:var(--wash);border:1px solid var(--line);border-radius:20px;padding:22px 28px;margin-bottom:32px}
+.toc-title{text-transform:lowercase;font-family:'EB Garamond',Georgia,serif;font-size:20px;font-weight:500;color:var(--ink);margin-bottom:8px}
 .toc ol{margin:0;padding-left:20px}
-.toc li{font-size:13.5px;line-height:2;color:var(--ink)}
+.toc li{font-size:14px;line-height:2;color:var(--ink)}
+.toc li::marker{color:var(--clay)}
 
-.section-label{font-size:11px;font-weight:700;color:var(--clay);text-transform:uppercase;letter-spacing:1.2px;margin:34px 0 14px}
+.section-label{font-family:'EB Garamond',Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-0.6px;color:var(--ink);margin:44px 0 16px}
 
-.guide-block{background:white;border:1px solid var(--warm);border-radius:10px;padding:22px 26px;margin-bottom:14px;box-shadow:var(--shadow)}
-.step-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.step-num{width:28px;height:28px;border-radius:50%;background:var(--clay);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-.step-num-plain{background:var(--sage);font-size:13px}
-.step-title{font-family:'EB Garamond',serif;font-size:21px;font-weight:600;color:var(--ink)}
-.step-body p{font-size:14px;line-height:1.8;color:#454B4E;margin-bottom:12px}
+.guide-block{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:26px 30px;margin-bottom:14px;box-shadow:var(--shadow);transition:box-shadow .25s var(--ease)}
+.guide-block:hover{box-shadow:var(--shadow-lift)}
+.step-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--cream);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.step-num-plain{background:var(--clay);font-size:13px}
+.step-title{font-family:'EB Garamond',Georgia,serif;font-size:24px;font-weight:500;letter-spacing:-0.5px;color:var(--ink)}
+.step-body p{font-size:14.5px;line-height:1.8;color:var(--ink);margin-bottom:12px}
 .step-body p:last-child{margin-bottom:0}
 .step-body ul{margin:0 0 12px 20px}
-.step-body li{font-size:14px;line-height:1.85;color:#454B4E}
+.step-body li{font-size:14.5px;line-height:1.85;color:var(--ink)}
 .step-body strong{color:var(--ink);font-weight:600}
 
-.callout{border-radius:0 6px 6px 0;padding:13px 17px;margin:14px 0;font-size:13.5px;line-height:1.75;color:#454B4E}
-.callout-sand{background:var(--cream);border-left:4px solid var(--sand)}
-.callout-clay{background:#FBF5EC;border-left:4px solid var(--clay)}
-.callout-sage{background:#F4F7F2;border-left:4px solid var(--sage)}
+.callout{border-radius:14px;padding:14px 18px;margin:14px 0;font-size:14px;line-height:1.75;color:var(--ink);border:1px solid transparent}
+.callout-sand{background:var(--wash);border-color:var(--line)}
+.callout-clay{background:var(--ochre-tint);border-color:var(--ochre-line)}
+.callout-sage{background:var(--sage-tint);border-color:#DCE2D2}
 
 .guide-table{width:100%;border-collapse:collapse;margin:12px 0 14px}
-.guide-table th{background:var(--ink);color:rgba(255,255,255,0.9);padding:9px 13px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase}
-.guide-table th:first-child{border-radius:6px 0 0 0}
-.guide-table th:last-child{border-radius:0 6px 0 0}
-.guide-table td{padding:10px 13px;border-bottom:1px solid var(--warm);font-size:13.5px;color:#454B4E;line-height:1.6}
+.guide-table th{background:transparent;color:var(--grey);padding:0 13px 10px;text-align:left;font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:lowercase;border-bottom:1px solid var(--line)}
+.guide-table td{padding:11px 13px;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink);line-height:1.6}
 .guide-table tr:last-child td{border-bottom:none}
 
-.faq-block{padding:18px 24px}
-.faq-q{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:7px}
-.faq-a{font-size:13.5px;line-height:1.8;color:#454B4E}
+.faq-block{padding:22px 28px}
+.faq-q{font-family:'EB Garamond',Georgia,serif;font-size:20px;font-weight:500;color:var(--ink);margin-bottom:6px}
+.faq-a{font-size:14.5px;line-height:1.8;color:var(--ink)}
 
 .no-results{display:none;text-align:center;padding:44px 20px;color:var(--grey)}
-.no-results-title{font-family:'EB Garamond',serif;font-size:20px;color:var(--ink);margin-bottom:8px}
-.no-results-text{font-size:13.5px;line-height:1.7}
+.no-results-title{font-family:'EB Garamond',Georgia,serif;font-size:26px;color:var(--ink);margin-bottom:8px}
+.no-results-text{font-size:14px;line-height:1.7}
 
-.guide-footer{text-align:center;margin-top:48px;padding-top:22px;border-top:1px solid var(--warm)}
-.guide-footer-name{font-family:'EB Garamond',serif;font-size:14px;color:var(--ink);margin-bottom:4px}
-.guide-footer-tag{font-size:10px;color:var(--sand);letter-spacing:1.5px;text-transform:uppercase}
+.guide-footer{text-align:center;margin-top:56px;padding-top:28px;border-top:1px solid var(--line)}
+.guide-footer-name{font-family:'EB Garamond',Georgia,serif;font-size:18px;color:var(--ink);margin-bottom:4px}
+.guide-footer-tag{font-size:12px;color:var(--grey)}
 
-@media(max-width:700px){.guide-main{padding:20px 14px 60px}.guide-block{padding:18px}}
+@media(max-width:700px){.guide-main{padding:0 0 60px}.guide-title{font-size:38px}.guide-block{padding:20px}}
 </style>
 
 <div class="guide-main">
-  <div class="guide-title">How CARE 360 works</div>
+  <div class="guide-title">how care 360 works.</div>
   <p class="guide-lede">Setup takes about ten minutes. Everything then runs itself until the close date you set. You come back at the end to generate the report.</p>
 
-  <div class="callout callout-clay">Have both CARE 360 and the Element Profile? Click the logo in the top-left corner, right where it says "CARE 360 Survey." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
+  <div class="callout callout-clay">Have both CARE 360 and the Element Profile? Click the logo in the top-left corner, right where it says "care 360." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
 
   <div class="search-wrap">
-    <span class="search-icon">&#9906;</span>
+    <span class="search-icon">${icon('search')}</span>
     <input class="search-box" id="q" type="text" placeholder="Search. Try 'spam', 'deadline' or 'custom questions'" autocomplete="off"/>
   </div>
   <div class="search-count" id="count"></div>

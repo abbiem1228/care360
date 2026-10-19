@@ -28,7 +28,7 @@ router.get('/:token', async (req, res) => {
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Link not found', 'This survey link was not found. Please check your email for the correct link.'));
     if (await surveyLocked(rater.leaders.cycles)) return res.send(statusPage('!', 'Survey not open', 'This survey is no longer open.'));
-    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `You have already completed the survey for <strong>${rater.leaders.name}</strong>. Thank you for your contribution.`, '#1F6B3A'));
+    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `You have already completed the survey for <strong>${rater.leaders.name}</strong>. Thank you for your contribution.`, '#A9633D'));
     if (rater.leaders.cycles.status !== 'active') return res.send(statusPage('!', 'Survey not open', 'This survey is not currently open. Please contact your survey administrator.'));
 
     // Check closes_at date
@@ -70,7 +70,7 @@ router.post('/:token', async (req, res) => {
 
     if (error || !rater) return res.status(404).send(statusPage('!', 'Invalid link', 'Survey link not found.'));
     if (await surveyLocked(rater.leaders.cycles)) return res.status(410).send(statusPage('!', 'Survey not open', 'This survey is no longer open.'));
-    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `Already submitted for <strong>${rater.leaders.name}</strong>.`, '#1F6B3A'));
+    if (rater.completed_at) return res.send(statusPage('✓', 'Already submitted', `Already submitted for <strong>${rater.leaders.name}</strong>.`, '#A9633D'));
     if (rater.leaders.cycles.status !== 'active') return res.status(400).send(statusPage('!', 'Survey closed', 'This survey is no longer accepting responses.'));
     if (rater.leaders.cycles.closes_at && new Date() > new Date(rater.leaders.cycles.closes_at)) {
       return res.status(400).send(statusPage('!', 'Survey closed', 'The deadline for this survey has passed. Your responses could not be submitted. Please contact your survey administrator.'));
@@ -172,7 +172,7 @@ router.post('/:token', async (req, res) => {
     } catch (e) {
       console.error('Completion notice failed:', e.message);
     }
-    res.send(statusPage('✓', 'Thank you', `Your feedback for <strong>${rater.leaders.name}</strong> has been received. Your responses are anonymous and will be included in their development report.`, '#1F6B3A'));
+    res.send(statusPage('✓', 'Thank you', `Your feedback for <strong>${rater.leaders.name}</strong> has been received. Your responses are anonymous and will be included in their development report.`, '#A9633D'));
 
   } catch (err) {
     console.error(err);
@@ -264,29 +264,33 @@ function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions, custo
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CARE 360 Survey</title>
+<title>care 360 survey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
 <link rel="stylesheet" href="/css/survey.css"/>
 </head>
 <body>
 <header class="survey-header">
   <div class="header-inner">
-    <div class="header-brand">In Good Company &nbsp;·&nbsp; CARE 360</div>
+    <div class="header-brand"><img src="/img/care-mark.svg" alt=""/>care 360</div>
     <div class="header-context">
       <span class="context-label">Evaluating:</span>
       <span class="context-name">${leaderName}</span>
       <span class="context-sep">·</span>
       <span class="context-group">${groupLabel}</span>
+      <span class="context-sep">·</span>
+      <span class="progress-count" id="progress-count" aria-live="polite"><strong>0</strong> of ${sections.reduce((n, s) => n + s.questions.length, 0) + customQuestions.length} answered</span>
     </div>
   </div>
+  <div class="survey-progress" aria-hidden="true"><div class="survey-progress-fill" id="progress-fill"></div></div>
 </header>
 
 <div class="survey-container">
   <div class="survey-intro">
     <h1>Your feedback matters.</h1>
-    <p>You have been asked to provide CARE 360 feedback for <strong>${leaderName}</strong>. This is a developmental tool, and your responses help this leader understand how their leadership lands and where they have the greatest opportunity to grow.</p>
+    <p>You have been asked to give care 360 feedback for <strong>${leaderName}</strong>. This is a developmental tool, and your responses help this leader understand how their leadership lands and where they have the greatest opportunity to grow.</p>
     <p>All responses are <strong>completely anonymous</strong>. Answer based on your direct, observed experience. The open-text sections are optional but are often the most valuable part.</p>
     <div class="scale-legend">
       <div class="legend-title">Rating Scale</div>
@@ -339,20 +343,31 @@ function surveyPage(rater, sections, isSelf, scaleLabels, customQuestions, custo
 </html>`;
 }
 
-function statusPage(icon, title, msg, color = '#A9633D') {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>${title}</title>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Arial,sans-serif;background:#F7F4EF;display:flex;align-items:center;justify-content:center;min-height:100vh}
-  .card{background:#fff;border-radius:10px;padding:52px 56px;max-width:520px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08);border-top:4px solid ${color}}
-  .icon{font-size:40px;color:${color};margin-bottom:16px;font-family:'EB Garamond',serif}
-  .title{font-family:'EB Garamond',serif;font-size:26px;color:#30383B;margin-bottom:12px}
-  .msg{font-size:14px;color:#595959;line-height:1.75}
-  .brand{margin-top:36px;font-size:11px;color:#bbb;letter-spacing:1px;text-transform:uppercase}</style></head>
+function statusPage(icon, title, msg, color = '#A87B2C') {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title>
+  <link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;-webkit-font-smoothing:antialiased}
+  .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:52px 56px;max-width:520px;text-align:center}
+  .icon{width:60px;height:60px;border-radius:50%;background:${color};color:#fff;box-shadow:0 0 0 8px ${color}1A;animation:pop .45s cubic-bezier(.2,.7,.2,1) both;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;font-family:'EB Garamond',serif}
+  .title{font-family:'EB Garamond',serif;font-size:38px;font-weight:500;letter-spacing:-1.2px;line-height:1.1;color:#30383B;margin-bottom:12px;text-transform:lowercase}
+  .msg{font-size:15px;color:#637074;line-height:1.75;overflow-wrap:anywhere}
+  .done-ring{width:76px;height:76px;margin:0 auto 22px;display:block}
+  .done-track{fill:none;stroke:rgba(48,56,59,0.08);stroke-width:5}
+  .done-arc{fill:none;stroke:#A9633D;stroke-width:5;stroke-linecap:round;stroke-dasharray:188.5;stroke-dashoffset:188.5;animation:draw 1s .15s cubic-bezier(.65,0,.35,1) forwards}
+  .done-check{fill:none;stroke:#30383B;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:36;stroke-dashoffset:36;animation:draw .45s 1s cubic-bezier(.65,0,.35,1) forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @media(prefers-reduced-motion:reduce){.done-arc,.done-check{animation:none;stroke-dashoffset:0}}
+  @keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+  .brand{margin-top:36px}.brand img{height:16px;width:auto;opacity:0.85}
+  @media(max-width:520px){.card{padding:40px 24px}}</style></head>
   <body><div class="card">
-    <div class="icon">${icon}</div>
+    ${(icon === '✓' || icon === '&#10003;')
+      ? `<svg class="done-ring" viewBox="0 0 72 72" aria-hidden="true"><circle class="done-track" cx="36" cy="36" r="30"/><circle class="done-arc" cx="36" cy="36" r="30" transform="rotate(-90 36 36)"/><path class="done-check" d="M24.5 36.5l7.5 7.5 15.5-16"/></svg>`
+      : `<div class="icon">${icon}</div>`}
     <div class="title">${title}</div>
     <div class="msg">${msg}</div>
-    <div class="brand">In Good Company Collective &nbsp;·&nbsp; CARE 360</div>
+    <div class="brand"><img src="/img/igc-wordmark.svg" alt="in good company."/></div>
   </div></body></html>`;
 }
 

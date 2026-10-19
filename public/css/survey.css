@@ -34,9 +34,9 @@ body { font-family: 'Noto Sans', Arial, sans-serif; background: var(--white); co
 .header-inner { max-width: 860px; margin: 0 auto; padding: 0 24px; min-height: 68px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; }
 .header-brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-family: 'EB Garamond', Georgia, serif; font-size: 22px; font-weight: 500; letter-spacing: -0.5px; line-height: 1; }
 .header-brand img { width: 28px; height: 28px; display: block; }
-.header-context { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.header-context { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; font-size: 14px; min-width: 0; }
 .context-label { color: var(--grey); }
-.context-name  { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.context-name  { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
 .context-sep   { color: var(--line-strong); }
 .context-group { background: var(--ochre-tint); border: 1px solid var(--ochre-line); color: var(--ochre); font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
 

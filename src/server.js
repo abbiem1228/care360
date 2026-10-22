@@ -13,13 +13,26 @@ const hqRoutes    = require('./routes/hq');
 const { getSession } = require('./auth');
 const app = express();
 
+// Signs every auth cookie. A built-in default would let anyone who has
+// read this code forge one, so production refuses to start without it.
+// Local development gets a random secret for each run instead, which only
+// means signing in again after a restart.
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('Missing SESSION_SECRET in the environment. Refusing to start in production without it.');
+  process.exit(1);
+}
+const SESSION_SECRET = process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex');
+if (!process.env.SESSION_SECRET) {
+  console.warn('SESSION_SECRET is not set: using a random secret for this run, so sign-ins will not survive a restart.');
+}
+
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
   if (req.originalUrl === '/billing/webhook') return next();
   express.json()(req, res, next);
 });
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser(process.env.SESSION_SECRET || 'care360-secret'));
+app.use(cookieParser(SESSION_SECRET));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Cookie-based auth — available to all routes
@@ -37,7 +50,7 @@ app.use(async (req, res, next) => {
   } catch (e) {
     console.error('Session check failed:', e.message);
   }
-  req.isAdmin = req.signedCookies && req.signedCookies.adminAuth === 'yes';
+  req.isAdmin = false;
   next();
 });
 const billing = require('./routes/billing');

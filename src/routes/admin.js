@@ -9,8 +9,7 @@ const { icon } = require('../icons');
 const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.ingoodcocollective.com';
 
 // Every query below runs on the signed in user's own connection, so the
-// database refuses to return another account's rows. The shared service
-// client is only a fallback for the legacy password login.
+// database refuses to return another account's rows.
 function db(req) { return req.userDb || supabase; }
 
 function requireAuth(req, res, next) {
@@ -18,21 +17,8 @@ function requireAuth(req, res, next) {
   res.redirect('/signin');
 }
 
-// ── Legacy password login (kept as a fallback) ────────────────
-router.get('/login', (req, res) => res.send(loginPage(req.query.error)));
-
-router.post('/login', (req, res) => {
-  if (req.body.password === process.env.ADMIN_PASSWORD) {
-    res.cookie('adminAuth', 'yes', {
-      signed: true, httpOnly: true, sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 8 * 60 * 60 * 1000
-    });
-    return res.redirect('/admin');
-  }
-  res.redirect('/admin/login?error=1');
-});
-
+// The old shared-password login is gone. This still clears its cookie from
+// any browser that has one left over.
 router.get('/logout', (req, res) => { res.clearCookie('adminAuth'); res.redirect('/signin'); });
 
 // ── Dashboard ──────────────────────────────────────────────────
@@ -723,43 +709,6 @@ function adminShell(title, content, req) {
   <div class="admin-main">${billingBanners(req)}${content}</div>
   <script>(function(){var n=document.querySelector('.admin-nav');function f(){n.classList.toggle('scrolled',window.scrollY>4)}window.addEventListener('scroll',f,{passive:true});f();document.addEventListener('submit',function(e){if(e.defaultPrevented)return;var b=e.submitter||e.target.querySelector('button[type=submit],button:not([type])');if(!b||b.classList.contains('is-loading'))return;b.classList.add('is-loading');b.setAttribute('aria-busy','true');setTimeout(function(){b.disabled=true},0)});window.addEventListener('pageshow',function(e){if(e.persisted)document.querySelectorAll('.is-loading').forEach(function(b){b.classList.remove('is-loading');b.disabled=false;b.removeAttribute('aria-busy')})});document.addEventListener('click',function(e){document.querySelectorAll('details.menu[open],details.nav-logo-switcher[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open')})})})();</script>
   </body></html>`;
-}
-
-function loginPage(error) {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Sign In | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}
-  <style>
-  body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,var(--wash),var(--white) 70%)}
-  .login-wrap{width:100%;max-width:440px;padding:20px}
-  .login-card{background:var(--white);border:1px solid var(--line);border-radius:24px;padding:44px 44px 40px;box-shadow:var(--shadow-lift);animation:igc-rise .55s var(--ease) both}
-  .login-logo{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:36px}
-  .login-logo-mark{height:20px;width:auto;display:block}
-  .login-logo-sub{font-size:13px;color:var(--grey)}
-  .login-title{font-family:'EB Garamond',Georgia,serif;font-size:34px;color:var(--ink);margin-bottom:8px;font-weight:500;letter-spacing:-1px;line-height:1.1}
-  .login-sub{font-size:14px;color:var(--grey);margin-bottom:28px;line-height:1.6}
-  .login-btn{text-transform:lowercase;width:100%;padding:14px;background:var(--ink);color:var(--cream);border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s}
-  .login-btn:hover{background:var(--ink-deep)}
-  .login-btn:active{transform:translateY(1px) scale(.99)}
-  .login-footer{text-align:center;margin-top:28px;font-size:12px;color:var(--grey)}
-  .alert-error{background:var(--danger-tint);border:1px solid var(--danger-line);color:var(--danger);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:20px}
-  </style></head>
-  <body><div class="login-wrap"><div class="login-card">
-    <div class="login-logo">
-      <img class="login-logo-mark" src="/img/igc-wordmark.svg" alt="in good company."/>
-      <div class="login-logo-sub">care 360 leadership survey</div>
-    </div>
-    <div class="login-title">recovery sign in.</div>
-    <div class="login-sub">This is the legacy shared password. Most people should <a href="/signin">sign in with their email</a> instead.</div>
-    ${error ? '<div class="alert-error">Incorrect password. Please try again.</div>' : ''}
-    <form method="POST" action="/admin/login">
-      <div class="form-group">
-        <label class="form-label">Admin Password</label>
-        <input class="form-control" type="password" name="password" autofocus required placeholder="Enter your password" style="font-size:15px;padding:12px 14px"/>
-      </div>
-      <button class="login-btn" type="submit">Sign In</button>
-    </form>
-    <div class="login-footer">Thoughtful &nbsp;·&nbsp; Innovative &nbsp;·&nbsp; Human</div>
-  </div></div></body></html>`;
 }
 
 // Whole days from now until an ISO date (negative once it has passed).

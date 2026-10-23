@@ -14,9 +14,9 @@ const { adminShell } = require('./admin');
 
 const INFO_EMAIL = 'info@ingoodcocollective.com';
 
-// Under /admin, always reachable whatever the billing state: the legacy
-// shared-password login/logout, and switching to Element Profile.
-const ALWAYS_ALLOWED = ['/admin/login', '/admin/logout', '/admin/handoff/element-profile'];
+// Under /admin, always reachable whatever the billing state: logout, and
+// switching to Element Profile.
+const ALWAYS_ALLOWED = ['/admin/logout', '/admin/handoff/element-profile'];
 
 // Read-only mode allows every GET except these: they start something
 // new (a fresh AI report, or a form whose only purpose is to create).

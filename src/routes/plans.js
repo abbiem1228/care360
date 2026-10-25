@@ -216,7 +216,7 @@ function money(n) {
 // a one-line promise. The longer tagline in PRODUCTS sits under it.
 const HERO = {
   care360:         { marks: [['care360-wordmark.svg', 'care 360.']], title: 'unlimited 360s, one simple price.' },
-  element_profile: { marks: [['element-wordmark.svg', 'element.']], title: 'assess everyone, one simple price.' },
+  element_profile: { marks: [['element-wordmark.svg', 'element.']], title: 'profiles for your whole team, one simple price.' },
   bundle:          { marks: [['care360-wordmark.svg', 'care 360.'], ['element-wordmark.svg', 'element.']], title: 'both products, one subscription.' }
 };
 

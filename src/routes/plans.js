@@ -140,7 +140,7 @@ const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.
 const PRODUCT_ALIASES = { element: 'element_profile', care: 'care360' };
 
 // Copy that differs by product tab. The Element Profile and the bundle
-// have no free trial, so their tabs say so and point to the plan or a demo.
+// have no free trial of the paid plan, so their tabs say so.
 const PAGE_COPY = {
   care360: {
     backHref: '/admin',
@@ -152,13 +152,13 @@ const PAGE_COPY = {
     backHref: `${ELEMENT_PROFILE_URL}/admin`,
     backText: 'Back to your dashboard',
     foot: 'Every plan includes unlimited people and unlimited assessments. No per-assessment charges.',
-    note: 'No free trial of the paid plan. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Element%20Profile%20demo">book a demo</a>.'
+    note: 'No free trial of the paid plan.'
   },
   bundle: {
     backHref: '/admin',
     backText: 'Back to your account',
     foot: 'Every plan includes unlimited people, assessments, raters and reports. No per-report charges.',
-    note: 'No free trial of the paid plan. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Bundle%20demo">book a demo</a>.'
+    note: 'No free trial of the paid plan.'
   }
 };
 
@@ -193,7 +193,7 @@ const SITE_FAQ = {
   careHiring:  ['Can care 360 be used for hiring or pay decisions?', 'No. It\'s a development tool. Results shouldn\'t be the only basis for decisions about employment or pay, and it isn\'t offered for hiring.'],
   elWhat:      ['What does The Element Profile measure?', 'How a person naturally works across six elements: drive, pace, people orientation, structure, composure, and ambiguity tolerance.'],
   elProfiles:  ['What are the Element profiles?', 'Each person\'s two strongest elements form one of 15 profiles, such as The Steady Hand or The Trailblazer. Evenly balanced results are The Wild Card.'],
-  elCost:      ['How much does it cost?', 'The Element Profile is $1,990 a year, billed annually, for an organization of any size. There\'s no free trial; you can book a demo.'],
+  elCost:      ['How much does it cost?', 'The Element Profile is $1,990 a year, billed annually, for an organization of any size. There\'s no free trial of the paid plan, but you can take the assessment yourself free first.'],
   elHiring:    ['Can it be used for hiring?', 'No. It\'s built for development, coaching and team conversations, not for screening or selecting candidates.'],
   elWithCare:  ['Does it work with care 360?', 'Yes. Both share one account, can be bought together as a bundle, and connect a person\'s results so administrators can see them side by side.']
 };
@@ -469,7 +469,7 @@ ${PLANS_CSS}</style></head><body>
   <section class="cta">
     <div>
       <h2>questions before you start?</h2>
-      <p>Tell us about your organization and we'll help you choose, or set up a demo.</p>
+      <p>Tell us about your organization and we'll help you choose.</p>
     </div>
     <a class="cta-btn" href="${CONTACT_URL}">let's talk${icon('arrow-right')}</a>
   </section>

@@ -369,4 +369,49 @@ router.post('/retention/delete', requireOwner, async (req, res) => {
   }
 });
 
+// ── Weekly free Element Profile summary ─────────────────────
+// Shows the weeks sent so far, and sends the latest week by hand. It
+// still goes out only once per week: pressing it after the Monday
+// email has gone just says so.
+
+const freeSummary = require('../free-summary');
+
+function freeSummaryPage(weeks, flash) {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const due = freeSummary.dueWeek();
+  const rows = weeks.map(w => `<tr><td style="padding:10px 12px;border-bottom:1px solid #EDE8DF">${esc(w.week_start)}</td><td style="padding:10px 12px;border-bottom:1px solid #EDE8DF">${w.status === 'sent' ? 'Sent ' + esc(new Date(w.sent_at).toLocaleString('en-US', { timeZone: 'America/Phoenix' })) : 'Sending'}</td><td style="padding:10px 12px;border-bottom:1px solid #EDE8DF">${w.taken == null ? '' : `${w.taken} taken, ${w.opted_in} opted in`}</td></tr>`).join('');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Free summary | HQ</title></head>
+  <body style="font-family:'Noto Sans',Arial,sans-serif;background:#fff;color:#30383B;margin:0;padding:48px 20px;line-height:1.6"><div style="max-width:800px;margin:0 auto">
+    <p><a href="/hq" style="color:#A9633D">Back to HQ</a></p>
+    <h1 style="font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:44px;letter-spacing:-1.4px;line-height:1.1;margin:16px 0 10px">Free assessment summary</h1>
+    <p style="color:#637074">Emailed to the owner every Monday at 8:00 AM Arizona time, once per week. The latest week is ${esc(due.weekStart)} to ${esc(due.weekEnd)}.</p>
+    ${flash ? `<div style="background:#FBF5E6;border:1px solid #EEDFB8;border-radius:14px;padding:14px 18px;margin:16px 0">${esc(flash)}</div>` : ''}
+    <form method="POST" action="/hq/free-summary/send" style="margin:18px 0"><button style="background:#30383B;color:#fff;border:none;border-radius:999px;padding:10px 20px;font-weight:600;cursor:pointer;font-family:inherit">Send the latest week now</button></form>
+    ${rows ? `<table style="width:100%;border-collapse:collapse;font-size:14px"><tr><th style="text-align:left;padding:10px 12px">Week of</th><th style="text-align:left;padding:10px 12px">Status</th><th style="text-align:left;padding:10px 12px">Counts</th></tr>${rows}</table>` : '<p>No weeks sent yet.</p>'}
+  </div></body></html>`;
+}
+
+router.get('/free-summary', requireOwner, async (req, res) => {
+  try {
+    res.send(freeSummaryPage(await freeSummary.recentWeeks()));
+  } catch (e) {
+    console.error('Free summary page failed:', e.message);
+    res.status(500).send('Could not load the free summary right now.');
+  }
+});
+
+router.post('/free-summary/send', requireOwner, async (req, res) => {
+  let flash;
+  try {
+    const r = await freeSummary.runWeeklyFreeSummary();
+    flash = r.sent ? `Sent the week of ${r.week.weekStart}: ${r.taken} taken, ${r.optedIn} opted in.`
+      : r.skipped === 'already sent' ? `The week of ${r.week.weekStart} has already been sent, so nothing went out.`
+      : `Nothing sent: ${r.skipped}.`;
+  } catch (e) {
+    console.error('Free summary send failed:', e.message);
+    flash = `Nothing sent: ${e.message}`;
+  }
+  res.send(freeSummaryPage(await freeSummary.recentWeeks().catch(() => []), flash));
+});
+
 module.exports = router;

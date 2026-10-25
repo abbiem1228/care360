@@ -43,7 +43,8 @@ const PRODUCTS = {
     }
   },
   element_profile: {
-    label: 'Element Profile',
+    label: 'The Element Profile',
+    tab: 'the element profile',
     tagline: 'The full behavioral talent assessment suite: the six Elements, archetype reports, and role and team comparisons.',
     tiers: {
       starter: {
@@ -433,7 +434,7 @@ function plansPage(product, req) {
   const productToggle = Object.keys(PRODUCTS).map(key => `
     <a class="product-opt ${key === product ? 'on' : ''}" href="/plans?product=${key}">${TAB_MARK[key]
       ? `<img src="/img/${TAB_MARK[key]}" alt=""/>`
-      : `<span class="duo"><img src="/img/care-mark.svg" alt=""/><img src="/img/element-mark.svg" alt=""/></span>`}${PRODUCTS[key].label}</a>
+      : `<span class="duo"><img src="/img/care-mark.svg" alt=""/><img src="/img/element-mark.svg" alt=""/></span>`}${PRODUCTS[key].tab || PRODUCTS[key].label}</a>
   `).join('');
 
   const faq = FAQ[product].map(k => SITE_FAQ[k]).map(([q, a]) => `

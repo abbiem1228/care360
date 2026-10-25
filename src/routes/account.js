@@ -18,7 +18,6 @@ const TIERS    = ['starter', 'growth'];
 const PRODUCTS = ['care360', 'element_profile', 'bundle'];
 
 const PRODUCT_LABELS = { care360: 'CARE 360', element_profile: 'Element Profile', bundle: 'Bundle' };
-const TIER_LABELS     = { starter: 'Starter', growth: 'Growth' };
 
 // Who a purchase is for, and so how it is billed. Organizations buy
 // annual plans only. Coaches (from the unlisted /coach page) buy the
@@ -31,12 +30,17 @@ function purchaseTerms(source, products) {
   if (audience === 'coach') {
     return { audience, billing: 'monthly', tier: products === 'care360' ? null : 'starter' };
   }
-  return { audience, billing: 'annual', tier: TIERS.includes(source.tier) ? source.tier : null };
+  // Any paid tier, including an old Growth link, is the one plan for that
+  // product, which is the existing Starter price.
+  return { audience, billing: 'annual', tier: TIERS.includes(source.tier) ? 'starter' : null };
 }
 
+// One plan per product, named just by the product. (tier stays in the
+// signature: it is always 'starter' now, the price that plan uses.)
+const PLAN_NAMES = { care360: 'care 360', element_profile: 'The Element Profile', bundle: 'the bundle' };
+const PLAN_TITLES = { care360: 'set up your care 360 account.', element_profile: 'set up the element profile.', bundle: 'set up the bundle.' };
 function purchaseLabel(tier, products) {
-  if (products === 'bundle') return tier === 'growth' ? 'Growth Bundle' : 'Starter Bundle';
-  return `${PRODUCT_LABELS[products]} ${TIER_LABELS[tier]}`;
+  return PLAN_NAMES[products] || PLAN_NAMES.care360;
 }
 
 // Same env var and default already used for the handoff redirect
@@ -183,8 +187,11 @@ router.post('/signin', async (req, res) => {
   if (pending) {
     res.clearCookie('pendingPurchase');
     try {
-      const { tier, products, billing, audience } = JSON.parse(pending);
-      if (TIERS.includes(tier)) {
+      const saved = JSON.parse(pending);
+      const { products, audience } = saved;
+      // Any paid tier saved before this change, Growth included, is the one plan now.
+      const tier = TIERS.includes(saved.tier) ? 'starter' : null;
+      if (tier) {
         const resolvedProducts = PRODUCTS.includes(products) ? products : 'care360';
         const coach = audience === 'coach';
         return res.redirect(`/billing/checkout?tier=${tier}&products=${resolvedProducts}&billing=${coach ? 'monthly' : 'annual'}${coach ? '&audience=coach' : ''}`);
@@ -465,10 +472,10 @@ function signupPage(error, prev, tier, products, billing, audience) {
 
   const contextBlock = label
     ? `<div class="plan-badge">You are signing up for <strong>${label}</strong>, ${coach ? 'billed monthly at coach pricing' : 'billed annually'}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
-    : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.${coach ? ' When you are ready, CARE 360 Starter is $149 a month at coach pricing.' : ''}</div>`;
+    : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.${coach ? ' When you are ready, care 360 is $149 a month at coach pricing.' : ''}</div>`;
 
   return shell(label ? `Sign up for ${label}` : 'Start your free trial', `
-    <div class="title">${label ? `set up your ${label} account.` : 'start your free trial.'}</div>
+    <div class="title">${label ? PLAN_TITLES[products] : 'start your free trial.'}</div>
     <div class="sub">${label ? 'Create your login, then continue to payment.' : 'Run one full 360 at no cost, from invitations through to the finished report.'}</div>
     ${error ? `<div class="err">${error}</div>` : ''}
     ${contextBlock}

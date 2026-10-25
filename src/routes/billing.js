@@ -108,14 +108,18 @@ function termsConsentMessage(products) {
 
 // Organizations buy annual plans only. A coach (audience=coach, from the
 // unlisted /coach page) buys the existing monthly Starter price of the
-// chosen product, with no leader band. Whatever ?billing= says, the
+// chosen product. Whatever ?billing= says, the
 // audience decides the price, so a monthly plan can only ever start as
 // a coach plan. Existing monthly customers are untouched: plan changes
 // go through the customer portal, and the bundle upgrade below keeps
 // each subscription's own interval.
 checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
   const coach    = req.query.audience === 'coach';
-  const tier     = coach ? 'starter' : req.query.tier;
+  // One plan per product: every new checkout, organization or coach, uses
+  // the existing Starter price. An old or crafted tier=growth link gets
+  // the same single plan. Growth prices stay in PRICE_MAP only so existing
+  // Growth subscriptions keep syncing and upgrading exactly as before.
+  const tier     = (coach || ALL_TIERS.includes(req.query.tier)) ? 'starter' : null;
   const products = req.query.products;
   const billing  = coach ? 'monthly' : 'annual';
   const priceId  = PRICE_MAP[products] && PRICE_MAP[products][tier] && PRICE_MAP[products][tier][billing];

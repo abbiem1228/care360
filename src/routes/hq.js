@@ -8,8 +8,7 @@ const supabase = require('../db/client');
 
 const OWNER = (process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || '').toLowerCase();
 
-// Where a plan starts to look like it has outgrown its band.
-const LEADER_CEILING = { starter: 100, growth: 250, community: 100 };
+// No plan has a size limit, so leader count never flags an account.
 const ORG_CEILING    = 3;   // distinct client organizations on a single account
 
 function requireOwner(req, res, next) {
@@ -123,13 +122,6 @@ function fmt(iso) {
 
 function flagsFor(r) {
   const out = [];
-  // Coach accounts have no leader band: they run leaders for many
-  // clients on one account, so leader count never flags them.
-  const ceiling = r.is_coach ? null : LEADER_CEILING[r.plan];
-
-  if (ceiling && r.leaders >= ceiling)            out.push(['over',  'Over band']);
-  else if (ceiling && r.leaders >= ceiling * 0.8) out.push(['near',  'Near band']);
-
   if (r.orgs.size >= ORG_CEILING)                 out.push(['multi', r.orgs.size + ' orgs']);
   if (r.plan === 'trial' && r.leaders === 0)      out.push(['cold',  'Not started']);
   if (r.plan === 'trial' && r.reports > 0)        out.push(['warm',  'Ran a report']);
@@ -161,7 +153,7 @@ function hqPage(d) {
       <td><span class="plan plan-${r.plan}">${r.plan}</span>${r.is_coach ? ' <span class="plan plan-coach">coach</span>' : ''}</td>
       <td>${fmt(r.created_at)}</td>
       <td class="num">${r.surveys}</td>
-      <td class="num">${r.leaders}${r.is_coach ? `<div class="sub-num">${r.activeLeaders} active</div>` : ''}</td>
+      <td class="num">${r.leaders}<div class="sub-num">${r.activeLeaders} active</div></td>
       <td class="num">${r.orgs.size}</td>
       <td class="num">${r.reports}</td>
       <td class="num">${r.epTeams}</td>
@@ -226,8 +218,6 @@ tbody tr:hover td{background:var(--wash)}
 .product-element{background:#E3E5E5;color:var(--ink)}
 .product-none{background:#E9E6E0;color:var(--grey)}
 .flag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;margin-bottom:3px}
-.flag-over{background:var(--danger-tint);color:var(--danger)}
-.flag-near{background:var(--ochre-tint);color:var(--ochre)}
 .flag-multi{background:#E3E7EA;color:#3D5A7A}
 .flag-cold{background:#E9E6E0;color:var(--grey)}
 .flag-warm{background:var(--sage-tint);color:#56603F}
@@ -273,8 +263,7 @@ tbody tr:hover td{background:var(--wash)}
     <div class="legend">
       <strong>Not started</strong> is a trial that signed up but never added a leader. Worth a follow up email.<br/>
       <strong>Ran a report</strong> is a trial that completed a full 360. The best conversion conversation you will get.<br/>
-      <strong>Near band</strong> means 80% of the expected leader count for the plan. <strong>Over band</strong> means past it.<br/>
-      <strong>Multiple orgs</strong> means the account is running 360s for more than ${ORG_CEILING - 1} client organizations, which usually means a consultancy on the wrong plan.<br/>
+      <strong>Multiple orgs</strong> means the account is running 360s for more than ${ORG_CEILING - 1} client organizations, which may mean a coach or consultant who belongs on coach pricing.<br/>
       <strong>Product</strong> is read straight from the account's real has_care360/has_element_profile flags, not the Plan badge: <strong>Bundle</strong> has both, <strong>CARE 360</strong> and <strong>Element Profile</strong> have just the one. The four EP columns are that product's real team, people, completed-assessment, and role counts, zero for any account that doesn't have it.
     </div>
   </div>

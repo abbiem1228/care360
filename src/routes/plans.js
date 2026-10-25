@@ -3,111 +3,69 @@ const router  = express.Router();
 const { icon } = require('../icons');
 
 // Prices live here and nowhere else. Change them in one place.
-// Organizations buy annual plans only. The monthly Starter prices are
-// kept for coach accounts (see the /coach page below) and for existing
-// monthly customers, who keep their plans. Both must match the real
-// Stripe prices exactly (see PRICE_MAP in routes/billing.js).
+// Organizations buy one plan per product, billed annually, with no size
+// limit. Each plan is the existing Starter Stripe price (tier 'starter'
+// in PRICE_MAP, routes/billing.js): the annual price for organizations,
+// the monthly price for coaches (see the /coach page below). Growth
+// prices still exist in Stripe only so that any existing Growth
+// subscription keeps working; they are never offered here.
 const PRODUCTS = {
   care360: {
     label: 'CARE 360',
-    tagline: 'Unlimited 360 surveys for your organization, with the full AI report, automatic reminders and the action plan template on every plan.',
-    tiers: {
-      starter: {
-        name: 'Starter',
-        blurb: 'For organizations up to 250 employees.',
-        monthly: 149,
-        annual: 1490,
-        features: [
-          'Unlimited leaders and surveys',
-          'Unlimited raters',
-          'The full AI report and PDF',
-          'Automatic reminders and deadlines',
-          'Leadership Action Plan template',
-          'Email support'
-        ],
-        style: 'featured'
-      },
-      growth: {
-        name: 'Growth',
-        blurb: 'For organizations up to 750 employees.',
-        monthly: 299,
-        annual: 2990,
-        features: [
-          'Everything in Starter',
-          'Sized for organizations up to 750 employees',
-          'Priority support',
-          'Onboarding walkthrough'
-        ],
-        style: 'plain'
-      }
+    tab: 'care 360',
+    tagline: 'Unlimited 360 surveys for your organization, with the full AI report, automatic reminders and the action plan template.',
+    plan: {
+      name: 'care 360',
+      blurb: 'Unlimited 360s for your whole organization.',
+      monthly: 149,
+      annual: 1490,
+      features: [
+        'Unlimited leaders and surveys',
+        'Unlimited raters',
+        'The full AI report and PDF',
+        'Automatic reminders and deadlines',
+        'Leadership Action Plan template',
+        'Email support'
+      ],
+      style: 'featured'
     }
   },
   element_profile: {
     label: 'The Element Profile',
     tab: 'the element profile',
     tagline: 'The full behavioral talent assessment suite: the six Elements, archetype reports, and role and team comparisons.',
-    tiers: {
-      starter: {
-        name: 'Starter',
-        blurb: 'For organizations up to 250 employees.',
-        monthly: 199,
-        annual: 1990,
-        features: [
-          'Unlimited people assessed',
-          'Full archetype report for every person',
-          'Role and target-profile comparison reports',
-          'Team creation and management',
-          'Email support'
-        ],
-        style: 'featured'
-      },
-      growth: {
-        name: 'Growth',
-        blurb: 'For organizations up to 750 employees.',
-        monthly: 349,
-        annual: 3490,
-        features: [
-          'Everything in Starter',
-          'Sized for organizations up to 750 employees',
-          'Priority support',
-          'Onboarding walkthrough'
-        ],
-        style: 'plain'
-      }
+    plan: {
+      name: 'the element profile',
+      blurb: 'Profiles for everyone on your team.',
+      monthly: 199,
+      annual: 1990,
+      features: [
+        'Unlimited people assessed',
+        'Full archetype report for every person',
+        'Role and target-profile comparison reports',
+        'Team creation and management',
+        'Email support'
+      ],
+      style: 'featured'
     }
   },
   bundle: {
-    label: 'Bundle',
-    tagline: 'CARE 360 and Element Profile together, on one subscription.',
-    tiers: {
-      starter: {
-        name: 'Starter Bundle',
-        blurb: 'CARE 360 Starter and Element Profile Starter, together.',
-        monthly: 248,
-        annual: 2480,
-        features: [
-          'Everything in CARE 360 Starter',
-          'Everything in Element Profile Starter',
-          'One login, one subscription',
-          'Save $1,000 a year versus buying separately',
-          'Email support'
-        ],
-        style: 'featured'
-      },
-      growth: {
-        name: 'Growth Bundle',
-        blurb: 'CARE 360 Growth and Element Profile Growth, together.',
-        monthly: 548,
-        annual: 5480,
-        features: [
-          'Everything in CARE 360 Growth',
-          'Everything in Element Profile Growth',
-          'One login, one subscription',
-          'Save $1,000 a year versus buying separately',
-          'Priority support'
-        ],
-        style: 'plain'
-      }
+    label: 'The Bundle',
+    tab: 'the bundle',
+    tagline: 'care 360 and The Element Profile together, on one subscription.',
+    plan: {
+      name: 'the bundle',
+      blurb: 'care 360 and The Element Profile, together.',
+      monthly: 248,
+      annual: 2480,
+      features: [
+        'Everything in care 360',
+        'Everything in The Element Profile',
+        'One login, one subscription',
+        'Save $1,000 a year versus buying separately',
+        'Email support'
+      ],
+      style: 'featured'
     }
   }
 };
@@ -144,7 +102,7 @@ const SPECIAL_PLANS = {
     annual: null,
     priceNote: 'Special pricing',
     features: [
-      'Everything in Starter',
+      'Everything in care 360',
       'Reduced rate for mission-driven organizations',
       'Requires a short application'
     ],
@@ -155,12 +113,12 @@ const SPECIAL_PLANS = {
   enterprise: {
     key: 'enterprise',
     name: 'Enterprise',
-    blurb: 'For organizations over 750 employees.',
+    blurb: 'For organizations that want tailored onboarding, support and terms.',
     monthly: null,
     annual: null,
     priceNote: 'Custom pricing',
     features: [
-      'Everything in Growth',
+      'Everything in care 360',
       'Tailored to your structure and volume',
       'Dedicated onboarding and support'
     ],
@@ -181,8 +139,8 @@ const ELEMENT_PROFILE_URL = process.env.ELEMENT_PROFILE_URL || 'https://element.
 // Short aliases, so /plans?product=element works as well as the full key.
 const PRODUCT_ALIASES = { element: 'element_profile', care: 'care360' };
 
-// Copy that differs by product tab. Element Profile and the Bundle have
-// no free trial, so their tabs say so and point to Starter or a demo.
+// Copy that differs by product tab. The Element Profile and the bundle
+// have no free trial, so their tabs say so and point to the plan or a demo.
 const PAGE_COPY = {
   care360: {
     backHref: '/admin',
@@ -194,13 +152,13 @@ const PAGE_COPY = {
     backHref: `${ELEMENT_PROFILE_URL}/admin`,
     backText: 'Back to your dashboard',
     foot: 'Every plan includes unlimited people and unlimited assessments. No per-assessment charges.',
-    note: 'No free trial. Start on Starter or <a href="mailto:info@ingoodcocollective.com?subject=Element%20Profile%20demo">book a demo</a>.'
+    note: 'No free trial. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Element%20Profile%20demo">book a demo</a>.'
   },
   bundle: {
     backHref: '/admin',
     backText: 'Back to your account',
     foot: 'Every plan includes unlimited people, assessments, raters and reports. No per-report charges.',
-    note: 'No free trial. Start on Starter or <a href="mailto:info@ingoodcocollective.com?subject=Bundle%20demo">book a demo</a>.'
+    note: 'No free trial. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Bundle%20demo">book a demo</a>.'
   }
 };
 
@@ -230,12 +188,12 @@ const TAB_MARK = { care360: 'care-mark.svg', element_profile: 'element-mark.svg'
 // ingoodcocollective.com, so the pricing page and the site agree.
 const SITE_FAQ = {
   careWhat:    ['What is care 360?', 'A 360-degree leadership feedback tool. A leader completes a self-assessment, and their supervisor, peers, direct reports and skip-level colleagues answer the same questions. The report shows averages by rater group, comments with names removed, and development themes.'],
-  careCost:    ['How much does care 360 cost?', 'Plans are priced by company size and billed annually. Starter is $1,490 a year and Growth is $2,990 a year. Every paid plan includes unlimited surveys and reports, with no per-report fees. A free trial is available.'],
+  careCost:    ['How much does care 360 cost?', 'care 360 is $1,490 a year, billed annually, for an organization of any size. It includes unlimited surveys and reports, with no per-report fees. A free trial is available.'],
   careAnon:    ['Is the feedback anonymous?', 'Individual answers are never shown to the leader or the administrator. If only one person in a rater group responds, such as a single supervisor, the group average reflects that person\'s ratings. Self-assessments aren\'t anonymous.'],
   careHiring:  ['Can care 360 be used for hiring or pay decisions?', 'No. It\'s a development tool. Results shouldn\'t be the only basis for decisions about employment or pay, and it isn\'t offered for hiring.'],
   elWhat:      ['What does The Element Profile measure?', 'How a person naturally works across six dimensions: drive, pace, people orientation, structure, composure, and ambiguity tolerance.'],
   elProfiles:  ['What are the Element profiles?', 'Each person\'s two strongest dimensions form one of 15 profiles, such as The Steady Hand or The Trailblazer. Evenly balanced results are The Wild Card.'],
-  elCost:      ['How much does it cost?', 'Plans are billed annually. Starter is $1,990 a year and Growth is $3,490 a year. There\'s no free trial; you can book a demo.'],
+  elCost:      ['How much does it cost?', 'The Element Profile is $1,990 a year, billed annually, for an organization of any size. There\'s no free trial; you can book a demo.'],
   elHiring:    ['Can it be used for hiring?', 'No. It\'s built for development, coaching and team conversations, not for screening or selecting candidates.'],
   elWithCare:  ['Does it work with care 360?', 'Yes. Both share one account, can be bought together as a bundle, and connect a person\'s results so administrators can see them side by side.']
 };
@@ -285,27 +243,22 @@ function specialCard(p) {
 // already logged-in visitor (buying a second product, or a higher
 // tier) skips straight to checkout, since creating a second account
 // for them would be wrong.
-function productTierCard(productKey, tierKey, tier, loggedIn) {
-  const price = money(tier.annual);
-  const per   = '/year';
-  const sub   = 'billed annually';
-
+function productCard(productKey, plan, loggedIn) {
+  // tier=starter is the existing Starter price, now the one plan per product.
   const href = loggedIn
-    ? `/billing/checkout?products=${productKey}&tier=${tierKey}&billing=annual`
-    : `/signup?products=${productKey}&tier=${tierKey}&billing=annual`;
+    ? `/billing/checkout?products=${productKey}&tier=starter&billing=annual`
+    : `/signup?products=${productKey}&tier=starter&billing=annual`;
 
-  const featured = tier.style === 'featured';
   return `
-  <div class="plan plan-${tier.style}">
-    ${featured ? '<div class="plan-tag">Most popular</div>' : ''}
+  <div class="plan plan-${plan.style}">
     <div class="plan-head">
-      <div class="plan-name">${tier.name}</div>
-      <div class="plan-blurb">${tier.blurb}</div>
+      <div class="plan-name">${plan.name}</div>
+      <div class="plan-blurb">${plan.blurb}</div>
     </div>
-    <div class="plan-price-row"><span class="plan-price">${price}</span><span class="plan-per">${per}</span></div>
-    <div class="plan-sub">${sub}</div>
-    ${featureList(tier.features)}
-    <a class="plan-btn ${featured ? 'plan-btn-primary' : ''}" href="${href}">Choose ${tier.name}${icon('arrow-right')}</a>
+    <div class="plan-price-row"><span class="plan-price">${money(plan.annual)}</span><span class="plan-per">/year</span></div>
+    <div class="plan-sub">billed annually</div>
+    ${featureList(plan.features)}
+    <a class="plan-btn plan-btn-primary" href="${href}">choose ${plan.name}${icon('arrow-right')}</a>
   </div>`;
 }
 
@@ -350,6 +303,7 @@ a{text-decoration:none;color:inherit}
 .wrap{max-width:1140px;margin:0 auto;padding:24px 32px 96px}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr));max-width:780px;margin:0 auto}
+.grid-1{grid-template-columns:minmax(0,1fr);max-width:420px;margin:0 auto}
 .grid-wide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px}
 
 .plan{background:#ffffff;border:1px solid var(--line);border-radius:24px;padding:32px 30px 28px;display:flex;flex-direction:column;position:relative;box-shadow:var(--shadow);transition:transform .3s var(--ease),box-shadow .3s var(--ease);animation:igc-rise .6s var(--ease) both}
@@ -419,7 +373,7 @@ a{text-decoration:none;color:inherit}
 .coach-line a{color:var(--grey);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
 .coach-line a:hover{color:var(--ink)}
 
-@media(max-width:960px){.grid,.grid-2,.grid-wide{grid-template-columns:1fr;max-width:460px;margin-left:auto;margin-right:auto}.grid-wide{margin-top:20px}}
+@media(max-width:960px){.grid,.grid-2,.grid-1,.grid-wide{grid-template-columns:1fr;max-width:460px;margin-left:auto;margin-right:auto}.grid-wide{margin-top:20px}}
 @media(max-width:700px){.top{padding:0 16px;height:64px}.hero{padding:48px 16px 24px}.h1{font-size:44px;letter-spacing:-1.6px}.wrap{padding:16px 16px 72px}.plan-wide{grid-template-columns:1fr;grid-template-areas:"head" "price" "feat" "btn"}.plan-wide .plan-price-row{justify-content:flex-start;margin-top:12px}.includes{border-radius:18px}.cta{padding:36px 28px}.cta h2{font-size:32px}.section-title{font-size:36px}.faq-item p{padding-right:4px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 `;
@@ -443,9 +397,7 @@ function plansPage(product, req) {
         <p>${a}</p>
       </details>`).join('');
 
-  const tierCards = `
-    ${productTierCard(product, 'starter', p.tiers.starter, loggedIn)}
-    ${productTierCard(product, 'growth', p.tiers.growth, loggedIn)}`;
+  const planCard = productCard(product, p.plan, loggedIn);
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -489,15 +441,15 @@ ${PLANS_CSS}</style></head><body>
 
 <main class="wrap">
   ${product === 'care360' ? `
-  <div class="grid">
+  <div class="grid grid-2">
     ${specialCard(SPECIAL_PLANS.trial)}
-    ${tierCards}
+    ${planCard}
   </div>
   <div class="grid-wide">
     ${specialCard(SPECIAL_PLANS.community)}
     ${specialCard(SPECIAL_PLANS.enterprise)}
   </div>` : `
-  <div class="grid grid-2">${tierCards}</div>`}
+  <div class="grid grid-1">${planCard}</div>`}
 
   <div class="includes">${icon('check-circle')}<span>${copy.foot}</span></div>
 
@@ -555,7 +507,7 @@ const COACH_CARDS = {
 
 function coachCard(productKey, highlighted, loggedIn) {
   const card = COACH_CARDS[productKey];
-  const monthly = PRODUCTS[productKey].tiers.starter.monthly;
+  const monthly = PRODUCTS[productKey].plan.monthly;
   const trial = productKey === 'care360' && !loggedIn;
   const href = loggedIn || productKey !== 'care360'
     ? (loggedIn

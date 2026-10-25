@@ -699,7 +699,7 @@ function adminShell(title, content, req) {
     <div class="nav-user">
       <div class="nav-avatar">${initial}</div>
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
-      ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
+      ${['trial', 'community', 'enterprise'].includes(plan) ? `<span class="nav-plan">${plan}</span>` : ''}
       ${acct && acct.plan === 'trial' ? `<a href="${acct.is_coach ? '/coach?product=care360' : '/plans'}" class="nav-link nav-link-accent">Upgrade</a>` : ''}
       ${bundleReminder ? `<a href="/billing/upgrade-to-bundle" class="nav-link nav-link-accent">${bundleReminder}</a>` : ''}
       ${acct && acct.stripe_customer_id ? '<a href="/billing/portal" class="nav-link">Manage billing</a>' : ''}

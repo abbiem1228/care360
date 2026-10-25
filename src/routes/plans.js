@@ -152,13 +152,13 @@ const PAGE_COPY = {
     backHref: `${ELEMENT_PROFILE_URL}/admin`,
     backText: 'Back to your dashboard',
     foot: 'Every plan includes unlimited people and unlimited assessments. No per-assessment charges.',
-    note: 'No free trial. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Element%20Profile%20demo">book a demo</a>.'
+    note: 'No free trial of the paid plan. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Element%20Profile%20demo">book a demo</a>.'
   },
   bundle: {
     backHref: '/admin',
     backText: 'Back to your account',
     foot: 'Every plan includes unlimited people, assessments, raters and reports. No per-report charges.',
-    note: 'No free trial. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Bundle%20demo">book a demo</a>.'
+    note: 'No free trial of the paid plan. Start today or <a href="mailto:info@ingoodcocollective.com?subject=Bundle%20demo">book a demo</a>.'
   }
 };
 

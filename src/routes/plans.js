@@ -522,9 +522,12 @@ function coachCard(productKey, highlighted, loggedIn) {
       ? `/billing/checkout?products=${productKey}&tier=starter&billing=monthly&audience=coach`
       : `/signup?products=${productKey}&tier=starter&billing=monthly&audience=coach`)
     : '/signup?products=care360&audience=coach';
+  // The highlighted card is ink, so it gets the light marks: cream with a
+  // lighter clay accent (4.2:1 on ink, where the usual clay is 2.6:1).
+  const markFile = name => `/img/${highlighted ? name.replace('.svg', '-light.svg') : name}`;
   const mark = card.mark
-    ? `<img class="coach-mark" src="/img/${card.mark}" alt=""/>`
-    : '<span class="coach-mark duo"><img src="/img/care-mark.svg" alt=""/><img src="/img/element-mark.svg" alt=""/></span>';
+    ? `<img class="coach-mark" src="${markFile(card.mark)}" alt=""/>`
+    : `<span class="coach-mark duo"><img src="${markFile('care-mark.svg')}" alt=""/><img src="${markFile('element-mark.svg')}" alt=""/></span>`;
   return `
   <div class="plan ${highlighted ? 'plan-featured' : 'plan-plain'}" id="${productKey === 'element_profile' ? 'element' : productKey}">
     <div class="plan-head">

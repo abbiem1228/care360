@@ -460,7 +460,7 @@ ${PLANS_CSS}</style></head><body>
 
   <section class="cta">
     <div>
-      <h2>not sure which plan fits?</h2>
+      <h2>questions before you start?</h2>
       <p>Tell us about your organization and we'll help you choose, or set up a demo.</p>
     </div>
     <a class="cta-btn" href="${CONTACT_URL}">let's talk${icon('arrow-right')}</a>

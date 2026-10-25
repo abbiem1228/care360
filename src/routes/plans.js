@@ -191,8 +191,8 @@ const SITE_FAQ = {
   careCost:    ['How much does care 360 cost?', 'care 360 is $1,490 a year, billed annually, for an organization of any size. It includes unlimited surveys and reports, with no per-report fees. A free trial is available.'],
   careAnon:    ['Is the feedback anonymous?', 'Individual answers are never shown to the leader or the administrator. If only one person in a rater group responds, such as a single supervisor, the group average reflects that person\'s ratings. Self-assessments aren\'t anonymous.'],
   careHiring:  ['Can care 360 be used for hiring or pay decisions?', 'No. It\'s a development tool. Results shouldn\'t be the only basis for decisions about employment or pay, and it isn\'t offered for hiring.'],
-  elWhat:      ['What does The Element Profile measure?', 'How a person naturally works across six dimensions: drive, pace, people orientation, structure, composure, and ambiguity tolerance.'],
-  elProfiles:  ['What are the Element profiles?', 'Each person\'s two strongest dimensions form one of 15 profiles, such as The Steady Hand or The Trailblazer. Evenly balanced results are The Wild Card.'],
+  elWhat:      ['What does The Element Profile measure?', 'How a person naturally works across six elements: drive, pace, people orientation, structure, composure, and ambiguity tolerance.'],
+  elProfiles:  ['What are the Element profiles?', 'Each person\'s two strongest elements form one of 15 profiles, such as The Steady Hand or The Trailblazer. Evenly balanced results are The Wild Card.'],
   elCost:      ['How much does it cost?', 'The Element Profile is $1,990 a year, billed annually, for an organization of any size. There\'s no free trial; you can book a demo.'],
   elHiring:    ['Can it be used for hiring?', 'No. It\'s built for development, coaching and team conversations, not for screening or selecting candidates.'],
   elWithCare:  ['Does it work with care 360?', 'Yes. Both share one account, can be bought together as a bundle, and connect a person\'s results so administrators can see them side by side.']

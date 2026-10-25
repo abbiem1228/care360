@@ -93,6 +93,7 @@ const supabase = require('./db/client');
 const { sendAdminNotice, sendRaterReminder, resolveNotifyEmail } = require('./email');
 const { accessForAccountId, LOCKED_STATES } = require('./access');
 const { runDailyRetention } = require('./retention');
+const { runWeeklyFreeSummary } = require('./free-summary');
 const { sendRetentionWarning, sendRetentionSummary, sendRetentionAllClear } = require('./email');
 
 async function checkClosedCycles() {
@@ -201,11 +202,25 @@ async function retentionTick() {
   }
 }
 
+// Weekly free Element Profile summary, Mondays at 8:00 AM Arizona time.
+// Checked every 5 minutes; free_summary_weeks makes sure each week is
+// sent once, and a failed send is tried again on the next check.
+async function freeSummaryTick() {
+  try {
+    const r = await runWeeklyFreeSummary();
+    if (r.sent) console.log(`Free summary sent for the week of ${r.week.weekStart}: ${r.taken} taken, ${r.optedIn} opted in`);
+  } catch (e) {
+    console.error('Free summary failed, will retry:', e.message);
+  }
+}
+
 setInterval(retentionTick, 60 * 60 * 1000);
 setTimeout(retentionTick, 60 * 1000);
 setInterval(checkClosedCycles, 60 * 60 * 1000);
 setTimeout(checkClosedCycles, 30 * 1000);
 setInterval(sendReminders, 60 * 60 * 1000);
 setTimeout(sendReminders, 45 * 1000);
+setInterval(freeSummaryTick, 5 * 60 * 1000);
+setTimeout(freeSummaryTick, 75 * 1000);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`CARE 360 running on port ${PORT}`));

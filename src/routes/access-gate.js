@@ -143,7 +143,7 @@ function endedPage(req) {
   return shell('Subscription ended', `
     <div class="title">your care 360 subscription has ended.</div>
     <div class="sub">Your account and data are kept ${req.care360KeptUntil ? `until ${req.care360KeptUntil}` : 'for 60 days after your subscription ends'}, so you can resubscribe and pick up where you left off, or ask us for an export. After that, they're permanently deleted.</div>
-    <a href="/plans?product=care360" class="btn" style="display:block;text-align:center;text-decoration:none">Resubscribe</a>
+    <a href="${req.account && req.account.is_coach ? '/coach?product=care360' : '/plans?product=care360'}" class="btn" style="display:block;text-align:center;text-decoration:none">Resubscribe</a>
     ${req.account && req.account.stripe_customer_id ? '<div class="alt"><a href="/billing/portal">Manage billing and past invoices</a></div>' : ''}
     ${footerLinks(req)}`);
 }

@@ -154,7 +154,7 @@ async function assessAll(now = new Date(), opts = {}) {
 
   const { data: accounts, error: aErr } = await supabase
     .from('accounts')
-    .select('id, name, comp_care360, comp_element_profile')
+    .select('*')
     .in('id', accountIds);
   if (aErr) throw aErr;
   const logs = await readLogs(accountIds, opts);
@@ -164,7 +164,7 @@ async function assessAll(now = new Date(), opts = {}) {
     const accountLogs = logs.filter(l => l.account_id === account.id);
     const products = {};
     for (const product of PRODUCTS) products[product] = productStatus(account, accountSubs, accountLogs, product, now);
-    return { accountId: account.id, accountName: account.name, products };
+    return { accountId: account.id, accountName: account.name, isCoach: !!account.is_coach, products };
   });
 }
 
@@ -415,7 +415,7 @@ async function runDailyRetention({ sendWarning, sendSummary, sendAllClear, now =
         const to = await ownerEmails(a.accountId);
         const item = { accountId: a.accountId, accountName: a.accountName, product, deletionDate };
         if (to.length) {
-          await sendWarning({ to, accountName: a.accountName, product, productLabel: PRODUCT_LABELS[product], deletionDate, unpaid: s.state === 'unpaid' });
+          await sendWarning({ to, accountName: a.accountName, product, productLabel: PRODUCT_LABELS[product], deletionDate, unpaid: s.state === 'unpaid', isCoach: a.isCoach });
           warned.push(item);
         } else {
           // No one to email. The 7-day notice period still starts, so the

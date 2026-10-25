@@ -3,8 +3,10 @@ const router  = express.Router();
 const { icon } = require('../icons');
 
 // Prices live here and nowhere else. Change them in one place.
-// Annual is ten months for twelve, so two months free, matching the
-// real Stripe prices exactly (see PRICE_MAP in routes/billing.js).
+// Organizations buy annual plans only. The monthly Starter prices are
+// kept for coach accounts (see the /coach page below) and for existing
+// monthly customers, who keep their plans. Both must match the real
+// Stripe prices exactly (see PRICE_MAP in routes/billing.js).
 const PRODUCTS = {
   care360: {
     label: 'CARE 360',
@@ -86,7 +88,7 @@ const PRODUCTS = {
           'Everything in CARE 360 Starter',
           'Everything in Element Profile Starter',
           'One login, one subscription',
-          'Save $100 a month versus buying separately',
+          'Save $1,000 a year versus buying separately',
           'Email support'
         ],
         style: 'featured'
@@ -100,7 +102,7 @@ const PRODUCTS = {
           'Everything in CARE 360 Growth',
           'Everything in Element Profile Growth',
           'One login, one subscription',
-          'Save $100 a month versus buying separately',
+          'Save $1,000 a year versus buying separately',
           'Priority support'
         ],
         style: 'plain'
@@ -201,11 +203,12 @@ const PAGE_COPY = {
   }
 };
 
+// ?billing= is ignored: organizations only ever see annual prices now,
+// and old ?billing=monthly links land on the same annual page.
 router.get('/', (req, res) => {
-  const annual  = req.query.billing === 'annual';
   const asked   = PRODUCT_ALIASES[req.query.product] || req.query.product;
   const product = (SHOW_ALL_PRODUCTS && PRODUCTS[asked]) ? asked : 'care360';
-  res.send(plansPage(annual, product, req));
+  res.send(plansPage(product, req));
 });
 
 function money(n) {
@@ -226,12 +229,12 @@ const TAB_MARK = { care360: 'care-mark.svg', element_profile: 'element-mark.svg'
 // ingoodcocollective.com, so the pricing page and the site agree.
 const SITE_FAQ = {
   careWhat:    ['What is care 360?', 'A 360-degree leadership feedback tool. A leader completes a self-assessment, and their supervisor, peers, direct reports and skip-level colleagues answer the same questions. The report shows averages by rater group, comments with names removed, and development themes.'],
-  careCost:    ['How much does care 360 cost?', 'Plans are priced by company size and start at $149 a month or $1,490 a year. Every paid plan includes unlimited surveys and reports, with no per-report fees. A free trial is available.'],
+  careCost:    ['How much does care 360 cost?', 'Plans are priced by company size and billed annually. Starter is $1,490 a year and Growth is $2,990 a year. Every paid plan includes unlimited surveys and reports, with no per-report fees. A free trial is available.'],
   careAnon:    ['Is the feedback anonymous?', 'Individual answers are never shown to the leader or the administrator. If only one person in a rater group responds, such as a single supervisor, the group average reflects that person\'s ratings. Self-assessments aren\'t anonymous.'],
   careHiring:  ['Can care 360 be used for hiring or pay decisions?', 'No. It\'s a development tool. Results shouldn\'t be the only basis for decisions about employment or pay, and it isn\'t offered for hiring.'],
   elWhat:      ['What does The Element Profile measure?', 'How a person naturally works across six dimensions: drive, pace, people orientation, structure, composure, and ambiguity tolerance.'],
   elProfiles:  ['What are the Element profiles?', 'Each person\'s two strongest dimensions form one of 15 profiles, such as The Steady Hand or The Trailblazer. Evenly balanced results are The Wild Card.'],
-  elCost:      ['How much does it cost?', 'Starter is $199 a month or $1,990 a year, and Growth is $349 a month or $3,490 a year. There\'s no free trial; you can book a demo.'],
+  elCost:      ['How much does it cost?', 'Plans are billed annually. Starter is $1,990 a year and Growth is $3,490 a year. There\'s no free trial; you can book a demo.'],
   elHiring:    ['Can it be used for hiring?', 'No. It\'s built for development, coaching and team conversations, not for screening or selecting candidates.'],
   elWithCare:  ['Does it work with care 360?', 'Yes. Both share one account, can be bought together as a bundle, and connect a person\'s results so administrators can see them side by side.']
 };
@@ -242,12 +245,15 @@ const FAQ = {
 };
 
 const CONTACT_URL = 'https://www.ingoodcocollective.com/contact/';
+// The public coach page on the website, which explains coach pricing and
+// links to this app's unlisted /coach page.
+const COACH_PAGE_URL = 'https://ingoodcocollective.com/coaches/';
 
 function featureList(features) {
   return `<ul class="plan-features">${features.map(f => `<li>${icon('check')}<span>${f}</span></li>`).join('')}</ul>`;
 }
 
-function specialCard(p, annual, loggedIn) {
+function specialCard(p) {
   let price, sub;
 
   if (p.monthly === 0) {
@@ -278,17 +284,14 @@ function specialCard(p, annual, loggedIn) {
 // already logged-in visitor (buying a second product, or a higher
 // tier) skips straight to checkout, since creating a second account
 // for them would be wrong.
-function productTierCard(productKey, tierKey, tier, annual, loggedIn) {
-  const price = annual ? money(tier.annual) : money(tier.monthly);
-  const per   = annual ? '/year' : '/month';
-  const sub   = annual
-    ? `about ${money(Math.round(tier.annual / 12))} a month, two months free`
-    : `or ${money(tier.annual)} a year, two months free`;
+function productTierCard(productKey, tierKey, tier, loggedIn) {
+  const price = money(tier.annual);
+  const per   = '/year';
+  const sub   = 'billed annually';
 
-  const billingParam = annual ? '&billing=annual' : '';
   const href = loggedIn
-    ? `/billing/checkout?products=${productKey}&tier=${tierKey}${billingParam}`
-    : `/signup?products=${productKey}&tier=${tierKey}${billingParam}`;
+    ? `/billing/checkout?products=${productKey}&tier=${tierKey}&billing=annual`
+    : `/signup?products=${productKey}&tier=${tierKey}&billing=annual`;
 
   const featured = tier.style === 'featured';
   return `
@@ -305,49 +308,8 @@ function productTierCard(productKey, tierKey, tier, annual, loggedIn) {
   </div>`;
 }
 
-function plansPage(annual, product, req) {
-  const signedIn = !!req.isAdmin;
-  const loggedIn = signedIn;
-  const p = PRODUCTS[product];
-  const copy = PAGE_COPY[product];
-  const hero = HERO[product];
-  const billingSuffix = annual ? '&billing=annual' : '';
-
-  const productToggle = Object.keys(PRODUCTS).map(key => `
-    <a class="product-opt ${key === product ? 'on' : ''}" href="/plans?product=${key}${billingSuffix}">${TAB_MARK[key]
-      ? `<img src="/img/${TAB_MARK[key]}" alt=""/>`
-      : `<span class="duo"><img src="/img/care-mark.svg" alt=""/><img src="/img/element-mark.svg" alt=""/></span>`}${PRODUCTS[key].label}</a>
-  `).join('');
-
-  const faq = FAQ[product].map(k => SITE_FAQ[k]).map(([q, a]) => `
-      <details class="faq-item">
-        <summary>${q}<span class="faq-toggle">${icon('plus')}</span></summary>
-        <p>${a}</p>
-      </details>`).join('');
-
-  const tierCards = `
-    ${productTierCard(product, 'starter', p.tiers.starter, annual, loggedIn)}
-    ${productTierCard(product, 'growth', p.tiers.growth, annual, loggedIn)}`;
-
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${p.label} plans | In Good Company</title>
-<link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
-<script>
-// A hash never reaches the server, so #element, #bundle and #care360
-// are honored here instead, and only when no ?product= was given.
-(function(){
-  var map = { '#element': 'element_profile', '#bundle': 'bundle', '#care360': 'care360' };
-  var q = new URLSearchParams(location.search);
-  var target = map[location.hash.toLowerCase()];
-  if (target && !q.get('product') && target !== '${product}') {
-    q.set('product', target);
-    location.replace('/plans?' + q.toString());
-  }
-})();
-</script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap');
+// Shared by /plans and /coach.
+const PLANS_CSS = `@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--ink:#30383B;--ink-deep:#20282B;--clay:#A9633D;--clay-dark:#925433;--clay-tint:#F7ECE5;--ochre:#A87B2C;--ochre-light:#E3C785;--ochre-tint:#FBF5E6;--ochre-line:#EEDFB8;--sage:#7C8863;--cream:#F7F3EA;--wash:#FAF8F4;--grey:#637074;--line:rgba(48,56,59,0.09);--line-strong:rgba(48,56,59,0.18);--shadow:0 1px 2px rgba(48,56,59,0.04),0 2px 10px rgba(48,56,59,0.04);--shadow-lift:0 2px 4px rgba(48,56,59,0.05),0 18px 40px rgba(48,56,59,0.1);--ease:cubic-bezier(.2,.7,.2,1)}
 @keyframes igc-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -381,12 +343,6 @@ a{text-decoration:none;color:inherit}
 .product-opt .duo img+img{margin-left:-6px}
 .product-opt:hover{color:var(--ink)}
 .product-opt.on{background:#ffffff;color:var(--ink);box-shadow:0 1px 2px rgba(48,56,59,0.08),0 4px 12px rgba(48,56,59,0.08)}
-.toggle-inner{display:inline-flex;background:var(--wash);border:1px solid var(--line);border-radius:999px;padding:4px}
-.toggle-opt{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey);text-transform:lowercase;transition:color .15s}
-.toggle-opt:hover{color:var(--ink)}
-.toggle-opt.on{background:var(--ink);color:var(--cream)}
-.save-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--ochre-tint);color:var(--ochre);border:1px solid var(--ochre-line);text-transform:lowercase}
-.toggle-opt.on .save-pill{background:var(--ochre-light);color:var(--ink);border-color:var(--ochre-light)}
 .no-trial{text-align:center;font-size:13.5px;color:var(--grey)}
 .no-trial a{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:3px}
 
@@ -458,11 +414,57 @@ a{text-decoration:none;color:inherit}
 .foot{text-align:center;margin-top:56px;font-size:13px;color:var(--grey);line-height:1.8}
 .foot a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .foot img{height:15px;width:auto;opacity:.8;display:block;margin:0 auto 10px}
+.coach-line{text-align:center;margin-top:18px;font-size:12.5px}
+.coach-line a{color:var(--grey);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+.coach-line a:hover{color:var(--ink)}
 
 @media(max-width:960px){.grid,.grid-2,.grid-wide{grid-template-columns:1fr;max-width:460px;margin-left:auto;margin-right:auto}.grid-wide{margin-top:20px}}
 @media(max-width:700px){.top{padding:0 16px;height:64px}.hero{padding:48px 16px 24px}.h1{font-size:44px;letter-spacing:-1.6px}.wrap{padding:16px 16px 72px}.plan-wide{grid-template-columns:1fr;grid-template-areas:"head" "price" "feat" "btn"}.plan-wide .plan-price-row{justify-content:flex-start;margin-top:12px}.includes{border-radius:18px}.cta{padding:36px 28px}.cta h2{font-size:32px}.section-title{font-size:36px}.faq-item p{padding-right:4px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-</style></head><body>
+`;
+
+function plansPage(product, req) {
+  const signedIn = !!req.isAdmin;
+  const loggedIn = signedIn;
+  const p = PRODUCTS[product];
+  const copy = PAGE_COPY[product];
+  const hero = HERO[product];
+
+  const productToggle = Object.keys(PRODUCTS).map(key => `
+    <a class="product-opt ${key === product ? 'on' : ''}" href="/plans?product=${key}">${TAB_MARK[key]
+      ? `<img src="/img/${TAB_MARK[key]}" alt=""/>`
+      : `<span class="duo"><img src="/img/care-mark.svg" alt=""/><img src="/img/element-mark.svg" alt=""/></span>`}${PRODUCTS[key].label}</a>
+  `).join('');
+
+  const faq = FAQ[product].map(k => SITE_FAQ[k]).map(([q, a]) => `
+      <details class="faq-item">
+        <summary>${q}<span class="faq-toggle">${icon('plus')}</span></summary>
+        <p>${a}</p>
+      </details>`).join('');
+
+  const tierCards = `
+    ${productTierCard(product, 'starter', p.tiers.starter, loggedIn)}
+    ${productTierCard(product, 'growth', p.tiers.growth, loggedIn)}`;
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${p.label} plans | In Good Company</title>
+<link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
+<script>
+// A hash never reaches the server, so #element, #bundle and #care360
+// are honored here instead, and only when no ?product= was given.
+(function(){
+  var map = { '#element': 'element_profile', '#bundle': 'bundle', '#care360': 'care360' };
+  var q = new URLSearchParams(location.search);
+  var target = map[location.hash.toLowerCase()];
+  if (target && !q.get('product') && target !== '${product}') {
+    q.set('product', target);
+    location.replace('/plans?' + q.toString());
+  }
+})();
+</script>
+<style>
+${PLANS_CSS}</style></head><body>
 
 <div class="top">
   <a class="top-logo" href="https://www.ingoodcocollective.com/" aria-label="In Good Company Collective home">
@@ -480,10 +482,6 @@ a{text-decoration:none;color:inherit}
   <p class="lede">${p.tagline}</p>
   <div class="controls">
     ${SHOW_ALL_PRODUCTS ? `<div class="product-toggle-inner" role="navigation" aria-label="Product">${productToggle}</div>` : ''}
-    <div class="toggle-inner" role="navigation" aria-label="Billing">
-      <a class="toggle-opt ${annual ? '' : 'on'}" href="/plans?product=${product}">Monthly</a>
-      <a class="toggle-opt ${annual ? 'on' : ''}" href="/plans?product=${product}&billing=annual">Annual <span class="save-pill">2 months free</span></a>
-    </div>
     ${copy.note ? `<div class="no-trial">${copy.note}</div>` : ''}
   </div>
 </header>
@@ -491,12 +489,12 @@ a{text-decoration:none;color:inherit}
 <main class="wrap">
   ${product === 'care360' ? `
   <div class="grid">
-    ${specialCard(SPECIAL_PLANS.trial, annual, loggedIn)}
+    ${specialCard(SPECIAL_PLANS.trial)}
     ${tierCards}
   </div>
   <div class="grid-wide">
-    ${specialCard(SPECIAL_PLANS.community, annual, loggedIn)}
-    ${specialCard(SPECIAL_PLANS.enterprise, annual, loggedIn)}
+    ${specialCard(SPECIAL_PLANS.community)}
+    ${specialCard(SPECIAL_PLANS.enterprise)}
   </div>` : `
   <div class="grid grid-2">${tierCards}</div>`}
 
@@ -519,11 +517,114 @@ a{text-decoration:none;color:inherit}
     <img src="/img/igc-wordmark.svg" alt="in good company."/>
     Questions? <a href="mailto:info@ingoodcocollective.com">Get in touch</a>.
   </div>
+  <p class="coach-line"><a href="${COACH_PAGE_URL}">coach or consultant? see coach pricing.</a></p>
 </main>
 
 </body></html>`;
 }
 
+// ── Coach pricing ────────────────────────────────────────────
+// Unlisted (noindex, not linked from the app's nav): reached from the
+// website's coach page, https://ingoodcocollective.com/coaches/. Coaches
+// buy the existing monthly Starter price of each product, with no
+// leader band, and a coach's CARE 360 sign-up starts with the same free
+// trial everyone else gets. Every button carries audience=coach, which
+// is what checkout and the Stripe webhook use to mark a coach account.
+const coachRouter = express.Router();
+
+const COACH_PRODUCT_KEYS = { care360: 'care360', element: 'element_profile', element_profile: 'element_profile', bundle: 'bundle' };
+
+const COACH_CARDS = {
+  care360: {
+    name: 'care 360',
+    mark: 'care-mark.svg',
+    features: ['Unlimited leaders and surveys', 'Unlimited raters', 'The full AI report and PDF', 'Automatic reminders and deadlines', 'Leadership Action Plan template']
+  },
+  element_profile: {
+    name: 'the element profile',
+    mark: 'element-mark.svg',
+    features: ['Unlimited people assessed', 'Full archetype report for every person', 'Role and target-profile comparison reports', 'Team creation and management']
+  },
+  bundle: {
+    name: 'the bundle',
+    mark: null,
+    features: ['Everything in care 360', 'Everything in The Element Profile', 'One login, one subscription', 'Save $100 a month versus buying separately']
+  }
+};
+
+function coachCard(productKey, highlighted, loggedIn) {
+  const card = COACH_CARDS[productKey];
+  const monthly = PRODUCTS[productKey].tiers.starter.monthly;
+  const trial = productKey === 'care360' && !loggedIn;
+  const href = loggedIn || productKey !== 'care360'
+    ? (loggedIn
+      ? `/billing/checkout?products=${productKey}&tier=starter&billing=monthly&audience=coach`
+      : `/signup?products=${productKey}&tier=starter&billing=monthly&audience=coach`)
+    : '/signup?products=care360&audience=coach';
+  const mark = card.mark
+    ? `<img class="coach-mark" src="/img/${card.mark}" alt=""/>`
+    : '<span class="coach-mark duo"><img src="/img/care-mark.svg" alt=""/><img src="/img/element-mark.svg" alt=""/></span>';
+  return `
+  <div class="plan ${highlighted ? 'plan-featured' : 'plan-plain'}" id="${productKey === 'element_profile' ? 'element' : productKey}">
+    <div class="plan-head">
+      ${mark}
+      <div class="plan-name">${card.name}</div>
+    </div>
+    <div class="plan-price-row"><span class="plan-price">${money(monthly)}</span><span class="plan-per">/month</span></div>
+    <div class="plan-sub">${trial ? 'free trial first, then billed monthly' : 'billed monthly'}</div>
+    ${featureList(card.features)}
+    <a class="plan-btn ${highlighted ? 'plan-btn-primary' : ''}" href="${href}">${trial ? 'start free trial' : `choose ${card.name}`}${icon('arrow-right')}</a>
+  </div>`;
+}
+
+coachRouter.get('/', (req, res) => {
+  const highlight = COACH_PRODUCT_KEYS[req.query.product] || null;
+  const loggedIn = !!req.isAdmin;
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Coach pricing | In Good Company</title>
+<link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
+<style>
+${PLANS_CSS}
+.coach-mark{display:block;height:22px;width:auto;margin-bottom:14px}
+.coach-mark.duo{display:inline-flex}
+.coach-mark.duo img{height:22px;width:auto}
+.coach-mark.duo img+img{margin-left:-6px}
+.coach-note{text-align:center;margin-top:26px;font-size:14px;color:var(--grey)}
+</style></head><body>
+
+<div class="top">
+  <a class="top-logo" href="https://www.ingoodcocollective.com/" aria-label="In Good Company Collective home">
+    <img class="top-wordmark" src="/img/igc-wordmark.svg" alt="in good company."/>
+  </a>
+  <div class="top-spacer"></div>
+  ${loggedIn ? '<a href="/admin" class="top-link">Back to your account</a>' : '<a href="/signin" class="top-link">Sign in</a>'}
+</div>
+
+<header class="hero">
+  <div class="hero-marks"><img src="/img/care360-wordmark.svg" alt="care 360."/><span class="plus">+</span><img src="/img/element-wordmark.svg" alt="element."/></div>
+  <h1 class="h1">coach pricing, billed monthly.</h1>
+  <p class="lede">Monthly plans for your client work with CARE 360 and The Element Profile, with no limit on how many leaders you run.</p>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+    ${['care360', 'element_profile', 'bundle'].map(k => coachCard(k, k === highlight, loggedIn)).join('')}
+  </div>
+  <p class="coach-note">for coaches and consultants using our tools with their clients.</p>
+
+  <div class="foot">
+    <img src="/img/igc-wordmark.svg" alt="in good company."/>
+    Questions? <a href="mailto:info@ingoodcocollective.com">Get in touch</a>.
+  </div>
+</main>
+
+</body></html>`);
+});
+
 module.exports = router;
 module.exports.PRODUCTS = PRODUCTS;
 module.exports.SPECIAL_PLANS = SPECIAL_PLANS;
+module.exports.coachRouter = coachRouter;

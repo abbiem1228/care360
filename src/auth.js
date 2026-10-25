@@ -38,7 +38,7 @@ function userClient(accessToken) {
 // ── Sign up ──────────────────────────────────────────────────
 // Creates the auth user, then the account, then links them.
 
-async function signUp({ email, password, name, organization, termsAcceptedAt }) {
+async function signUp({ email, password, name, organization, termsAcceptedAt, isCoach }) {
   const auth = authClient();
 
   const { data, error } = await auth.auth.signUp({
@@ -62,7 +62,7 @@ async function signUp({ email, password, name, organization, termsAcceptedAt }) 
   // the new user has no session yet when email confirmation is on.
   const { data: account, error: acctErr } = await admin
     .from('accounts')
-    .insert([{ name: organization, plan: 'trial', status: 'active', terms_accepted_at: termsAcceptedAt || null }])
+    .insert([{ name: organization, plan: 'trial', status: 'active', terms_accepted_at: termsAcceptedAt || null, ...(isCoach ? { is_coach: true } : {}) }])
     .select()
     .single();
 

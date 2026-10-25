@@ -20,6 +20,20 @@ const PRODUCTS = ['care360', 'element_profile', 'bundle'];
 const PRODUCT_LABELS = { care360: 'CARE 360', element_profile: 'Element Profile', bundle: 'Bundle' };
 const TIER_LABELS     = { starter: 'Starter', growth: 'Growth' };
 
+// Who a purchase is for, and so how it is billed. Organizations buy
+// annual plans only. Coaches (from the unlisted /coach page) buy the
+// monthly Starter price of each product, and a coach's CARE 360 sign-up
+// starts with the same free trial everyone else gets. Anything other than
+// audience=coach is an organization, so an old ?billing=monthly link can
+// never start a monthly plan.
+function purchaseTerms(source, products) {
+  const audience = source.audience === 'coach' ? 'coach' : 'organization';
+  if (audience === 'coach') {
+    return { audience, billing: 'monthly', tier: products === 'care360' ? null : 'starter' };
+  }
+  return { audience, billing: 'annual', tier: TIERS.includes(source.tier) ? source.tier : null };
+}
+
 function purchaseLabel(tier, products) {
   if (products === 'bundle') return tier === 'growth' ? 'Growth Bundle' : 'Starter Bundle';
   return `${PRODUCT_LABELS[products]} ${TIER_LABELS[tier]}`;
@@ -70,16 +84,15 @@ function termsCheckboxBlock(products) {
 // ── Pages ─────────────────────────────────────────────────────
 
 router.get('/signup', (req, res) => {
-  const tier     = TIERS.includes(req.query.tier) ? req.query.tier : null;
   const products = PRODUCTS.includes(req.query.products) ? req.query.products : 'care360';
-  const billing  = req.query.billing === 'annual' ? 'annual' : 'monthly';
+  const { tier, billing, audience } = purchaseTerms(req.query, products);
   // Only CARE 360 has a free trial. An Element Profile or Bundle signup
   // without a paid tier goes back to that product's plans, never into
   // the CARE 360 trial signup.
   if (products !== 'care360' && !tier) {
     return res.redirect(`/plans?product=${products}`);
   }
-  res.send(signupPage(null, {}, tier, products, billing));
+  res.send(signupPage(null, {}, tier, products, billing, audience));
 });
 
 router.get('/signin', (req, res) => {
@@ -91,25 +104,24 @@ router.get('/signin', (req, res) => {
 
 router.post('/signup', async (req, res) => {
   const { name, email, password, organization, agree_terms } = req.body;
-  const tier     = TIERS.includes(req.body.tier) ? req.body.tier : null;
   const products = PRODUCTS.includes(req.body.products) ? req.body.products : 'care360';
-  const billing  = req.body.billing === 'annual' ? 'annual' : 'monthly';
+  const { tier, billing, audience } = purchaseTerms(req.body, products);
   if (products !== 'care360' && !tier) {
     return res.redirect(`/plans?product=${products}`);
   }
 
   if (!email || !password || !organization) {
-    return res.send(signupPage('Please fill in every required field.', req.body, tier, products, billing));
+    return res.send(signupPage('Please fill in every required field.', req.body, tier, products, billing, audience));
   }
   if (password.length < 8) {
-    return res.send(signupPage('Please choose a password of at least 8 characters.', req.body, tier, products, billing));
+    return res.send(signupPage('Please choose a password of at least 8 characters.', req.body, tier, products, billing, audience));
   }
   if (products === 'bundle') {
     if (req.body.agree_terms_care360 !== 'on' || req.body.agree_terms_element !== 'on') {
-      return res.send(signupPage('Please agree to both CARE 360\'s and Element Profile\'s Terms of Service and Privacy Policy to create a Bundle account.', req.body, tier, products, billing));
+      return res.send(signupPage('Please agree to both CARE 360\'s and Element Profile\'s Terms of Service and Privacy Policy to create a Bundle account.', req.body, tier, products, billing, audience));
     }
   } else if (agree_terms !== 'on') {
-    return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body, tier, products, billing));
+    return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body, tier, products, billing, audience));
   }
 
   const result = await signUp({
@@ -117,10 +129,14 @@ router.post('/signup', async (req, res) => {
     password,
     name: (name || '').trim(),
     organization: organization.trim(),
-    termsAcceptedAt: new Date().toISOString()
+    termsAcceptedAt: new Date().toISOString(),
+    // A coach's free trial marks the account as a coach account now.
+    // A paid coach purchase is marked by the Stripe webhook instead,
+    // once checkout actually completes.
+    isCoach: audience === 'coach' && !tier
   });
 
-  if (result.error) return res.send(signupPage(result.error, req.body, tier, products, billing));
+  if (result.error) return res.send(signupPage(result.error, req.body, tier, products, billing, audience));
 
   // A paid tier was chosen. Remember it and which product it buys
   // across the email confirmation gap in a short-lived signed cookie,
@@ -128,7 +144,7 @@ router.post('/signup', async (req, res) => {
   // they land directly in checkout for what they picked rather than a
   // trial dashboard.
   if (tier) {
-    res.cookie('pendingPurchase', JSON.stringify({ tier, products, billing }), { ...COOKIE_OPTS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('pendingPurchase', JSON.stringify({ tier, products, billing, audience }), { ...COOKIE_OPTS, maxAge: 7 * 24 * 60 * 60 * 1000 });
   }
 
   if (result.needsConfirmation) {
@@ -144,7 +160,7 @@ router.post('/signup', async (req, res) => {
   // No confirmation required, a session already exists.
   setSessionCookies(res, result.session);
   if (tier) {
-    return res.redirect(`/billing/checkout?tier=${tier}&products=${products}&billing=${billing}`);
+    return res.redirect(`/billing/checkout?tier=${tier}&products=${products}&billing=${billing}${audience === 'coach' ? '&audience=coach' : ''}`);
   }
   return res.redirect('/admin');
 });
@@ -167,10 +183,11 @@ router.post('/signin', async (req, res) => {
   if (pending) {
     res.clearCookie('pendingPurchase');
     try {
-      const { tier, products, billing } = JSON.parse(pending);
+      const { tier, products, billing, audience } = JSON.parse(pending);
       if (TIERS.includes(tier)) {
         const resolvedProducts = PRODUCTS.includes(products) ? products : 'care360';
-        return res.redirect(`/billing/checkout?tier=${tier}&products=${resolvedProducts}&billing=${billing || 'monthly'}`);
+        const coach = audience === 'coach';
+        return res.redirect(`/billing/checkout?tier=${tier}&products=${resolvedProducts}&billing=${coach ? 'monthly' : 'annual'}${coach ? '&audience=coach' : ''}`);
       }
     } catch (e) { /* malformed cookie, fall through to normal redirect */ }
   }
@@ -437,17 +454,18 @@ function shell(title, inner, opts = {}) {
 </body></html>`;
 }
 
-function signupPage(error, prev, tier, products, billing) {
+function signupPage(error, prev, tier, products, billing, audience) {
   const v = prev || {};
   tier     = TIERS.includes(tier) ? tier : null;
   products = PRODUCTS.includes(products) ? products : 'care360';
-  billing  = billing === 'annual' ? 'annual' : 'monthly';
+  billing  = billing === 'monthly' ? 'monthly' : 'annual';
+  const coach = audience === 'coach';
 
   const label = tier ? purchaseLabel(tier, products) : null;
 
   const contextBlock = label
-    ? `<div class="plan-badge">You are signing up for <strong>${label}</strong>${billing === 'annual' ? ', billed annually' : ''}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
-    : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.</div>`;
+    ? `<div class="plan-badge">You are signing up for <strong>${label}</strong>, ${coach ? 'billed monthly at coach pricing' : 'billed annually'}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
+    : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.${coach ? ' When you are ready, CARE 360 Starter is $149 a month at coach pricing.' : ''}</div>`;
 
   return shell(label ? `Sign up for ${label}` : 'Start your free trial', `
     <div class="title">${label ? `set up your ${label} account.` : 'start your free trial.'}</div>
@@ -458,10 +476,11 @@ function signupPage(error, prev, tier, products, billing) {
       <input type="hidden" name="tier" value="${tier || ''}"/>
       <input type="hidden" name="products" value="${products}"/>
       <input type="hidden" name="billing" value="${billing}"/>
+      ${coach ? '<input type="hidden" name="audience" value="coach"/>' : ''}
       <div class="group">
         <label class="label">Organization *</label>
         <input class="control" name="organization" required value="${v.organization || ''}" placeholder="Acme Corp"/>
-        <div class="hint">The company this account belongs to.</div>
+        <div class="hint">${coach ? 'Your practice or business name.' : 'The company this account belongs to.'}</div>
       </div>
       <div class="group">
         <label class="label">Your name</label>

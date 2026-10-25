@@ -106,10 +106,18 @@ function termsConsentMessage(products) {
 // This router is mounted AFTER the session middleware, so req.isAdmin
 // and req.accountId are already set by the time this runs.
 
+// Organizations buy annual plans only. A coach (audience=coach, from the
+// unlisted /coach page) buys the existing monthly Starter price of the
+// chosen product, with no leader band. Whatever ?billing= says, the
+// audience decides the price, so a monthly plan can only ever start as
+// a coach plan. Existing monthly customers are untouched: plan changes
+// go through the customer portal, and the bundle upgrade below keeps
+// each subscription's own interval.
 checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
-  const tier     = req.query.tier;
+  const coach    = req.query.audience === 'coach';
+  const tier     = coach ? 'starter' : req.query.tier;
   const products = req.query.products;
-  const billing  = req.query.billing === 'annual' ? 'annual' : 'monthly';
+  const billing  = coach ? 'monthly' : 'annual';
   const priceId  = PRICE_MAP[products] && PRICE_MAP[products][tier] && PRICE_MAP[products][tier][billing];
 
   if (!priceId) {
@@ -128,9 +136,12 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
       // Carried onto the subscription itself, so every later webhook
       // can find its account even if it arrives before
       // checkout.session.completed does.
-      subscription_data: { metadata: { account_id: req.accountId } },
+      // audience=coach rides on the subscription too, so the webhook can
+      // mark the account as a coach account from any later event, and a
+      // bundle upgrade (which keeps the subscription) keeps it.
+      subscription_data: { metadata: { account_id: req.accountId, ...(coach ? { audience: 'coach' } : {}) } },
       success_url: `${APP_URL}/billing/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${APP_URL}/plans`,
+      cancel_url:  coach ? `${APP_URL}/coach?product=${products === 'element_profile' ? 'element' : products}` : `${APP_URL}/plans`,
       // Reuse the account's existing Stripe customer, so every product
       // it buys sits under one customer and one Manage billing portal.
       // A brand new account has none yet, so Stripe creates one.
@@ -138,7 +149,7 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
         ? { customer: req.account.stripe_customer_id }
         : { customer_email: req.session ? req.session.email : undefined }),
       client_reference_id: req.accountId,
-      metadata: { account_id: req.accountId, tier, products },
+      metadata: { account_id: req.accountId, tier, products, ...(coach ? { audience: 'coach' } : {}) },
       consent_collection: { terms_of_service: 'required' },
       custom_text: { terms_of_service_acceptance: { message: termsConsentMessage(products) } }
     });
@@ -424,6 +435,7 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
           stripe_customer_id: session.customer
         }).eq('id', accountId);
 
+        if (session.metadata.audience === 'coach') await markCoachAccount(accountId);
         if (session.subscription) {
           await syncSubscription(session.subscription, accountId);
         }
@@ -537,8 +549,23 @@ async function syncSubscription(subscriptionId, accountIdHint) {
     }, { onConflict: 'stripe_subscription_id' });
   if (error) throw error;
 
+  if (sub.metadata && sub.metadata.audience === 'coach') await markCoachAccount(accountId);
   await recomputeAccount(accountId);
   console.log(`Subscription ${sub.id} synced: ${products}, ${tier}, ${sub.status}`);
+}
+
+// A coach checkout marks its account as a coach account (accounts.is_coach),
+// which CARE 360 and Element Profile both read. Only ever set, never
+// cleared here, so replays and every later event for the same
+// subscription change nothing, and the flag survives a plan change or a
+// bundle upgrade.
+async function markCoachAccount(accountId) {
+  const { error } = await supabase
+    .from('accounts')
+    .update({ is_coach: true })
+    .eq('id', accountId)
+    .eq('is_coach', false);
+  if (error) throw error;
 }
 
 // Plans set by hand, never derived from subscriptions.

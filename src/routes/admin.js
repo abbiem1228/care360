@@ -221,7 +221,7 @@ router.post('/cycles/:cycleId/leaders', requireAuth, async (req, res) => {
         <div class="card notice-card" style="max-width:520px">
           <div style="font-size:16px;font-weight:600;color:#30383B;margin-bottom:8px">You've used your free trial</div>
           <div style="font-size:13px;color:var(--grey);line-height:1.75;margin-bottom:18px">Your trial covers one leader, and you've already run one. Upgrade to add more leaders, unlimited Groups, and everything else CARE 360 offers.</div>
-          <a href="/plans" class="btn btn-primary">See plans</a>
+          <a href="${req.account.is_coach ? '/coach?product=care360' : '/plans'}" class="btn btn-primary">See plans</a>
         </div>`, req));
     }
   }
@@ -700,7 +700,7 @@ function adminShell(title, content, req) {
       <div class="nav-avatar">${initial}</div>
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${plan ? `<span class="nav-plan">${plan}</span>` : ''}
-      ${acct && acct.plan === 'trial' ? `<a href="/plans" class="nav-link nav-link-accent">Upgrade</a>` : ''}
+      ${acct && acct.plan === 'trial' ? `<a href="${acct.is_coach ? '/coach?product=care360' : '/plans'}" class="nav-link nav-link-accent">Upgrade</a>` : ''}
       ${bundleReminder ? `<a href="/billing/upgrade-to-bundle" class="nav-link nav-link-accent">${bundleReminder}</a>` : ''}
       ${acct && acct.stripe_customer_id ? '<a href="/billing/portal" class="nav-link">Manage billing</a>' : ''}
       <a href="/signout" class="nav-link">Sign out</a>

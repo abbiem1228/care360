@@ -26,7 +26,7 @@ router.get('/', requireOwner, async (req, res) => {
     supabase.from('accounts').select('*').order('created_at', { ascending: false }),
     supabase.from('account_users').select('account_id, email, name, created_at'),
     supabase.from('cycles').select('id, account_id, client_name, status'),
-    supabase.from('leaders').select('id, account_id, created_at'),
+    supabase.from('leaders').select('id, account_id, cycle_id, created_at'),
     supabase.from('reports').select('id, account_id, generated_at'),
     // Element Profile's tables key off organization_id, not account_id
     // directly the way cycles/leaders/reports do, so organizations is
@@ -43,13 +43,14 @@ router.get('/', requireOwner, async (req, res) => {
   (accounts || []).forEach(a => {
     byAccount[a.id] = {
       ...a,
-      users: [], surveys: 0, activeSurveys: 0, leaders: 0, reports: 0,
+      users: [], surveys: 0, activeSurveys: 0, leaders: 0, activeLeaders: 0, reports: 0,
       orgs: new Set(), lastActivity: null,
       epTeams: 0, epPeople: 0, epAssessments: 0, epRoles: 0
     };
   });
 
   (users   || []).forEach(u => { if (byAccount[u.account_id]) byAccount[u.account_id].users.push(u); });
+  const activeCycle = new Set((cycles || []).filter(c => c.status === 'active').map(c => c.id));
   (cycles  || []).forEach(c => {
     const a = byAccount[c.account_id]; if (!a) return;
     a.surveys++;
@@ -59,6 +60,7 @@ router.get('/', requireOwner, async (req, res) => {
   (leaders || []).forEach(l => {
     const a = byAccount[l.account_id]; if (!a) return;
     a.leaders++;
+    if (activeCycle.has(l.cycle_id)) a.activeLeaders++;
     if (!a.lastActivity || l.created_at > a.lastActivity) a.lastActivity = l.created_at;
   });
   (reports || []).forEach(r => {
@@ -121,7 +123,9 @@ function fmt(iso) {
 
 function flagsFor(r) {
   const out = [];
-  const ceiling = LEADER_CEILING[r.plan];
+  // Coach accounts have no leader band: they run leaders for many
+  // clients on one account, so leader count never flags them.
+  const ceiling = r.is_coach ? null : LEADER_CEILING[r.plan];
 
   if (ceiling && r.leaders >= ceiling)            out.push(['over',  'Over band']);
   else if (ceiling && r.leaders >= ceiling * 0.8) out.push(['near',  'Near band']);
@@ -154,10 +158,10 @@ function hqPage(d) {
         <div class="acct-email">${email}</div>
       </td>
       <td><span class="product product-${productKey}">${productLabel}</span></td>
-      <td><span class="plan plan-${r.plan}">${r.plan}</span></td>
+      <td><span class="plan plan-${r.plan}">${r.plan}</span>${r.is_coach ? ' <span class="plan plan-coach">coach</span>' : ''}</td>
       <td>${fmt(r.created_at)}</td>
       <td class="num">${r.surveys}</td>
-      <td class="num">${r.leaders}</td>
+      <td class="num">${r.leaders}${r.is_coach ? `<div class="sub-num">${r.activeLeaders} active</div>` : ''}</td>
       <td class="num">${r.orgs.size}</td>
       <td class="num">${r.reports}</td>
       <td class="num">${r.epTeams}</td>
@@ -212,6 +216,8 @@ tbody tr:hover td{background:var(--wash)}
 .plan-trial{background:var(--ochre-tint);color:var(--ochre)}
 .plan-starter{background:var(--sage-tint);color:#56603F}
 .plan-growth{background:var(--clay-tint);color:var(--clay-dark)}
+.plan-coach{background:var(--ink);color:var(--cream)}
+.sub-num{font-size:11px;color:var(--grey);font-weight:400;white-space:nowrap}
 .plan-community{background:#E3E7EA;color:#3D5A7A}
 .plan-enterprise{background:var(--ink);color:var(--cream)}
 .product{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}

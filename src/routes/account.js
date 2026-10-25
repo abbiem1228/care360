@@ -20,6 +20,20 @@ const PRODUCTS = ['care360', 'element_profile', 'bundle'];
 const PRODUCT_LABELS = { care360: 'CARE 360', element_profile: 'Element Profile', bundle: 'Bundle' };
 const TIER_LABELS     = { starter: 'Starter', growth: 'Growth' };
 
+// Who a purchase is for, and so how it is billed. Organizations buy
+// annual plans only. Coaches (from the unlisted /coach page) buy the
+// monthly Starter price of each product, and a coach's CARE 360 sign-up
+// starts with the same free trial everyone else gets. Anything other than
+// audience=coach is an organization, so an old ?billing=monthly link can
+// never start a monthly plan.
+function purchaseTerms(source, products) {
+  const audience = source.audience === 'coach' ? 'coach' : 'organization';
+  if (audience === 'coach') {
+    return { audience, billing: 'monthly', tier: products === 'care360' ? null : 'starter' };
+  }
+  return { audience, billing: 'annual', tier: TIERS.includes(source.tier) ? source.tier : null };
+}
+
 function purchaseLabel(tier, products) {
   if (products === 'bundle') return tier === 'growth' ? 'Growth Bundle' : 'Starter Bundle';
   return `${PRODUCT_LABELS[products]} ${TIER_LABELS[tier]}`;
@@ -70,16 +84,15 @@ function termsCheckboxBlock(products) {
 // ── Pages ─────────────────────────────────────────────────────
 
 router.get('/signup', (req, res) => {
-  const tier     = TIERS.includes(req.query.tier) ? req.query.tier : null;
   const products = PRODUCTS.includes(req.query.products) ? req.query.products : 'care360';
-  const billing  = req.query.billing === 'annual' ? 'annual' : 'monthly';
+  const { tier, billing, audience } = purchaseTerms(req.query, products);
   // Only CARE 360 has a free trial. An Element Profile or Bundle signup
   // without a paid tier goes back to that product's plans, never into
   // the CARE 360 trial signup.
   if (products !== 'care360' && !tier) {
     return res.redirect(`/plans?product=${products}`);
   }
-  res.send(signupPage(null, {}, tier, products, billing));
+  res.send(signupPage(null, {}, tier, products, billing, audience));
 });
 
 router.get('/signin', (req, res) => {
@@ -91,25 +104,24 @@ router.get('/signin', (req, res) => {
 
 router.post('/signup', async (req, res) => {
   const { name, email, password, organization, agree_terms } = req.body;
-  const tier     = TIERS.includes(req.body.tier) ? req.body.tier : null;
   const products = PRODUCTS.includes(req.body.products) ? req.body.products : 'care360';
-  const billing  = req.body.billing === 'annual' ? 'annual' : 'monthly';
+  const { tier, billing, audience } = purchaseTerms(req.body, products);
   if (products !== 'care360' && !tier) {
     return res.redirect(`/plans?product=${products}`);
   }
 
   if (!email || !password || !organization) {
-    return res.send(signupPage('Please fill in every required field.', req.body, tier, products, billing));
+    return res.send(signupPage('Please fill in every required field.', req.body, tier, products, billing, audience));
   }
   if (password.length < 8) {
-    return res.send(signupPage('Please choose a password of at least 8 characters.', req.body, tier, products, billing));
+    return res.send(signupPage('Please choose a password of at least 8 characters.', req.body, tier, products, billing, audience));
   }
   if (products === 'bundle') {
     if (req.body.agree_terms_care360 !== 'on' || req.body.agree_terms_element !== 'on') {
-      return res.send(signupPage('Please agree to both CARE 360\'s and Element Profile\'s Terms of Service and Privacy Policy to create a Bundle account.', req.body, tier, products, billing));
+      return res.send(signupPage('Please agree to both CARE 360\'s and Element Profile\'s Terms of Service and Privacy Policy to create a Bundle account.', req.body, tier, products, billing, audience));
     }
   } else if (agree_terms !== 'on') {
-    return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body, tier, products, billing));
+    return res.send(signupPage('Please agree to the Terms of Service and Privacy Policy to create an account.', req.body, tier, products, billing, audience));
   }
 
   const result = await signUp({
@@ -117,10 +129,14 @@ router.post('/signup', async (req, res) => {
     password,
     name: (name || '').trim(),
     organization: organization.trim(),
-    termsAcceptedAt: new Date().toISOString()
+    termsAcceptedAt: new Date().toISOString(),
+    // A coach's free trial marks the account as a coach account now.
+    // A paid coach purchase is marked by the Stripe webhook instead,
+    // once checkout actually completes.
+    isCoach: audience === 'coach' && !tier
   });
 
-  if (result.error) return res.send(signupPage(result.error, req.body, tier, products, billing));
+  if (result.error) return res.send(signupPage(result.error, req.body, tier, products, billing, audience));
 
   // A paid tier was chosen. Remember it and which product it buys
   // across the email confirmation gap in a short-lived signed cookie,
@@ -128,7 +144,7 @@ router.post('/signup', async (req, res) => {
   // they land directly in checkout for what they picked rather than a
   // trial dashboard.
   if (tier) {
-    res.cookie('pendingPurchase', JSON.stringify({ tier, products, billing }), { ...COOKIE_OPTS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('pendingPurchase', JSON.stringify({ tier, products, billing, audience }), { ...COOKIE_OPTS, maxAge: 7 * 24 * 60 * 60 * 1000 });
   }
 
   if (result.needsConfirmation) {
@@ -144,7 +160,7 @@ router.post('/signup', async (req, res) => {
   // No confirmation required, a session already exists.
   setSessionCookies(res, result.session);
   if (tier) {
-    return res.redirect(`/billing/checkout?tier=${tier}&products=${products}&billing=${billing}`);
+    return res.redirect(`/billing/checkout?tier=${tier}&products=${products}&billing=${billing}${audience === 'coach' ? '&audience=coach' : ''}`);
   }
   return res.redirect('/admin');
 });
@@ -167,10 +183,11 @@ router.post('/signin', async (req, res) => {
   if (pending) {
     res.clearCookie('pendingPurchase');
     try {
-      const { tier, products, billing } = JSON.parse(pending);
+      const { tier, products, billing, audience } = JSON.parse(pending);
       if (TIERS.includes(tier)) {
         const resolvedProducts = PRODUCTS.includes(products) ? products : 'care360';
-        return res.redirect(`/billing/checkout?tier=${tier}&products=${resolvedProducts}&billing=${billing || 'monthly'}`);
+        const coach = audience === 'coach';
+        return res.redirect(`/billing/checkout?tier=${tier}&products=${resolvedProducts}&billing=${coach ? 'monthly' : 'annual'}${coach ? '&audience=coach' : ''}`);
       }
     } catch (e) { /* malformed cookie, fall through to normal redirect */ }
   }
@@ -339,20 +356,28 @@ const CSS = `
 ::selection{background:var(--ochre-light)}
 body{font-family:'Noto Sans',Arial,sans-serif;background:#ffffff;color:var(--ink);font-size:14px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
 .auth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:100vh}
-.auth-art{position:sticky;top:0;height:100vh;overflow:hidden;background:#B0673F;color:#F7F3EA}
-.auth-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;animation:igc-zoom 14s ease-out both}
+.auth-art{position:sticky;top:0;height:100vh;overflow:hidden;background:#B0673F;color:#F7F3EA;display:flex;flex-direction:column;justify-content:space-between}
+.auth-art::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(122,64,36,0.88) 0%,rgba(122,64,36,0.45) 32%,rgba(122,64,36,0) 58%),linear-gradient(to bottom,rgba(122,64,36,0.35),rgba(122,64,36,0) 22%);pointer-events:none}
+.auth-art>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:30% 35%;animation:igc-zoom 14s ease-out both}
+.auth-art-top{position:relative;z-index:1;padding:40px 56px}
 @keyframes igc-zoom{from{transform:scale(1.06)}to{transform:scale(1)}}
-.auth-art-copy{position:relative;padding:48px 56px;display:flex;flex-direction:column;gap:18px;max-width:560px;animation:igc-rise .8s .15s var(--ease) both}
+.auth-art-copy{position:relative;z-index:1;padding:0 56px 56px;display:flex;flex-direction:column;gap:14px;max-width:600px;animation:igc-rise .8s .15s var(--ease) both}
 .auth-art-mark{display:flex;align-items:center;gap:10px;font-family:'EB Garamond',Georgia,serif;font-size:22px;font-weight:500;letter-spacing:-0.4px;color:#F7F3EA}
 .auth-art-mark img{position:static;width:28px;height:28px;animation:none;filter:brightness(0) invert(96%) sepia(8%) saturate(300%)}
-.auth-art h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:clamp(40px,4.4vw,60px);line-height:1.02;letter-spacing:-2px;margin-top:28px;text-wrap:balance}
+.auth-art h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:clamp(40px,4.4vw,60px);line-height:1.02;letter-spacing:-2px;text-wrap:balance}
 .auth-art p{font-size:15px;line-height:1.65;color:rgba(247,243,234,0.86);max-width:400px}
 .auth-main{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(24px,6vw,96px)}
 a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}a:hover{color:var(--clay);text-decoration-color:currentColor}
 .wrap{width:100%;max-width:420px;margin:0 auto}
 .card{animation:igc-rise .55s var(--ease) both}
 .logo{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:40px}
-.logo-mark{height:20px;width:auto;display:block}
+.logo-mark{height:28px;width:auto;display:block}
+.logo-by{font-family:'EB Garamond',Georgia,serif;font-size:15px;color:var(--grey)}
+.product-switch{display:inline-flex;gap:2px;padding:3px;margin-bottom:36px;background:var(--wash);border:1px solid var(--line);border-radius:999px}
+.product-switch a{display:inline-flex;align-items:center;gap:7px;padding:6px 14px 6px 8px;border-radius:999px;font-size:13px;font-weight:600;color:var(--grey);text-decoration:none;transition:color .15s,background .2s,box-shadow .2s}
+.product-switch a:hover{color:var(--ink)}
+.product-switch a.on{background:#ffffff;color:var(--ink);box-shadow:0 1px 2px rgba(48,56,59,0.08),0 3px 10px rgba(48,56,59,0.07)}
+.product-switch img{width:18px;height:18px}
 .logo-sub{font-size:13px;color:var(--grey)}
 .title{font-family:'EB Garamond',Georgia,serif;font-size:42px;color:var(--ink);margin-bottom:10px;font-weight:500;letter-spacing:-1.4px;line-height:1.05;text-wrap:balance}
 .sub{font-size:14px;color:var(--grey);margin-bottom:26px;line-height:1.6}
@@ -390,28 +415,34 @@ input[type=checkbox]{appearance:none;-webkit-appearance:none;width:18px;height:1
 input[type=checkbox]:hover{border-color:#30383B}
 input[type=checkbox]:checked{border-color:#30383B;background:#30383B url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.3l2.6 2.6L12 5.5' fill='none' stroke='%23F7F3EA' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
 input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
-@media(max-width:860px){.auth{grid-template-columns:1fr}.auth-art{position:relative;height:240px}.auth-art-copy{padding:24px}.auth-art h2,.auth-art p{display:none}.auth-main{padding:36px 20px 48px;justify-content:flex-start}.logo{display:none}.title{font-size:36px}}
+@media(max-width:860px){.auth{grid-template-columns:1fr}.auth-art{position:relative;height:220px}.auth-art-top{padding:20px 24px;display:flex;justify-content:flex-end}.auth-art-copy{padding:0 24px 24px}.auth-art h2,.auth-art p{display:none}.auth-main{padding:36px 20px 48px;justify-content:flex-start}.logo{display:none}.product-switch{margin-bottom:28px}.title{font-size:36px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>`;
 
-function shell(title, inner) {
+// opts.switcher adds the care 360 / element switch above the form, for the
+// sign-in page only, matching the sign-in menu on ingoodcocollective.com.
+function shell(title, inner, opts = {}) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title} | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
 <div class="auth">
 <aside class="auth-art">
-  <img src="/img/igc-hero-clay-mobile.webp" alt=""/>
+  <img src="/img/care360-photo.jpg" alt=""/>
+  <div class="auth-art-top"><div class="auth-art-mark"><img src="/img/care-mark.svg" alt=""/>care 360</div></div>
   <div class="auth-art-copy">
-    <div class="auth-art-mark"><img src="/img/care-mark.svg" alt=""/>care 360</div>
-    <h2>leadership, seen from every side.</h2>
-    <p>360-degree feedback built around connect, accountable, reach and empower.</p>
+    <h2>turn feedback into a place to start.</h2>
+    <p>360-degree leadership feedback built around connect, accountable, reach and empower.</p>
   </div>
 </aside>
 <main class="auth-main">
 <div class="wrap"><div class="card">
+  ${opts.switcher ? `<nav class="product-switch" aria-label="Choose a product">
+    <a class="on" href="/signin" aria-current="page"><img src="/img/care-mark.svg" alt=""/>care 360</a>
+    <a href="${ELEMENT_PROFILE_URL}/signin"><img src="/img/element-mark.svg" alt=""/>element</a>
+  </nav>` : ''}
   <div class="logo">
-    <img class="logo-mark" src="/img/igc-wordmark.svg" alt="in good company."/>
-    <div class="logo-sub">care 360 leadership survey</div>
+    <img class="logo-mark" src="/img/care360-wordmark.svg" alt="care 360."/>
+    <div class="logo-by">by in good company.</div>
   </div>
   ${inner}
 </div>
@@ -423,17 +454,18 @@ function shell(title, inner) {
 </body></html>`;
 }
 
-function signupPage(error, prev, tier, products, billing) {
+function signupPage(error, prev, tier, products, billing, audience) {
   const v = prev || {};
   tier     = TIERS.includes(tier) ? tier : null;
   products = PRODUCTS.includes(products) ? products : 'care360';
-  billing  = billing === 'annual' ? 'annual' : 'monthly';
+  billing  = billing === 'monthly' ? 'monthly' : 'annual';
+  const coach = audience === 'coach';
 
   const label = tier ? purchaseLabel(tier, products) : null;
 
   const contextBlock = label
-    ? `<div class="plan-badge">You are signing up for <strong>${label}</strong>${billing === 'annual' ? ', billed annually' : ''}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
-    : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.</div>`;
+    ? `<div class="plan-badge">You are signing up for <strong>${label}</strong>, ${coach ? 'billed monthly at coach pricing' : 'billed annually'}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
+    : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.${coach ? ' When you are ready, CARE 360 Starter is $149 a month at coach pricing.' : ''}</div>`;
 
   return shell(label ? `Sign up for ${label}` : 'Start your free trial', `
     <div class="title">${label ? `set up your ${label} account.` : 'start your free trial.'}</div>
@@ -444,10 +476,11 @@ function signupPage(error, prev, tier, products, billing) {
       <input type="hidden" name="tier" value="${tier || ''}"/>
       <input type="hidden" name="products" value="${products}"/>
       <input type="hidden" name="billing" value="${billing}"/>
+      ${coach ? '<input type="hidden" name="audience" value="coach"/>' : ''}
       <div class="group">
         <label class="label">Organization *</label>
         <input class="control" name="organization" required value="${v.organization || ''}" placeholder="Acme Corp"/>
-        <div class="hint">The company this account belongs to.</div>
+        <div class="hint">${coach ? 'Your practice or business name.' : 'The company this account belongs to.'}</div>
       </div>
       <div class="group">
         <label class="label">Your name</label>
@@ -484,7 +517,7 @@ function signinPage(error, email) {
       <button class="btn" type="submit">Sign in</button>
     </form>
     <div class="alt"><a href="/forgot-password">Forgot password?</a></div>
-    <div class="alt">No account yet? <a href="/plans">See plans</a></div>`);
+    <div class="alt">No account yet? <a href="/plans">See plans</a></div>`, { switcher: true });
 }
 
 function forgotPasswordPage({ submitted } = {}) {

@@ -324,6 +324,8 @@ const RETENTION_WHAT = {
   element_profile: 'your Element Profile organization, people, teams and roles, every assessment invite, answer and score, and all saved reports and narratives'
 };
 const PLANS_PRODUCT = { care360: 'care360', element_profile: 'element_profile' };
+// Coach accounts resubscribe at coach pricing, not on the annual plans page.
+const COACH_PRODUCT = { care360: 'care360', element_profile: 'element' };
 
 // Each product's warning comes from that product's own sender, the same
 // address its other emails use. Element Profile's matches Element's
@@ -340,9 +342,11 @@ function retentionDateLabel(isoDate) {
 // Sent to the account owner 7 days before a product's data is deleted.
 // unpaid: the subscription is still open with a balance due, so paying
 // it (not resubscribing) is what keeps the data.
-async function sendRetentionWarning({ to, accountName, product, productLabel, deletionDate, unpaid = false }) {
+async function sendRetentionWarning({ to, accountName, product, productLabel, deletionDate, unpaid = false, isCoach = false }) {
   const date = retentionDateLabel(deletionDate);
-  const resubscribe = `${APP_URL}/plans?product=${PLANS_PRODUCT[product]}`;
+  const resubscribe = isCoach
+    ? `${APP_URL}/coach?product=${COACH_PRODUCT[product]}`
+    : `${APP_URL}/plans?product=${PLANS_PRODUCT[product]}`;
   const signin = `${APP_URL}/signin`;
   const opening = unpaid
     ? `Your ${productLabel} subscription for ${accountName} is paused because payment didn't go through. As our Terms and Privacy Policy describe, we keep your data for 60 days after that, then permanently delete it.`

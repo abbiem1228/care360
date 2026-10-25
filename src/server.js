@@ -67,6 +67,7 @@ app.use('/admin',  adminRoutes);
 app.use('/report', reportRoutes);
 app.use('/guide',  guideRoutes);
 app.use('/plans', plansRoutes);
+app.use('/coach', plansRoutes.coachRouter);
 app.use('/hq',    hqRoutes);
 app.use('/', accountRoutes);
 app.get('/', (req, res) => res.redirect('/admin'));

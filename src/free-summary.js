@@ -13,6 +13,7 @@
 // a rejected send removes the record and the next run tries again.
 // ============================================================
 
+const crypto   = require('crypto');
 const supabase = require('./db/client');
 
 // Arizona doesn't observe daylight saving, so it's always UTC-7.
@@ -125,13 +126,16 @@ async function claimWeek(weekStart, now) {
 
 // Sent with fetch rather than the Resend SDK so it can carry an
 // Idempotency-Key: if a run dies after Resend accepts the email, the
-// run that takes over can't send a second copy. A rejected send is an
-// error here, never a quiet success.
+// run that takes over can't send a second copy. The key covers the
+// whole message, so only an identical email counts as a repeat. A
+// rejected send is an error here, never a quiet success.
 async function sendViaResend(weekStart, message) {
+  const body_ = JSON.stringify(message);
+  const key = `free-summary-${weekStart}-${crypto.createHash('sha256').update(body_).digest('hex').slice(0, 24)}`;
   const res = await fetch(`${process.env.RESEND_BASE_URL || 'https://api.resend.com'}/emails`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `free-summary-${weekStart}` },
-    body: JSON.stringify(message)
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': key },
+    body: body_
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || !body.id) throw new Error(`Resend rejected the summary (${res.status}${body.message ? ': ' + body.message : ''})`);

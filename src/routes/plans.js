@@ -204,6 +204,9 @@ const FAQ = {
 };
 
 const CONTACT_URL = 'https://www.ingoodcocollective.com/contact/';
+// The free Element Profile anyone can take for themselves. Offered on the
+// Element and bundle tabs and on /coach, so people can try it before buying.
+const FREE_ASSESSMENT_URL = 'https://element.ingoodcocollective.com/free';
 // The public coach page on the website, which explains coach pricing and
 // links to this app's unlisted /coach page.
 const COACH_PAGE_URL = 'https://ingoodcocollective.com/coaches/';
@@ -347,6 +350,10 @@ a{text-decoration:none;color:inherit}
 
 .includes{display:flex;align-items:center;justify-content:center;gap:12px;margin:40px auto 0;max-width:760px;padding:16px 22px;border-radius:999px;background:var(--ochre-tint);border:1px solid var(--ochre-line);font-size:14px;text-align:center}
 .includes .i{width:18px;height:18px;color:var(--ochre)}
+/* The free Element Profile callout, above the plan card on the Element and bundle tabs */
+.free-callout{margin:0 auto 24px;max-width:620px;border-radius:20px;justify-content:space-between;flex-wrap:wrap;text-align:left}
+.free-callout span{flex:1;min-width:200px;font-weight:600}
+.free-callout .plan-btn{padding:10px 18px;flex-shrink:0}
 
 .faq{max-width:780px;margin:88px auto 0}
 .section-title{font-family:'EB Garamond',Georgia,serif;font-size:44px;font-weight:500;letter-spacing:-1.4px;text-align:center;margin-bottom:26px}
@@ -449,6 +456,7 @@ ${PLANS_CSS}</style></head><body>
     ${specialCard(SPECIAL_PLANS.community)}
     ${specialCard(SPECIAL_PLANS.enterprise)}
   </div>` : `
+  <div class="includes free-callout">${icon('check-circle')}<span>try it yourself first. take the element profile free.</span><a class="plan-btn" href="${FREE_ASSESSMENT_URL}">take it free${icon('arrow-right')}</a></div>
   <div class="grid grid-1">${planCard}</div>`}
 
   <div class="includes">${icon('check-circle')}<span>${copy.foot}</span></div>
@@ -527,6 +535,7 @@ function coachCard(productKey, highlighted, loggedIn) {
     <div class="plan-sub">${trial ? 'free trial first, then billed monthly' : 'billed monthly'}</div>
     ${featureList(card.features)}
     <a class="plan-btn ${highlighted ? 'plan-btn-primary' : ''}" href="${href}">${trial ? 'start free trial' : `choose ${card.name}`}${icon('arrow-right')}</a>
+    ${productKey === 'care360' ? '' : `<a class="coach-free" href="${FREE_ASSESSMENT_URL}">or take it yourself free first</a>`}
   </div>`;
 }
 
@@ -546,6 +555,10 @@ ${PLANS_CSS}
 .coach-mark.duo img{height:22px;width:auto}
 .coach-mark.duo img+img{margin-left:-6px}
 .coach-note{text-align:center;margin-top:26px;font-size:14px;color:var(--grey)}
+.coach-free{display:block;text-align:center;margin-top:12px;font-size:13px;color:var(--grey);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+.plan-featured .coach-free{color:rgba(247,243,234,0.75);text-decoration-color:rgba(247,243,234,0.3)}
+.coach-free:hover{color:var(--ink)}
+.plan-featured .coach-free:hover{color:var(--cream)}
 </style></head><body>
 
 <div class="top">

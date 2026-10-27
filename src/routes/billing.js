@@ -405,8 +405,13 @@ input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
 
 checkoutRouter.get('/upgrade-to-bundle', requireAuth, async (req, res) => {
   const products = missingProduct(req.account);
-  if (!products && req.accountId && await liveSubscriptionCount(req.accountId) > 1) {
-    return res.send(SWITCH_TO_BUNDLE_MESSAGE);
+  try {
+    if (!products && req.accountId && await liveSubscriptionCount(req.accountId) > 1) {
+      return res.send(SWITCH_TO_BUNDLE_MESSAGE);
+    }
+  } catch (e) {
+    console.error('Upgrade to bundle: subscription lookup failed:', e && e.message ? e.message : e);
+    return res.status(500).send('Something went wrong loading the upgrade. Please try again in a moment. <a href="/admin">Back to dashboard</a>');
   }
   if (!products) {
     return res.status(400).send('Your account already has both products, or we could not tell which one you\'re adding. <a href="/admin">Back to dashboard</a>');

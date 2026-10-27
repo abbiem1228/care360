@@ -24,7 +24,7 @@ const WARNING_DAYS   = 7;
 const DAY_MS         = 24 * 60 * 60 * 1000;
 
 const PRODUCTS = ['care360', 'element_profile'];
-const PRODUCT_LABELS = { care360: 'CARE 360', element_profile: 'Element Profile' };
+const PRODUCT_LABELS = { care360: 'care 360', element_profile: 'Element Profile' };
 
 // What each product's deletion removes, in the order it's deleted
 // (rows that others point at go last). Each entry is

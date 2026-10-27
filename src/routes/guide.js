@@ -97,7 +97,7 @@ const STEPS = [
       <ul>
         <li>Who is being assessed</li>
         <li>That responses are anonymous</li>
-        <li>That the email is coming from CARE 360 and takes about ten minutes</li>
+        <li>That the email is coming from care 360 and takes about ten minutes</li>
         <li>Roughly when it will arrive</li>
       </ul>
       <p>People expecting an email open it. People who are not may ignore it or mark it as spam.</p>
@@ -307,7 +307,7 @@ router.get('/', requireAuth, (req, res) => {
   <div class="guide-title">how care 360 works.</div>
   <p class="guide-lede">Setup takes about ten minutes. Everything then runs itself until the close date you set. You come back at the end to generate the report.</p>
 
-  <div class="callout callout-clay">Have both CARE 360 and the Element Profile? Click the logo in the top-left corner, right where it says "care 360." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
+  <div class="callout callout-clay">Have both care 360 and the Element Profile? Click the logo in the top-left corner, right where it says "care 360." That's your switcher, not just a logo. If your account has both products, clicking it opens a menu to jump straight to Element Profile, no second sign-in.</div>
 
   <div class="search-wrap">
     <span class="search-icon">${icon('search')}</span>

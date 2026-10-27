@@ -17,7 +17,7 @@ const COOKIE_OPTS = {
 const TIERS    = ['starter', 'growth'];
 const PRODUCTS = ['care360', 'element_profile', 'bundle'];
 
-const PRODUCT_LABELS = { care360: 'CARE 360', element_profile: 'Element Profile', bundle: 'Bundle' };
+const PRODUCT_LABELS = { care360: 'care 360', element_profile: 'Element Profile', bundle: 'Bundle' };
 
 // Who a purchase is for, and so how it is billed. Organizations buy
 // annual plans only. Coaches (from the unlisted /coach page) buy the
@@ -42,6 +42,24 @@ const PLAN_TITLES = { care360: 'set up your care 360 account.', element_profile:
 function purchaseLabel(tier, products) {
   return PLAN_NAMES[products] || PLAN_NAMES.care360;
 }
+
+// A paid product someone picked before signing in or up (from /plans,
+// /coach or the website), or null for a plain sign-in or the care 360
+// free trial. It travels on the sign-up and sign-in links and forms, so
+// switching between them never loses the choice.
+function purchaseContext(source) {
+  const products = PRODUCTS.includes(source.products) ? source.products : null;
+  if (!products) return null;
+  const { tier, billing, audience } = purchaseTerms(source, products);
+  return tier ? { products, tier, billing, audience } : null;
+}
+const purchaseQuery = ctx => `products=${ctx.products}&tier=${ctx.tier}&billing=${ctx.billing}${ctx.audience === 'coach' ? '&audience=coach' : ''}`;
+const checkoutUrl   = ctx => `/billing/checkout?${purchaseQuery(ctx)}`;
+const purchaseFields = ctx => ctx ? `
+      <input type="hidden" name="products" value="${ctx.products}"/>
+      <input type="hidden" name="tier" value="${ctx.tier}"/>
+      <input type="hidden" name="billing" value="${ctx.billing}"/>
+      ${ctx.audience === 'coach' ? '<input type="hidden" name="audience" value="coach"/>' : ''}` : '';
 
 // Same env var and default already used for the handoff redirect
 // (src/routes/admin.js), not a second, separately-configured URL.
@@ -101,7 +119,7 @@ router.get('/signup', (req, res) => {
 
 router.get('/signin', (req, res) => {
   const error = req.query.handoff === 'failed' ? 'That link has expired or has already been used. Please sign in.' : null;
-  res.send(signinPage(error));
+  res.send(signinPage(error, '', purchaseContext(req.query)));
 });
 
 // ── Sign up ───────────────────────────────────────────────────
@@ -157,7 +175,8 @@ router.post('/signup', async (req, res) => {
       tier
         ? `We have sent a confirmation link to <strong>${email.trim()}</strong>. Click it, then sign in below, and you will be taken straight to checkout to finish setting up your ${purchaseLabel(tier, products)} plan.`
         : `We have sent a confirmation link to <strong>${email.trim()}</strong>. Click it to activate your account, then sign in.`,
-      'Go to sign in', '/signin'
+      'Go to sign in', tier ? `/signin?${purchaseQuery({ tier, products, billing, audience })}` : '/signin',
+      products
     ));
   }
 
@@ -173,12 +192,20 @@ router.post('/signup', async (req, res) => {
 
 router.post('/signin', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.send(signinPage('Please enter your email and password.'));
+  const ctx = purchaseContext(req.body);
+  if (!email || !password) return res.send(signinPage('Please enter your email and password.', email, ctx));
 
   const result = await signIn({ email: email.trim().toLowerCase(), password });
-  if (result.error) return res.send(signinPage(result.error, email));
+  if (result.error) return res.send(signinPage(result.error, email, ctx));
 
   setSessionCookies(res, result.session);
+
+  // Signed in from a product someone picked: straight on to that
+  // checkout, which sends anyone who already has it elsewhere.
+  if (ctx) {
+    res.clearCookie('pendingPurchase');
+    return res.redirect(checkoutUrl(ctx));
+  }
 
   // If this person signed up for a paid tier but had to confirm their
   // email first, this is the moment that gets honored: send them
@@ -289,7 +316,7 @@ router.post('/invite/:token', async (req, res) => {
   // account_users.auth_user_id is unique, one login belongs to exactly
   // one account.
   if (!data.user || (data.user.identities && data.user.identities.length === 0)) {
-    return res.send(inviteAcceptPage(invite, 'An account with that email already exists on CARE 360. Sign in with it instead, or ask whoever invited you to double-check the email address.'));
+    return res.send(inviteAcceptPage(invite, 'An account with that email already exists on care 360. Sign in with it instead, or ask whoever invited you to double-check the email address.'));
   }
 
   const { error: linkErr } = await supabase.from('account_users').insert([{
@@ -423,22 +450,65 @@ input[type=checkbox]:hover{border-color:#30383B}
 input[type=checkbox]:checked{border-color:#30383B;background:#30383B url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.3l2.6 2.6L12 5.5' fill='none' stroke='%23F7F3EA' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
 input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
 @media(max-width:860px){.auth{grid-template-columns:1fr}.auth-art{position:relative;height:220px}.auth-art-top{padding:20px 24px;display:flex;justify-content:flex-end}.auth-art-copy{padding:0 24px 24px}.auth-art h2,.auth-art p{display:none}.auth-main{padding:36px 20px 48px;justify-content:flex-start}.logo{display:none}.product-switch{margin-bottom:28px}.title{font-size:36px}}
+/* The Element Profile: sage, as on its own sign-in page. */
+.brand-element .auth-art{background:#4A5636}
+.brand-element .auth-art::after{background:linear-gradient(to top,rgba(62,72,44,0.94) 0%,rgba(62,72,44,0.86) 26%,rgba(62,72,44,0.5) 46%,rgba(62,72,44,0) 66%),linear-gradient(to bottom,rgba(62,72,44,0.78) 0%,rgba(62,72,44,0.5) 14%,rgba(62,72,44,0.18) 28%,rgba(62,72,44,0) 42%)}
+.brand-element .trial,.brand-element .plan-badge{background:#F2F4EE;border-color:#DCE2D1}
+/* The bundle: In Good Company clay, the copy up in the photo's open wall and the people below. */
+.brand-bundle .auth-art{justify-content:flex-start}
+.brand-bundle .auth-art>img{object-position:50% 100%}
+.brand-bundle .auth-art::after{background:linear-gradient(to bottom,rgba(122,64,36,0.55) 0%,rgba(122,64,36,0.3) 38%,rgba(122,64,36,0) 60%)}
+.brand-bundle .auth-art-copy{padding-top:8px}
+.auth-art-mark .duo,.logo-products .duo{display:inline-flex}
+.auth-art-mark .duo img{filter:none}
+.duo img+img{margin-left:-6px}
+.logo-igc{height:24px}
+.logo-products{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--grey)}
+.logo-products img{width:20px;height:20px;display:block}
+@media(max-width:860px){.brand-element .auth-art::after{background:linear-gradient(to bottom,rgba(62,72,44,0.74) 0%,rgba(62,72,44,0.52) 50%,rgba(62,72,44,0.78) 100%)}.brand-bundle .auth-art::after{background:linear-gradient(to bottom,rgba(122,64,36,0.6),rgba(122,64,36,0.2) 70%)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>`;
 
+// The sign-in and sign-up pages wear the brand of whatever was picked:
+// care 360, The Element Profile (sage, its own photo and marks), or the
+// bundle (In Good Company, both marks). Everything else is care 360.
+const BRANDS = {
+  care360: {
+    suffix: 'care 360', icon: '/img/care-mark.svg', photo: '/img/care360-photo.jpg',
+    mark: '<img src="/img/care-mark.svg" alt=""/>care 360',
+    headline: 'turn feedback into a place to start.',
+    lede: '360-degree leadership feedback built around connect, accountable, reach and empower.',
+    logo: '<img class="logo-mark" src="/img/care360-wordmark.svg" alt="care 360."/>\n    <div class="logo-by">by in good company.</div>'
+  },
+  element_profile: {
+    cls: 'brand-element', suffix: 'The Element Profile', icon: '/img/element-mark.svg', photo: '/img/element-photo.jpg',
+    mark: '<img src="/img/element-mark.svg" alt=""/>element',
+    headline: 'the element profile. understand how your people work best.',
+    logo: '<img class="logo-mark" src="/img/element-wordmark.svg" alt="element."/>\n    <div class="logo-by">by in good company.</div>'
+  },
+  bundle: {
+    cls: 'brand-bundle', suffix: 'In Good Company', icon: '/img/igc-mark.svg', photo: '/img/igc-hero-clay-mobile.webp',
+    mark: '<span class="duo"><img src="/img/care-mark-light.svg" alt=""/><img src="/img/element-mark-light.svg" alt=""/></span>in good company',
+    headline: 'care 360 and the element profile. two tools, one account.',
+    logo: '<img class="logo-mark logo-igc" src="/img/igc-wordmark.svg" alt="in good company."/>\n    <div class="logo-products"><span class="duo"><img src="/img/care-mark.svg" alt=""/><img src="/img/element-mark.svg" alt=""/></span>care 360 and the element profile</div>'
+  }
+};
+
 // opts.switcher adds the care 360 / element switch above the form, for the
-// sign-in page only, matching the sign-in menu on ingoodcocollective.com.
+// plain sign-in page only, matching the sign-in menu on ingoodcocollective.com.
+// opts.brand picks the page's brand (care 360 when missing).
 function shell(title, inner, opts = {}) {
+  const b = BRANDS[opts.brand] || BRANDS.care360;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${title} | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
+<title>${title} | ${b.suffix}</title><link rel="icon" type="image/svg+xml" href="${b.icon}"/>${CSS}</head><body${b.cls ? ` class="${b.cls}"` : ''}>
 <div class="auth">
 <aside class="auth-art">
-  <img src="/img/care360-photo.jpg" alt=""/>
-  <div class="auth-art-top"><div class="auth-art-mark"><img src="/img/care-mark.svg" alt=""/>care 360</div></div>
+  <img src="${b.photo}" alt=""/>
+  <div class="auth-art-top"><div class="auth-art-mark">${b.mark}</div></div>
   <div class="auth-art-copy">
-    <h2>turn feedback into a place to start.</h2>
-    <p>360-degree leadership feedback built around connect, accountable, reach and empower.</p>
+    <h2>${b.headline}</h2>
+    ${b.lede ? `<p>${b.lede}</p>` : ''}
   </div>
 </aside>
 <main class="auth-main">
@@ -448,8 +518,7 @@ function shell(title, inner, opts = {}) {
     <a href="${ELEMENT_PROFILE_URL}/signin"><img src="/img/element-mark.svg" alt=""/>element</a>
   </nav>` : ''}
   <div class="logo">
-    <img class="logo-mark" src="/img/care360-wordmark.svg" alt="care 360."/>
-    <div class="logo-by">by in good company.</div>
+    ${b.logo}
   </div>
   ${inner}
 </div>
@@ -471,10 +540,10 @@ function signupPage(error, prev, tier, products, billing, audience) {
   const label = tier ? purchaseLabel(tier, products) : null;
 
   const contextBlock = label
-    ? `<div class="plan-badge">You are signing up for <strong>${label}</strong>, ${coach ? 'billed monthly at coach pricing' : 'billed annually'}. Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
+    ? `<div class="plan-badge"><strong>You are signing up for ${label}, ${coach ? 'billed monthly at coach pricing' : 'billed annually'}.</strong> Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
     : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.${coach ? ' When you are ready, care 360 is $149 a month at coach pricing.' : ''}</div>`;
 
-  return shell(label ? `Sign up for ${label}` : 'Start your free trial', `
+  return shell('Sign up', `
     <div class="title">${label ? PLAN_TITLES[products] : 'start your free trial.'}</div>
     <div class="sub">${label ? 'Create your login, then continue to payment.' : 'Run one full 360 at no cost, from invitations through to the finished report.'}</div>
     ${error ? `<div class="err">${error}</div>` : ''}
@@ -504,18 +573,18 @@ function signupPage(error, prev, tier, products, billing, audience) {
       ${termsCheckboxBlock(products)}
       <button class="btn" type="submit">${label ? `Continue to payment` : 'Create my account'}</button>
     </form>
-    <div class="alt">Already have an account? <a href="/signin">Sign in</a></div>`);
+    <div class="alt">already have an account? <a href="${tier ? `/signin?${purchaseQuery({ products, tier, billing, audience })}` : '/signin'}">sign in</a></div>`, { brand: products });
 }
 
-function signinPage(error, email) {
+function signinPage(error, email, ctx) {
   return shell('Sign in', `
     <div class="title">welcome back.</div>
-    <div class="sub">Sign in to manage your Groups, leaders and reports.</div>
+    <div class="sub">${ctx ? `Sign in to continue to checkout for ${purchaseLabel(ctx.tier, ctx.products)}.` : 'Sign in to manage your Groups, leaders and reports.'}</div>
     ${error ? `<div class="err">${error}</div>` : ''}
-    <form method="POST" action="/signin">
+    <form method="POST" action="/signin">${purchaseFields(ctx)}
       <div class="group">
         <label class="label">Email</label>
-        <input class="control" type="email" name="email" required autofocus value="${email || ''}" placeholder="jane@acme.com"/>
+        <input class="control" type="email" name="email" required autofocus value="${String(email || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}" placeholder="jane@acme.com"/>
       </div>
       <div class="group">
         <label class="label">Password</label>
@@ -524,7 +593,7 @@ function signinPage(error, email) {
       <button class="btn" type="submit">Sign in</button>
     </form>
     <div class="alt"><a href="/forgot-password">Forgot password?</a></div>
-    <div class="alt">No account yet? <a href="/plans">See plans</a></div>`, { switcher: true });
+    <div class="alt">${ctx ? `new here? <a href="/signup?${purchaseQuery(ctx)}">create an account</a>` : 'No account yet? <a href="/plans">See plans</a>'}</div>`, ctx ? { brand: ctx.products } : { switcher: true });
 }
 
 function forgotPasswordPage({ submitted } = {}) {
@@ -644,15 +713,15 @@ function resetPasswordPage() {
     </script>`);
 }
 
-function messagePage(title, body, ctaLabel, ctaHref) {
+function messagePage(title, body, ctaLabel, ctaHref, brand) {
   return shell(title, `
     <div class="title">${title}</div>
     <div class="sub">${body}</div>
-    <a class="btn" href="${ctaHref}" style="display:block;text-align:center;text-decoration:none">${ctaLabel}</a>`);
+    <a class="btn" href="${ctaHref}" style="display:block;text-align:center;text-decoration:none">${ctaLabel}</a>`, { brand });
 }
 
 function inviteAcceptPage(invite, error) {
-  const accountName = invite.accounts ? invite.accounts.name : 'CARE 360';
+  const accountName = invite.accounts ? invite.accounts.name : 'care 360';
 
   return shell(`Join ${accountName}`, `
     <div class="title">join ${accountName}.</div>
@@ -681,6 +750,7 @@ module.exports = router;
 // consent at the exact same real URLs, per product, instead of a
 // second, separately-maintained copy.
 module.exports.shell = shell;
+module.exports.messagePage = messagePage;
 module.exports.CARE360_TERMS_URL   = CARE360_TERMS_URL;
 module.exports.CARE360_PRIVACY_URL = CARE360_PRIVACY_URL;
 module.exports.ELEMENT_TERMS_URL   = ELEMENT_TERMS_URL;

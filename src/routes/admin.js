@@ -62,7 +62,7 @@ router.post('/team/invites', requireAuth, async (req, res) => {
 
   try {
     const inviterName = (req.session && req.session.name) || 'A teammate';
-    await sendTeammateInvite(inviteRow, inviterName, req.account ? req.account.name : 'CARE 360');
+    await sendTeammateInvite(inviteRow, inviterName, req.account ? req.account.name : 'care 360');
   } catch (e) {
     console.error('Teammate invite email failed:', e.message);
   }
@@ -220,7 +220,7 @@ router.post('/cycles/:cycleId/leaders', requireAuth, async (req, res) => {
       return res.send(adminShell('Trial limit reached', `
         <div class="card notice-card" style="max-width:520px">
           <div style="font-size:16px;font-weight:600;color:#30383B;margin-bottom:8px">You've used your free trial</div>
-          <div style="font-size:13px;color:var(--grey);line-height:1.75;margin-bottom:18px">Your trial covers one leader, and you've already run one. Upgrade to add more leaders, unlimited Groups, and everything else CARE 360 offers.</div>
+          <div style="font-size:13px;color:var(--grey);line-height:1.75;margin-bottom:18px">Your trial covers one leader, and you've already run one. Upgrade to add more leaders, unlimited Groups, and everything else care 360 offers.</div>
           <a href="${req.account.is_coach ? '/coach?product=care360' : '/plans'}" class="btn btn-primary">See plans</a>
         </div>`, req));
     }
@@ -663,7 +663,7 @@ function adminShell(title, content, req) {
   const bundleReminder = missingElementProfile
     ? 'Upgrade to the Bundle and get Element Profile too'
     : missingCare360
-      ? 'Upgrade to the Bundle and get CARE 360 too'
+      ? 'Upgrade to the Bundle and get care 360 too'
       : null;
 
   // Same entitlement check as the reminder above, just the other
@@ -689,7 +689,7 @@ function adminShell(title, content, req) {
     </div>`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${title} | CARE 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
+  <title>${title} | care 360</title><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>${CSS}</head><body>
   <nav class="admin-nav">
     ${navLogo}
     <a href="/admin" class="nav-link">Groups</a>

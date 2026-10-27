@@ -308,7 +308,7 @@ async function generateNarrative(leader, scoreData, commentData) {
     commentData.ssc.continue.length ? `CONTINUE: ${commentData.ssc.continue.join(' | ')}` : null,
   ].filter(Boolean).join('\n');
 
-  const prompt = `You are a skilled leadership development coach generating a CARE 360 feedback report for In Good Company Collective.
+  const prompt = `You are a skilled leadership development coach generating a care 360 feedback report for In Good Company Collective.
 
 LEADER: ${leader.name}${leader.title ? ', ' + leader.title : ''}
 
@@ -673,7 +673,7 @@ function buildReportHtml(leader, scoreData, narrative, commentData, customSectio
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/>
-<title>${leader.name} report | CARE 360</title>
+<title>${leader.name} report | care 360</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -833,7 +833,7 @@ h2,.section-header h2,.summary-section h2,.reflect-section h2{font-weight:500;le
 
 <div class="cover">
   <div class="cover-brand">${careMarkImg()}${wordmarkImg('cover-wordmark')}</div>
-  <div class="cover-eyebrow">CARE 360 Feedback Report</div>
+  <div class="cover-eyebrow">care 360 Feedback Report</div>
   <div class="cover-name">${leader.name}</div>
   <div class="cover-meta">${leader.title || ''}</div>
   <div class="cover-meta">${leader.cycles?.name || ''}</div>
@@ -882,7 +882,7 @@ ${narrative.closingReflection ? `
     <li><span class="reflect-q-num">6.</span>What feedback was most difficult to hear? What can you learn from your reaction to it?</li>
   </ul>
   <div class="reflect-sub">looking ahead.</div>
-  <div class="reflect-bridge">As Part 2 of the CARE 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
+  <div class="reflect-bridge">As Part 2 of the care 360 process, you will create a Leadership Action Plan focused on areas of growth and development. You will select three areas to focus on over the next six months. A planning template will be provided for you to complete and share with your facilitator.</div>
 </div>
 <div class="brand-footer">
   <div class="brand-footer-name">${wordmarkImg('', 'height:15px;width:auto')}</div>

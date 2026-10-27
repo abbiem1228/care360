@@ -4,8 +4,9 @@ const checkoutRouter = express.Router();
 const Stripe  = require('stripe');
 const supabase = require('../db/client');
 const {
-  CARE360_TERMS_URL, CARE360_PRIVACY_URL, ELEMENT_TERMS_URL, ELEMENT_PRIVACY_URL
+  CARE360_TERMS_URL, CARE360_PRIVACY_URL, ELEMENT_TERMS_URL, ELEMENT_PRIVACY_URL, messagePage
 } = require('./account');
+const { heldProducts, purchaseOverlap } = require('../access');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
@@ -113,7 +114,32 @@ function termsConsentMessage(products) {
 // a coach plan. Existing monthly customers are untouched: plan changes
 // go through the customer portal, and the bundle upgrade below keeps
 // each subscription's own interval.
-checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
+// Someone who isn't signed in yet starts by creating an account, with
+// their choice kept, rather than landing on sign-in.
+function signupForChoice(query) {
+  const keep = new URLSearchParams();
+  for (const k of ['products', 'tier', 'billing', 'audience']) if (typeof query[k] === 'string' && query[k]) keep.set(k, query[k]);
+  return `/signup?${keep.toString()}`;
+}
+
+const PRODUCT_NAMES = { care360: 'care 360', element_profile: 'The Element Profile', bundle: 'the bundle' };
+
+// Shown instead of a second checkout when the account already has
+// everything this purchase would add.
+function alreadyHavePage(req, products) {
+  const name = PRODUCT_NAMES[products];
+  const hasBilling = !!(req.account && req.account.stripe_customer_id);
+  return messagePage(
+    `you already have ${products === 'bundle' ? 'both products' : name}.`,
+    `Your account already includes ${products === 'bundle' ? 'care 360 and The Element Profile' : name}, so there's nothing new to buy.${hasBilling ? ' To see your plan, invoices or payment details, open Manage billing.' : ''}`,
+    hasBilling ? 'manage billing' : 'back to your account',
+    hasBilling ? '/billing/portal' : '/admin',
+    products
+  );
+}
+
+checkoutRouter.get('/checkout', async (req, res) => {
+  if (!req.isAdmin) return res.redirect(signupForChoice(req.query));
   const coach    = req.query.audience === 'coach';
   // One plan per product: every new checkout, organization or coach, uses
   // the existing Starter price. An old or crafted tier=growth link gets
@@ -130,6 +156,19 @@ checkoutRouter.get('/checkout', requireAuth, async (req, res) => {
 
   if (!req.accountId) {
     return res.redirect('/signin');
+  }
+
+  // Never a second subscription for something the account already has:
+  // the bundle on top of one product goes to the in-app upgrade instead,
+  // and anything it fully has gets a page saying so.
+  try {
+    const overlap = purchaseOverlap(products, await heldProducts(req.accountId));
+    if (overlap === 'upgrade') return res.redirect('/billing/upgrade-to-bundle');
+    if (overlap === 'both') return res.redirect('/billing/upgrade-to-bundle?reason=both');
+    if (overlap === 'already') return res.send(alreadyHavePage(req, products));
+  } catch (e) {
+    console.error('Checkout overlap check failed:', e.message);
+    return res.status(500).send('Something went wrong starting checkout. <a href="/plans">Back to plans</a>');
   }
 
   try {
@@ -236,7 +275,7 @@ checkoutRouter.get('/portal', requireAuth, async (req, res) => {
 // Shown when an account already holds CARE 360 and Element Profile as
 // two separate subscriptions. Merging them into one Bundle subscription
 // is done by hand for now.
-const SWITCH_TO_BUNDLE_MESSAGE = 'You have CARE 360 and Element Profile as separate subscriptions. To switch them to a Bundle, email <a href="mailto:info@ingoodcocollective.com?subject=Switch%20to%20a%20Bundle">info@ingoodcocollective.com</a> and we\'ll take care of it. <a href="/admin">Back to dashboard</a>';
+const SWITCH_TO_BUNDLE_MESSAGE = 'You have care 360 and Element Profile as separate subscriptions. To switch them to a Bundle, email <a href="mailto:info@ingoodcocollective.com?subject=Switch%20to%20a%20Bundle">info@ingoodcocollective.com</a> and we\'ll take care of it. <a href="/admin">Back to dashboard</a>';
 
 async function liveSubscriptionCount(accountId) {
   const { data, error } = await supabase
@@ -258,21 +297,24 @@ function missingProduct(account) {
   return null;
 }
 
-function upgradeConfirmPage(products, error) {
+function upgradeConfirmPage(products, error, both) {
   const isElement = products === 'element_profile';
-  const productName = isElement ? 'Element Profile' : 'CARE 360';
+  const productName = isElement ? 'Element Profile' : 'care 360';
+  // The consent line names the product as its legal terms do.
+  const legalName   = isElement ? 'Element Profile' : 'CARE 360';
   const termsUrl    = isElement ? ELEMENT_TERMS_URL   : CARE360_TERMS_URL;
   const privacyUrl  = isElement ? ELEMENT_PRIVACY_URL : CARE360_PRIVACY_URL;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Add ${productName} | CARE 360</title>
+  <title>Add ${productName} | care 360</title>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
   <style>
     body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;-webkit-font-smoothing:antialiased}
     .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:44px;max-width:480px;width:100%}
     h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:34px;letter-spacing:-1px;line-height:1.1;margin:0 0 12px}
     p{color:#637074;font-size:14px;line-height:1.7;margin:0 0 22px}
+    .both{font-family:'EB Garamond',Georgia,serif;font-size:20px;color:#A9633D;margin:0 0 6px}
     .err{background:#F6E7E3;color:#A94442;border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:18px}
     .terms-label{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;color:#30383B;margin-bottom:24px;line-height:1.6}
     .terms-label input{margin-top:4px;accent-color:#30383B}
@@ -296,13 +338,14 @@ input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
     .ghost:hover{border-color:#30383B}
   </style></head>
   <body><div class="card">
+    ${both ? '<div class="both">get both for less with the bundle.</div>' : ''}
     <h2>Add ${productName} to your account</h2>
     <p>Your subscription will switch to the Bundle price for your current tier and billing interval, prorated for the rest of this period. This also means agreeing to ${productName}'s own terms, since you haven't had ${productName} on this account before.</p>
     ${error ? `<div class="err">${error}</div>` : ''}
     <form method="POST" action="/billing/upgrade-to-bundle">
       <label class="terms-label">
         <input type="checkbox" name="agree_terms" required/>
-        <span>I agree to ${productName}'s <a href="${termsUrl}" target="_blank" rel="noopener">Terms of Service</a> and <a href="${privacyUrl}" target="_blank" rel="noopener">Privacy Policy</a></span>
+        <span>I agree to ${legalName}'s <a href="${termsUrl}" target="_blank" rel="noopener">Terms of Service</a> and <a href="${privacyUrl}" target="_blank" rel="noopener">Privacy Policy</a></span>
       </label>
       <div class="actions">
         <button class="primary" type="submit">Add ${productName}</button>
@@ -320,7 +363,7 @@ checkoutRouter.get('/upgrade-to-bundle', requireAuth, async (req, res) => {
   if (!products) {
     return res.status(400).send('Your account already has both products, or we could not tell which one you\'re adding. <a href="/admin">Back to dashboard</a>');
   }
-  res.send(upgradeConfirmPage(products));
+  res.send(upgradeConfirmPage(products, null, req.query.reason === 'both'));
 });
 
 checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {

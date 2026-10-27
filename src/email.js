@@ -9,7 +9,7 @@ async function sendRaterInvite(rater, leader) {
   const isSelf    = rater.rater_group === 'self';
 
   const subject = isSelf
-    ? `Your CARE 360 Self-Assessment is ready`
+    ? `Your care 360 Self-Assessment is ready`
     : `You have been invited to give 360 feedback for ${leader.name}`;
 
   const html = `
@@ -21,14 +21,14 @@ async function sendRaterInvite(rater, leader) {
 
   <div style="background:#30383B;padding:28px 36px">
     <div style="color:#D9CBB2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">In Good Company Collective</div>
-    <div style="color:#fff;font-size:20px;font-weight:bold">CARE 360 Leadership Survey</div>
+    <div style="color:#fff;font-size:20px;font-weight:bold">care 360 Leadership Survey</div>
   </div>
 
   <div style="padding:36px">
     <p style="color:#30383B;font-size:14px;margin-bottom:16px">Hi ${rater.name},</p>
 
     ${isSelf
-      ? `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:24px">Your CARE 360 self-assessment is ready. This is your opportunity to reflect honestly on your own leadership and see how your perspective compares with those around you.</p>`
+      ? `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:24px">Your care 360 self-assessment is ready. This is your opportunity to reflect honestly on your own leadership and see how your perspective compares with those around you.</p>`
       : `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:24px">You have been selected to provide 360 feedback for <strong>${leader.name}</strong>${leader.title ? ` (${leader.title})` : ''}. Your feedback is anonymous, developmental in purpose, and genuinely valued.</p>`
     }
 
@@ -61,14 +61,14 @@ async function sendRaterInvite(rater, leader) {
   </div>
 
   <div style="background:#F7F4EF;padding:16px 36px;text-align:center">
-    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; CARE 360 Leadership Survey</p>
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; care 360 Leadership Survey</p>
     <p style="color:#bbb;font-size:10px;margin:4px 0 0">Thoughtful &nbsp;·&nbsp; Innovative &nbsp;·&nbsp; Human</p>
   </div>
 </div>
 </body>
 </html>`;
 
-  const text = `Hi ${rater.name},\n\n${isSelf ? 'Your CARE 360 self-assessment is ready.' : `You have been invited to give feedback for ${leader.name}.`}\n\nComplete your survey here:\n${surveyUrl}\n\nThe survey takes approximately 10 minutes.\n\nIn Good Company Collective`;
+  const text = `Hi ${rater.name},\n\n${isSelf ? 'Your care 360 self-assessment is ready.' : `You have been invited to give feedback for ${leader.name}.`}\n\nComplete your survey here:\n${surveyUrl}\n\nThe survey takes approximately 10 minutes.\n\nIn Good Company Collective`;
 
   await resend.emails.send({ from: FROM, to: rater.email, subject, html, text });
 }
@@ -145,7 +145,7 @@ async function sendAdminNotice({ leader, cycle, raters, reason, to: overrideTo }
     </div>
   </div>
   <div style="background:#F7F4EF;padding:16px 36px;text-align:center">
-    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; CARE 360</p>
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; care 360</p>
   </div>
 </div>
 </body></html>`;
@@ -164,7 +164,7 @@ async function sendRaterReminder(rater, leader, cycle) {
   const closes    = new Date(cycle.closes_at).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
 
   const subject = isSelf
-    ? `Reminder: your CARE 360 self-assessment closes soon`
+    ? `Reminder: your care 360 self-assessment closes soon`
     : `Reminder: feedback for ${leader.name} closes soon`;
 
   const html = `
@@ -179,7 +179,7 @@ async function sendRaterReminder(rater, leader, cycle) {
   <div style="padding:36px">
     <p style="color:#30383B;font-size:14px;margin-bottom:16px">Hi ${rater.name},</p>
     ${isSelf
-      ? `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:20px">Your CARE 360 self-assessment is still open, and we have not received your responses yet.</p>`
+      ? `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:20px">Your care 360 self-assessment is still open, and we have not received your responses yet.</p>`
       : `<p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:20px">You were invited to give 360 feedback for <strong>${leader.name}</strong>, and we have not received your responses yet. Your perspective genuinely shapes what this report can tell them.</p>`
     }
     <div style="background:#FBF5EC;border-left:4px solid #A9633D;padding:14px 18px;border-radius:0 6px 6px 0;margin-bottom:26px">
@@ -195,12 +195,12 @@ async function sendRaterReminder(rater, leader, cycle) {
     </p>
   </div>
   <div style="background:#F7F4EF;padding:16px 36px;text-align:center">
-    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; CARE 360</p>
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; care 360</p>
   </div>
 </div>
 </body></html>`;
 
-  const text = `Hi ${rater.name},\n\nYour CARE 360 survey${isSelf ? '' : ` for ${leader.name}`} is still open and closes on ${closes}.\n\n${surveyUrl}\n\nIt takes about 10 minutes.\n\nIn Good Company Collective`;
+  const text = `Hi ${rater.name},\n\nYour care 360 survey${isSelf ? '' : ` for ${leader.name}`} is still open and closes on ${closes}.\n\n${surveyUrl}\n\nIt takes about 10 minutes.\n\nIn Good Company Collective`;
 
   await resend.emails.send({ from: FROM, to: rater.email, subject, html, text });
 }
@@ -244,7 +244,7 @@ async function sendSignupNotice({ account, user }) {
     </div>
   </div>
   <div style="background:#F7F4EF;padding:15px 34px;text-align:center">
-    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;&middot;&nbsp; CARE 360</p>
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;&middot;&nbsp; care 360</p>
   </div>
 </div>
 </body></html>`;
@@ -285,12 +285,12 @@ async function sendTeammateInvite(invite, inviterName, accountName) {
 
   <div style="background:#30383B;padding:28px 36px">
     <div style="color:#D9CBB2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">In Good Company Collective</div>
-    <div style="color:#fff;font-size:20px;font-weight:bold">CARE 360 Leadership Survey</div>
+    <div style="color:#fff;font-size:20px;font-weight:bold">care 360 Leadership Survey</div>
   </div>
 
   <div style="padding:36px">
     <p style="color:#30383B;font-size:14px;margin-bottom:16px">Hi${invite.name ? ` ${invite.name}` : ''},</p>
-    <p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:24px">${inviterName} has invited you to join <strong>${accountName}</strong> on CARE 360.</p>
+    <p style="color:#444;font-size:14px;line-height:1.8;margin-bottom:24px">${inviterName} has invited you to join <strong>${accountName}</strong> on care 360.</p>
 
     <div style="text-align:center;margin-bottom:28px">
       <a href="${inviteUrl}" style="display:inline-block;background:#A9633D;color:#fff;padding:14px 40px;border-radius:6px;font-size:15px;font-weight:bold;text-decoration:none">
@@ -305,22 +305,22 @@ async function sendTeammateInvite(invite, inviterName, accountName) {
   </div>
 
   <div style="background:#F7F4EF;padding:16px 36px;text-align:center">
-    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; CARE 360 Leadership Survey</p>
+    <p style="color:#aaa;font-size:11px;margin:0">In Good Company Collective &nbsp;·&nbsp; care 360 Leadership Survey</p>
     <p style="color:#bbb;font-size:10px;margin:4px 0 0">Thoughtful &nbsp;·&nbsp; Innovative &nbsp;·&nbsp; Human</p>
   </div>
 </div>
 </body>
 </html>`;
 
-  const text = `Hi${invite.name ? ` ${invite.name}` : ''},\n\n${inviterName} has invited you to join ${accountName} on CARE 360.\n\nAccept your invitation here:\n${inviteUrl}\n\nIn Good Company Collective`;
+  const text = `Hi${invite.name ? ` ${invite.name}` : ''},\n\n${inviterName} has invited you to join ${accountName} on care 360.\n\nAccept your invitation here:\n${inviteUrl}\n\nIn Good Company Collective`;
 
-  await resend.emails.send({ from: FROM, to: invite.email, subject: `You have been invited to join ${accountName} on CARE 360`, html, text });
+  await resend.emails.send({ from: FROM, to: invite.email, subject: `You have been invited to join ${accountName} on care 360`, html, text });
 }
 
 // ── Data retention ───────────────────────────────────────────
 // What each product's deletion removes, in plain words for the owner.
 const RETENTION_WHAT = {
-  care360: 'every CARE 360 Group, leader and rater, all survey responses and comments, and every report',
+  care360: 'every care 360 Group, leader and rater, all survey responses and comments, and every report',
   element_profile: 'your Element Profile organization, people, teams and roles, every assessment invite, answer and score, and all saved reports and narratives'
 };
 const PLANS_PRODUCT = { care360: 'care360', element_profile: 'element_profile' };

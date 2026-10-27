@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { icon } = require('../icons');
 const { heldProducts, purchaseOverlap } = require('../access');
+const { gtmHead, gtmBody } = require('../analytics');
 
 // Prices live here and nowhere else. Change them in one place.
 // Organizations buy one plan per product, billed annually, with no size
@@ -431,7 +432,7 @@ function plansPage(product, req, held) {
 
   const planCard = productCard(product, p.plan, loggedIn, ownedAction(product, held, req));
 
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>${gtmHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${p.label} plans | In Good Company</title>
 <link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
@@ -449,7 +450,7 @@ function plansPage(product, req, held) {
 })();
 </script>
 <style>
-${PLANS_CSS}</style></head><body>
+${PLANS_CSS}</style></head><body>${gtmBody()}
 
 <div class="top">
   <a class="top-logo" href="https://ingoodcocollective.com/" aria-label="In Good Company Collective home">
@@ -572,7 +573,7 @@ coachRouter.get('/', async (req, res) => {
   const loggedIn = !!req.isAdmin;
   const held = await heldFor(req);
   res.set('X-Robots-Tag', 'noindex, nofollow');
-  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>${gtmHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex, nofollow"/>
 <title>Coach pricing | In Good Company</title>
@@ -588,7 +589,7 @@ ${PLANS_CSS}
 .plan-featured .coach-free{color:rgba(247,243,234,0.75);text-decoration-color:rgba(247,243,234,0.3)}
 .coach-free:hover{color:var(--ink)}
 .plan-featured .coach-free:hover{color:var(--cream)}
-</style></head><body>
+</style></head><body>${gtmBody()}
 
 <div class="top">
   <a class="top-logo" href="https://ingoodcocollective.com/" aria-label="In Good Company Collective home">

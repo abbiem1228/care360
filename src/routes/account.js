@@ -4,6 +4,7 @@ const { signUp, signIn, requestPasswordReset, setSessionCookies, clearSessionCoo
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 const supabase = require('../db/client');
+const { gtmHead, gtmBody, pushEvent, handoffPage, audienceOf } = require('../analytics');
 
 const COOKIE_OPTS = {
   signed: true, httpOnly: true, sameSite: 'lax',
@@ -169,6 +170,9 @@ router.post('/signup', async (req, res) => {
     res.cookie('pendingPurchase', JSON.stringify({ tier, products, billing, audience }), { ...COOKIE_OPTS, maxAge: 7 * 24 * 60 * 60 * 1000 });
   }
 
+  // The account exists now: tell GTM, with no name or email.
+  const signUpEvent = { event: 'sign_up', product: products, plan: tier ? 'paid' : 'trial', audience: audienceOf(audience === 'coach') };
+
   if (result.needsConfirmation) {
     return res.send(messagePage(
       'Check your email',
@@ -176,16 +180,14 @@ router.post('/signup', async (req, res) => {
         ? `We have sent a confirmation link to <strong>${email.trim()}</strong>. Click it, then sign in below, and you will be taken straight to checkout to finish setting up your ${purchaseLabel(tier, products)} plan.`
         : `We have sent a confirmation link to <strong>${email.trim()}</strong>. Click it to activate your account, then sign in.`,
       'Go to sign in', tier ? `/signin?${purchaseQuery({ tier, products, billing, audience })}` : '/signin',
-      products
+      products, { analytics: true, event: signUpEvent }
     ));
   }
 
   // No confirmation required, a session already exists.
   setSessionCookies(res, result.session);
-  if (tier) {
-    return res.redirect(`/billing/checkout?tier=${tier}&products=${products}&billing=${billing}${audience === 'coach' ? '&audience=coach' : ''}`);
-  }
-  return res.redirect('/admin');
+  const next = tier ? `/billing/checkout?tier=${tier}&products=${products}&billing=${billing}${audience === 'coach' ? '&audience=coach' : ''}` : '/admin';
+  return res.send(handoffPage(signUpEvent, next));
 });
 
 // ── Sign in ───────────────────────────────────────────────────
@@ -498,11 +500,13 @@ const BRANDS = {
 // opts.switcher adds the care 360 / element switch above the form, for the
 // plain sign-in page only, matching the sign-in menu on ingoodcocollective.com.
 // opts.brand picks the page's brand (care 360 when missing).
+// opts.analytics loads Google Tag Manager, for the public sign-up and
+// sign-in pages only; opts.event is a dataLayer event to push with it.
 function shell(title, inner, opts = {}) {
   const b = BRANDS[opts.brand] || BRANDS.care360;
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>${opts.analytics ? pushEvent(opts.event) + gtmHead() : ''}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${title} | ${b.suffix}</title><link rel="icon" type="image/svg+xml" href="${b.icon}"/>${CSS}</head><body${b.cls ? ` class="${b.cls}"` : ''}>
+<title>${title} | ${b.suffix}</title><link rel="icon" type="image/svg+xml" href="${b.icon}"/>${CSS}</head><body${b.cls ? ` class="${b.cls}"` : ''}>${opts.analytics ? gtmBody() : ''}
 <div class="auth">
 <aside class="auth-art">
   <img src="${b.photo}" alt=""/>
@@ -574,7 +578,7 @@ function signupPage(error, prev, tier, products, billing, audience) {
       ${termsCheckboxBlock(products)}
       <button class="btn" type="submit">${label ? `Continue to payment` : 'Create my account'}</button>
     </form>
-    <div class="alt">already have an account? <a href="${tier ? `/signin?${purchaseQuery({ products, tier, billing, audience })}` : '/signin'}">sign in</a></div>`, { brand: products });
+    <div class="alt">already have an account? <a href="${tier ? `/signin?${purchaseQuery({ products, tier, billing, audience })}` : '/signin'}">sign in</a></div>`, { brand: products, analytics: true });
 }
 
 function signinPage(error, email, ctx) {
@@ -594,7 +598,7 @@ function signinPage(error, email, ctx) {
       <button class="btn" type="submit">Sign in</button>
     </form>
     <div class="alt"><a href="/forgot-password">Forgot password?</a></div>
-    <div class="alt">${ctx ? `new here? <a href="/signup?${purchaseQuery(ctx)}">create an account</a>` : 'No account yet? <a href="/plans">See plans</a>'}</div>`, ctx ? { brand: ctx.products } : { switcher: true });
+    <div class="alt">${ctx ? `new here? <a href="/signup?${purchaseQuery(ctx)}">create an account</a>` : 'No account yet? <a href="/plans">See plans</a>'}</div>`, ctx ? { brand: ctx.products, analytics: true } : { switcher: true, analytics: true });
 }
 
 function forgotPasswordPage({ submitted } = {}) {
@@ -714,11 +718,13 @@ function resetPasswordPage() {
     </script>`);
 }
 
-function messagePage(title, body, ctaLabel, ctaHref, brand) {
+// opts.analytics and opts.event are as in shell(), for the check-your-email
+// page after a sign-up only.
+function messagePage(title, body, ctaLabel, ctaHref, brand, opts = {}) {
   return shell(title, `
     <div class="title">${title}</div>
     <div class="sub">${body}</div>
-    <a class="btn" href="${ctaHref}" style="display:block;text-align:center;text-decoration:none">${ctaLabel}</a>`, { brand });
+    <a class="btn" href="${ctaHref}" style="display:block;text-align:center;text-decoration:none">${ctaLabel}</a>`, { brand, analytics: opts.analytics, event: opts.event });
 }
 
 function inviteAcceptPage(invite, error) {

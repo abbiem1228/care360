@@ -93,9 +93,11 @@ app.use((req, res) => res.status(404).send(errorPage('Page not found.')));
 // here: logged, and a friendly page, never a stopped server. If the page
 // was already partly sent, Express's own handler closes the response.
 app.use((err, req, res, next) => {
-  console.error('Route error:', routeLabel(req), err);
+  // A request the client got wrong (malformed JSON, say) keeps its 4xx.
+  const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+  if (status === 500) console.error('Route error:', routeLabel(req), err);
   if (res.headersSent) return next(err);
-  res.status(500).send(errorPage('Something went wrong. Please try again in a moment.'));
+  res.status(status).send(errorPage(status === 500 ? 'Something went wrong. Please try again in a moment.' : 'That request could not be read.'));
 });
 
 function errorPage(msg) {

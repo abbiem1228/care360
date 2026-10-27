@@ -114,13 +114,17 @@ async function heldProducts(accountId) {
 }
 
 // What buying products would mean for an account holding held:
-// null (nothing overlaps, go ahead), 'already' (it has all of it), or
-// 'upgrade' (the bundle, when it has exactly one of the two).
+// null (nothing held, go ahead), 'already' (it has all of it), 'upgrade'
+// (the bundle when it has one of the two), or 'both' (the other single
+// product when it has one: both cost less as the bundle, so that's the
+// in-app upgrade too, never a second subscription).
 function purchaseOverlap(products, held) {
   const wanted = products === 'bundle' ? ['care360', 'element_profile'] : [products];
   const have = wanted.filter(p => held[p]).length;
-  if (!have) return null;
-  return have === wanted.length ? 'already' : 'upgrade';
+  if (have === wanted.length) return 'already';
+  if (have) return 'upgrade';
+  if (products !== 'bundle' && (held.care360 || held.element_profile)) return 'both';
+  return null;
 }
 
 module.exports = { productAccess, productPending, dataKeptUntil, accountSubscriptions, accessForAccountId, LOCKED_STATES, heldProducts, purchaseOverlap };

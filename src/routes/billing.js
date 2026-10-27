@@ -164,6 +164,7 @@ checkoutRouter.get('/checkout', async (req, res) => {
   try {
     const overlap = purchaseOverlap(products, await heldProducts(req.accountId));
     if (overlap === 'upgrade') return res.redirect('/billing/upgrade-to-bundle');
+    if (overlap === 'both') return res.redirect('/billing/upgrade-to-bundle?reason=both');
     if (overlap === 'already') return res.send(alreadyHavePage(req, products));
   } catch (e) {
     console.error('Checkout overlap check failed:', e.message);
@@ -296,7 +297,7 @@ function missingProduct(account) {
   return null;
 }
 
-function upgradeConfirmPage(products, error) {
+function upgradeConfirmPage(products, error, both) {
   const isElement = products === 'element_profile';
   const productName = isElement ? 'Element Profile' : 'care 360';
   // The consent line names the product as its legal terms do.
@@ -313,6 +314,7 @@ function upgradeConfirmPage(products, error) {
     .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:44px;max-width:480px;width:100%}
     h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:34px;letter-spacing:-1px;line-height:1.1;margin:0 0 12px}
     p{color:#637074;font-size:14px;line-height:1.7;margin:0 0 22px}
+    .both{font-family:'EB Garamond',Georgia,serif;font-size:20px;color:#A9633D;margin:0 0 6px}
     .err{background:#F6E7E3;color:#A94442;border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:18px}
     .terms-label{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;color:#30383B;margin-bottom:24px;line-height:1.6}
     .terms-label input{margin-top:4px;accent-color:#30383B}
@@ -336,6 +338,7 @@ input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
     .ghost:hover{border-color:#30383B}
   </style></head>
   <body><div class="card">
+    ${both ? '<div class="both">get both for less with the bundle.</div>' : ''}
     <h2>Add ${productName} to your account</h2>
     <p>Your subscription will switch to the Bundle price for your current tier and billing interval, prorated for the rest of this period. This also means agreeing to ${productName}'s own terms, since you haven't had ${productName} on this account before.</p>
     ${error ? `<div class="err">${error}</div>` : ''}
@@ -360,7 +363,7 @@ checkoutRouter.get('/upgrade-to-bundle', requireAuth, async (req, res) => {
   if (!products) {
     return res.status(400).send('Your account already has both products, or we could not tell which one you\'re adding. <a href="/admin">Back to dashboard</a>');
   }
-  res.send(upgradeConfirmPage(products));
+  res.send(upgradeConfirmPage(products, null, req.query.reason === 'both'));
 });
 
 checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {

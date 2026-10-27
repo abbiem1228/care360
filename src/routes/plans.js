@@ -184,6 +184,7 @@ async function heldFor(req) {
 function ownedAction(productKey, held, req) {
   const overlap = held ? purchaseOverlap(productKey, held) : null;
   if (overlap === 'upgrade') return { note: 'you have one of these already.', href: '/billing/upgrade-to-bundle', label: 'upgrade to the bundle' };
+  if (overlap === 'both') return { note: 'get both for less with the bundle.', href: '/billing/upgrade-to-bundle?reason=both', label: 'upgrade to the bundle' };
   if (overlap === 'already') {
     const billing = !!(req.account && req.account.stripe_customer_id);
     return { note: 'you already have this.', href: billing ? '/billing/portal' : '/admin', label: billing ? 'manage billing' : 'back to your account' };

@@ -543,7 +543,7 @@ function signupPage(error, prev, tier, products, billing, audience) {
     ? `<div class="plan-badge"><strong>You are signing up for ${label}, ${coach ? 'billed monthly at coach pricing' : 'billed annually'}.</strong> Right after you create your login, you will go straight to checkout to finish setting it up.</div>`
     : `<div class="trial">Your trial covers one leader. Everything else works exactly as it does on a paid plan, including reminders, the report and the action plan.${coach ? ' When you are ready, care 360 is $149 a month at coach pricing.' : ''}</div>`;
 
-  return shell(label ? `Sign up for ${label}` : 'Start your free trial', `
+  return shell('Sign up', `
     <div class="title">${label ? PLAN_TITLES[products] : 'start your free trial.'}</div>
     <div class="sub">${label ? 'Create your login, then continue to payment.' : 'Run one full 360 at no cost, from invitations through to the finished report.'}</div>
     ${error ? `<div class="err">${error}</div>` : ''}

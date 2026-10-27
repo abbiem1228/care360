@@ -6,7 +6,12 @@
 // module decides, per account and per product, where each one stands,
 // counts exactly what deleting it would remove (the dry run), and
 // performs the deletion once the owner approves it in HQ. Nothing here
-// ever deletes on its own: the daily job only warns and reports.
+// deletes account data on its own: for accounts, the daily job only warns
+// and reports. The one thing it deletes itself is free Element Profile
+// assessments (free_assessments) 24 months after they were taken, the
+// period the Privacy Policy gives; they belong to no account, so there is
+// no owner to warn or approve. freeAssessmentsDryRun shows what that step
+// would delete.
 //
 // Covers both products, since CARE 360 and Element Profile share one
 // database. Stripe customers and invoices are never touched; an unpaid
@@ -20,6 +25,7 @@ const { productAccess, productPending } = require('./access');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const RETENTION_DAYS = 60;
+const FREE_ASSESSMENT_MONTHS = 24;
 const WARNING_DAYS   = 7;
 const DAY_MS         = 24 * 60 * 60 * 1000;
 
@@ -395,6 +401,43 @@ async function ownerEmails(accountId) {
 // restarts. sendWarning/sendSummary are the email functions (passed in
 // so they can be replaced in tests).
 // force: run even if today's run already happened (manual runs and tests).
+// Free assessments taken before this moment are past the 24 months.
+function freeAssessmentCutoff(now) {
+  const d = new Date(now);
+  d.setUTCMonth(d.getUTCMonth() - FREE_ASSESSMENT_MONTHS);
+  return d;
+}
+
+// What the free assessments step would delete today: a count and the
+// oldest and newest dates in it, never anyone's details. Reads only.
+async function freeAssessmentsDryRun(now = new Date()) {
+  const cutoff = freeAssessmentCutoff(now).toISOString();
+  const { count, error } = await supabase.from('free_assessments').select('id', { count: 'exact', head: true }).lt('created_at', cutoff);
+  if (error) throw error;
+  const { count: total, error: totalError } = await supabase.from('free_assessments').select('id', { count: 'exact', head: true });
+  if (totalError) throw totalError;
+  let oldest = null, newest = null;
+  if (count) {
+    const range = async ascending => {
+      const { data, error: e } = await supabase.from('free_assessments').select('created_at').lt('created_at', cutoff).order('created_at', { ascending }).limit(1);
+      if (e) throw e;
+      return data[0] ? data[0].created_at : null;
+    };
+    [oldest, newest] = await Promise.all([range(true), range(false)]);
+  }
+  return { cutoff, wouldDelete: count || 0, total: total || 0, oldest, newest };
+}
+
+// Deletes free assessments older than 24 months and records how many,
+// as a count only.
+async function deleteExpiredFreeAssessments(now = new Date()) {
+  const cutoff = freeAssessmentCutoff(now).toISOString();
+  const { data, error } = await supabase.from('free_assessments').delete().lt('created_at', cutoff).select('id');
+  if (error) throw error;
+  if (data.length) await log({ account_id: null, product: null, action: 'deleted', deletion_date: isoDate(now), row_counts: { free_assessments: data.length, taken_before: cutoff } });
+  return data.length;
+}
+
 async function runDailyRetention({ sendWarning, sendSummary, sendAllClear, now = new Date(), force = false }) {
   const today = isoDate(now);
   const { data: ran, error } = await supabase
@@ -403,7 +446,7 @@ async function runDailyRetention({ sendWarning, sendSummary, sendAllClear, now =
   if (ran.length && !force) return { skipped: true };
 
   const assessed = await assessAll(now);
-  const warned = [], due = [], upcoming = [], noOwnerEmail = [];
+  const warned = [], due = [], upcoming = [], noOwnerEmail = [], warningFailed = [];
 
   for (const a of assessed) {
     for (const product of PRODUCTS) {
@@ -415,8 +458,16 @@ async function runDailyRetention({ sendWarning, sendSummary, sendAllClear, now =
         const to = await ownerEmails(a.accountId);
         const item = { accountId: a.accountId, accountName: a.accountName, product, deletionDate };
         if (to.length) {
-          await sendWarning({ to, accountName: a.accountName, product, productLabel: PRODUCT_LABELS[product], deletionDate, unpaid: s.state === 'unpaid', isCoach: a.isCoach });
-          warned.push(item);
+          try {
+            await sendWarning({ to, accountName: a.accountName, product, productLabel: PRODUCT_LABELS[product], deletionDate, unpaid: s.state === 'unpaid', isCoach: a.isCoach });
+            warned.push(item);
+          } catch (e) {
+            // Not recorded, so the 7-day notice hasn't started and
+            // tomorrow's run tries the warning again. IGC sees it today.
+            console.error(`Retention warning for ${a.accountName} (${product}) not sent, will retry:`, e.message);
+            warningFailed.push(item);
+            continue;
+          }
         } else {
           // No one to email. The 7-day notice period still starts, so the
           // product can still be deleted on time; IGC sees it flagged.
@@ -435,20 +486,32 @@ async function runDailyRetention({ sendWarning, sendSummary, sendAllClear, now =
   // IGC hears about anything to act on every day. When there's nothing,
   // a short "all clear" goes out once a week, so a silent inbox never
   // hides a job that has stopped running.
+  // Free assessments past 24 months. A failure here is reported, and
+  // tomorrow's run tries again; it never holds up the rest.
+  let freeDeleted = 0, freeFailed = false;
+  try {
+    freeDeleted = await deleteExpiredFreeAssessments(now);
+  } catch (e) {
+    freeFailed = true;
+    console.error('Free assessment retention failed, will retry tomorrow:', e.message);
+  }
+
+  // A summary that doesn't send throws before today's run is recorded,
+  // so the next hourly check runs again and retries it.
   let emailed = null;
-  if (due.length || upcoming.length || warned.length || noOwnerEmail.length) {
-    await sendSummary({ due, upcoming, warned, noOwnerEmail });
+  if (due.length || upcoming.length || warned.length || noOwnerEmail.length || warningFailed.length || freeDeleted || freeFailed) {
+    await sendSummary({ due, upcoming, warned, noOwnerEmail, warningFailed, freeDeleted, freeFailed });
     emailed = 'summary';
   } else if (!(await emailedWithin(now, 7))) {
     await sendAllClear({ accountsChecked: assessed.length });
     emailed = 'all_clear';
   }
 
-  await log({ account_id: null, product: null, action: 'scan', deletion_date: today, row_counts: { due: due.length, upcoming: upcoming.length, warned_today: warned.length, emailed } });
-  return { due, upcoming, warned, noOwnerEmail, emailed };
+  await log({ account_id: null, product: null, action: 'scan', deletion_date: today, row_counts: { due: due.length, upcoming: upcoming.length, warned_today: warned.length, warning_failed: warningFailed.length, free_deleted: freeDeleted, emailed } });
+  return { due, upcoming, warned, noOwnerEmail, warningFailed, freeDeleted, emailed };
 }
 
 module.exports = {
-  RETENTION_DAYS, WARNING_DAYS, PRODUCTS, PRODUCT_LABELS, CARE_TABLES, ELEMENT_TABLES, ACCOUNT_TABLES,
-  assessAll, assessAccount, dryRun, executeDeletion, runDailyRetention, productStatus, lastScan, productTables, matching
+  RETENTION_DAYS, WARNING_DAYS, FREE_ASSESSMENT_MONTHS, PRODUCTS, PRODUCT_LABELS, CARE_TABLES, ELEMENT_TABLES, ACCOUNT_TABLES,
+  assessAll, assessAccount, dryRun, executeDeletion, runDailyRetention, freeAssessmentsDryRun, deleteExpiredFreeAssessments, productStatus, lastScan, productTables, matching
 };

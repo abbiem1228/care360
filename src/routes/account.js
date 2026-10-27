@@ -366,11 +366,12 @@ router.get('/handoff', async (req, res) => {
   setSessionCookies(res, session);
 
   // Element Profile's "Manage billing" link hands off here with
-  // next=/billing/portal?return=..., since the portal lives in this
-  // app. Only the portal path is honored, so this can never become
+  // next=/billing/portal?return=..., and its "Upgrade to the Bundle"
+  // link with next=/billing/upgrade-to-bundle, since billing lives in
+  // this app. Only those two paths are honored, so this can never become
   // an open redirect; billing.js separately checks the return target.
   const next = typeof req.query.next === 'string' ? req.query.next : '';
-  if (next === '/billing/portal' || next.startsWith('/billing/portal?')) {
+  if (next === '/billing/portal' || next.startsWith('/billing/portal?') || next === '/billing/upgrade-to-bundle') {
     return res.redirect(next);
   }
   res.redirect('/admin');

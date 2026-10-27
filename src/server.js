@@ -2,6 +2,7 @@ require('dotenv').config();
 const express      = require('express');
 const cookieParser = require('cookie-parser');
 const path         = require('path');
+const { routeLabel } = require('./async-errors');
 
 const surveyRoutes = require('./routes/survey');
 const adminRoutes  = require('./routes/admin');
@@ -88,7 +89,14 @@ app.get('/', (req, res) => res.redirect('/admin'));
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'CARE360', ts: new Date().toISOString() }));
 
 app.use((req, res) => res.status(404).send(errorPage('Page not found.')));
-app.use((err, req, res, next) => { console.error(err); res.status(500).send(errorPage('Something went wrong.')); });
+// Every error a route throws or rejects with (see async-errors.js) ends
+// here: logged, and a friendly page, never a stopped server. If the page
+// was already partly sent, Express's own handler closes the response.
+app.use((err, req, res, next) => {
+  console.error('Route error:', routeLabel(req), err);
+  if (res.headersSent) return next(err);
+  res.status(500).send(errorPage('Something went wrong. Please try again in a moment.'));
+});
 
 function errorPage(msg) {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Error</title>

@@ -118,6 +118,8 @@ const { runDailyRetention } = require('./retention');
 const { runWeeklyFreeSummary } = require('./free-summary');
 const { sendRetentionWarning, sendRetentionSummary, sendRetentionAllClear } = require('./email');
 
+const CLOSED_NOTICE_RETRY_MS = 7 * 24 * 60 * 60 * 1000;
+
 async function checkClosedCycles() {
   try {
     const now = new Date().toISOString();
@@ -138,6 +140,10 @@ async function checkClosedCycles() {
         .select('id, name, title, completion_notified_at')
         .eq('cycle_id', cycle.id);
 
+      // Each leader's notice is claimed before it goes (so two runs can't
+      // both send it) and released if Resend doesn't take it, so the next
+      // hourly run tries again.
+      let unsent = 0;
       for (const leader of (leaders || [])) {
         if (leader.completion_notified_at) continue;
         const { data: raters } = await supabase
@@ -146,11 +152,24 @@ async function checkClosedCycles() {
           .eq('leader_id', leader.id);
         if (!raters || !raters.length) continue;
         await supabase.from('leaders').update({ completion_notified_at: new Date().toISOString() }).eq('id', leader.id);
-        await sendAdminNotice({ leader, cycle, raters, reason: 'closed', to: notifyTo });
+        try {
+          await sendAdminNotice({ leader, cycle, raters, reason: 'closed', to: notifyTo });
+        } catch (e) {
+          unsent++;
+          console.error(`Closed-cycle notice for ${leader.name} not sent, will retry:`, e.message);
+          await supabase.from('leaders').update({ completion_notified_at: null }).eq('id', leader.id);
+        }
       }
 
+      // The Group closes once every notice has gone. Until then it stays
+      // as it is so the next run retries (its surveys already refuse
+      // answers, since the close date has passed). After a week of
+      // failures it closes anyway, rather than retrying forever.
+      const givingUp = unsent && Date.now() - new Date(cycle.closes_at).getTime() > CLOSED_NOTICE_RETRY_MS;
+      if (unsent && !givingUp) continue;
       await supabase.from('cycles').update({ closed_notified_at: new Date().toISOString(), status: 'closed' }).eq('id', cycle.id);
-      console.log(`Closed-cycle notice sent for ${cycle.name}`);
+      if (givingUp) console.error(`Closed ${cycle.name} with ${unsent} notice(s) still unsent after a week of retries`);
+      else console.log(`Closed-cycle notice sent for ${cycle.name}`);
     }
   } catch (e) {
     console.error('Closed-cycle check failed:', e.message);
@@ -196,13 +215,16 @@ async function sendReminders() {
           .is('reminder_sent_at', null)
           .not('email_sent_at', 'is', null);
 
+        // Claimed before sending so two runs can't both send it, and
+        // released if it doesn't go, so the next run tries again.
         for (const rater of (raters || [])) {
           try {
             await supabase.from('raters').update({ reminder_sent_at: new Date().toISOString() }).eq('id', rater.id);
             await sendRaterReminder(rater, leader, cycle);
             console.log(`Reminder sent to ${rater.email}`);
           } catch (e) {
-            console.error('Reminder failed for', rater.email, e.message);
+            console.error('Reminder not sent to', rater.email, '- will retry:', e.message);
+            await supabase.from('raters').update({ reminder_sent_at: null }).eq('id', rater.id);
           }
         }
       }

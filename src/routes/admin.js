@@ -17,6 +17,21 @@ function requireAuth(req, res, next) {
   res.redirect('/signin');
 }
 
+// The addresses whose email just failed to send, carried to the next page
+// in a short-lived signed cookie (never the page address) and shown once.
+const FAILED_EMAILS_COOKIE = 'failedEmails';
+const FAILED_EMAILS_OPTS = { signed: true, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/admin' };
+function setFailedEmails(res, emails) {
+  if (emails.length) res.cookie(FAILED_EMAILS_COOKIE, JSON.stringify(emails.slice(0, 25)), { ...FAILED_EMAILS_OPTS, maxAge: 5 * 60 * 1000 });
+}
+function takeFailedEmails(req, res) {
+  const raw = req.signedCookies && req.signedCookies[FAILED_EMAILS_COOKIE];
+  if (!raw) return [];
+  res.clearCookie(FAILED_EMAILS_COOKIE, FAILED_EMAILS_OPTS);
+  try { const list = JSON.parse(raw); return Array.isArray(list) ? list.filter(e => typeof e === 'string') : []; } catch (e) { return []; }
+}
+const failedEmailsList = emails => emails.map(e => `<strong>${escapeHtml(e)}</strong>`).join(', ');
+
 // The old shared-password login is gone. This still clears its cookie from
 // any browser that has one left over.
 router.get('/logout', (req, res) => { res.clearCookie('adminAuth'); res.redirect('/signin'); });
@@ -37,6 +52,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/team', requireAuth, async (req, res) => {
   const { data: teammates } = await db(req).from('account_users').select('*').order('created_at', { ascending: true });
   const { data: invites }   = await db(req).from('account_invites').select('*').is('accepted_at', null).order('created_at', { ascending: false });
+  req.failedEmails = takeFailedEmails(req, res);
   res.send(teamPage(teammates || [], invites || [], req));
 });
 
@@ -65,6 +81,11 @@ router.post('/team/invites', requireAuth, async (req, res) => {
     await sendTeammateInvite(inviteRow, inviterName, req.account ? req.account.name : 'care 360');
   } catch (e) {
     console.error('Teammate invite email failed:', e.message);
+    // Nobody received the link, so the invite is taken back rather than
+    // left looking pending; sending it again starts fresh.
+    const { error: undoError } = await db(req).from('account_invites').delete().eq('token', inviteRow.token);
+    if (undoError) console.error('Could not remove the unsent teammate invite:', undoError.message);
+    setFailedEmails(res, [email]);
   }
 
   res.redirect('/admin/team');
@@ -201,6 +222,7 @@ router.get('/cycles/:id', requireAuth, async (req, res) => {
   const { data: leaders } = await db(req).from('leaders')
     .select('*, raters(id, rater_group, completed_at, email_sent_at)')
     .eq('cycle_id', req.params.id).order('name');
+  req.failedEmails = takeFailedEmails(req, res);
   res.send(cycleDetailPage(cycle, leaders || [], req));
 });
 
@@ -312,7 +334,10 @@ router.post('/leaders/:leaderId/send-invites', requireAuth, async (req, res) => 
 
   const { data: raters } = await db(req).from('raters').select('*').eq('leader_id', leaderId).is('email_sent_at', null);
 
+  // A rater is marked sent only once Resend has accepted their email, so
+  // Send Invites again retries exactly the ones that didn't go.
   let sent = 0, failed = 0;
+  const failedEmails = [];
   for (const rater of (raters || [])) {
     try {
       await sendRaterInvite(rater, leader);
@@ -320,10 +345,12 @@ router.post('/leaders/:leaderId/send-invites', requireAuth, async (req, res) => 
       sent++;
     } catch (e) {
       failed++;
+      failedEmails.push(rater.email);
       console.error('Email failed for', rater.email, e.message);
     }
   }
   if (failed) console.error(`INVITES: ${sent} sent, ${failed} failed for leader ${leaderId}`);
+  setFailedEmails(res, failedEmails);
 
   res.redirect(`/admin/cycles/${leader.cycle_id}?sent=${sent}&failed=${failed}`);
 });
@@ -833,7 +860,10 @@ function teamPage(teammates, invites, req) {
       <td>${new Date(i.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
     </tr>`).join('');
 
-  return adminShell('Team', `
+  const failedTo = (req.failedEmails || []).length
+    ? `<div class="flash flash-warn" role="alert">The email to ${failedEmailsList(req.failedEmails)} didn't send, so no invite was created. Check the address and try again.</div>`
+    : '';
+  return adminShell('Team', `${failedTo}
     <div class="page-header">
       <div>
         <div class="page-title">team.</div>
@@ -946,8 +976,9 @@ function cycleDetailPage(cycle, leaders, req) {
   const failed = parseInt(req.query.failed || '0', 10);
   let flash = '';
   if (sent || failed) {
+    const failedTo = (req.failedEmails || []).length ? ` The email to ${failedEmailsList(req.failedEmails)} didn't send. Check the address, then click Send Invites again to try again.` : ' Failures are usually a bad email address or a sending limit. Click Send Invites again to retry the ones that did not go.';
     flash = failed
-      ? `<div class="flash flash-warn"><strong>${sent} invitation${sent===1?'':'s'} sent, ${failed} failed.</strong> Failures are usually a bad email address or a sending limit. Check the logs, then click Send Invites again to retry the ones that did not go.</div>`
+      ? `<div class="flash flash-warn" role="alert"><strong>${sent} invitation${sent===1?'':'s'} sent, ${failed} failed.</strong>${failedTo}</div>`
       : `<div class="flash flash-ok" role="status">${sent} invitation${sent===1?'':'s'} sent.</div>`;
   } else if (req.query.datesUpdated === '1') {
     flash = `<div class="flash flash-ok" role="status">Dates updated.</div>`;

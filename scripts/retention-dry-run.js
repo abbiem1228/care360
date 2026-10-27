@@ -1,6 +1,7 @@
 // Data retention dry run. Shows every product whose subscription has
 // ended, where it stands, and exactly what deleting it would remove,
-// with row counts per table. Reads only: deletes nothing, emails no one,
+// with row counts per table, and how many free assessments are past
+// their 24 months. Reads only: deletes nothing, emails no one,
 // writes nothing.
 //
 //   node scripts/retention-dry-run.js
@@ -21,6 +22,8 @@ const retention = require('../src/retention');
       items.push(await retention.dryRun(a.accountId, product, new Date(), opts));
     }
   }
+  const free = await retention.freeAssessmentsDryRun();
+  console.log(`\nFree assessments taken before ${free.cutoff.slice(0, 10)} (${retention.FREE_ASSESSMENT_MONTHS} months): would delete ${free.wouldDelete} of ${free.total}${free.wouldDelete ? `, taken ${free.oldest.slice(0, 10)} to ${free.newest.slice(0, 10)}` : ''}`);
   console.log(`\nAccounts with any subscription: ${assessed.length}`);
   if (!items.length) { console.log('Nothing has ended. Nothing would be deleted.'); return; }
   for (const i of items) {

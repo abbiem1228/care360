@@ -166,7 +166,14 @@ router.post('/:token', async (req, res) => {
         if (full && !full.completion_notified_at) {
           await supabase.from('leaders').update({ completion_notified_at: new Date().toISOString() }).eq('id', leaderId);
           const notifyTo = await resolveNotifyEmail(supabase, full.account_id);
-          await sendAdminNotice({ leader: full, cycle: full.cycles, raters: allRaters, reason: 'complete', to: notifyTo });
+          try {
+            await sendAdminNotice({ leader: full, cycle: full.cycles, raters: allRaters, reason: 'complete', to: notifyTo });
+          } catch (e) {
+            // Not recorded as sent, so the closed-Group check sends the
+            // admin this leader's notice when the Group closes.
+            await supabase.from('leaders').update({ completion_notified_at: null }).eq('id', leaderId);
+            throw e;
+          }
         }
       }
     } catch (e) {

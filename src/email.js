@@ -4,6 +4,19 @@ const resend  = new Resend(process.env.RESEND_API_KEY);
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 const FROM    = process.env.FROM_EMAIL || 'noreply@ingoodcocollective.com';
 
+// Resend's SDK reports a rejected email in its return value ({ error })
+// instead of throwing, so a failed send used to look like a success.
+// Every email goes through here: anything but an accepted email (one
+// with an id) is thrown, and each caller decides what failure means.
+async function sendEmail(message) {
+  const { data, error } = await resend.emails.send(message);
+  if (error || !data || !data.id) {
+    const to = [].concat(message.to).join(', ');
+    throw new Error(`Email to ${to} not sent: ${error ? (error.message || error.name || 'Resend error') : 'no id from Resend'}`);
+  }
+  return data.id;
+}
+
 async function sendRaterInvite(rater, leader) {
   const surveyUrl = `${APP_URL}/survey/${rater.token}`;
   const isSelf    = rater.rater_group === 'self';
@@ -70,7 +83,7 @@ async function sendRaterInvite(rater, leader) {
 
   const text = `Hi ${rater.name},\n\n${isSelf ? 'Your care 360 self-assessment is ready.' : `You have been invited to give feedback for ${leader.name}.`}\n\nComplete your survey here:\n${surveyUrl}\n\nThe survey takes approximately 10 minutes.\n\nIn Good Company Collective`;
 
-  await resend.emails.send({ from: FROM, to: rater.email, subject, html, text });
+  await sendEmail({ from: FROM, to: rater.email, subject, html, text });
 }
 
 const GROUP_LABELS = {
@@ -152,11 +165,8 @@ async function sendAdminNotice({ leader, cycle, raters, reason, to: overrideTo }
 
   const text = `${leader.name}\n${headline}\n\n${done} of ${total} completed.\n\n${leaderUrl}`;
 
-  try {
-    await resend.emails.send({ from: FROM, to, subject, html, text });
-  } catch (e) {
-    console.error('Admin notice failed:', e.message);
-  }
+  // Throws if it doesn't send: callers record the notice only once it has.
+  await sendEmail({ from: FROM, to, subject, html, text });
 }
 async function sendRaterReminder(rater, leader, cycle) {
   const surveyUrl = `${APP_URL}/survey/${rater.token}`;
@@ -202,7 +212,7 @@ async function sendRaterReminder(rater, leader, cycle) {
 
   const text = `Hi ${rater.name},\n\nYour care 360 survey${isSelf ? '' : ` for ${leader.name}`} is still open and closes on ${closes}.\n\n${surveyUrl}\n\nIt takes about 10 minutes.\n\nIn Good Company Collective`;
 
-  await resend.emails.send({ from: FROM, to: rater.email, subject, html, text });
+  await sendEmail({ from: FROM, to: rater.email, subject, html, text });
 }
 async function sendSignupNotice({ account, user }) {
   const to = process.env.ADMIN_EMAIL;
@@ -251,11 +261,8 @@ async function sendSignupNotice({ account, user }) {
 
   const text = `New signup\n\n${account.name}\n${planLabel}\n${user.name || ''} ${user.email}\n\n${APP_URL}/hq`;
 
-  try {
-    await resend.emails.send({ from: FROM, to, subject: `New CARE 360 signup: ${account.name}`, html, text });
-  } catch (e) {
-    console.error('Signup notice failed:', e.message);
-  }
+  // Throws if it doesn't send; the sign-up itself logs it and carries on.
+  await sendEmail({ from: FROM, to, subject: `New CARE 360 signup: ${account.name}`, html, text });
 }
 async function resolveNotifyEmail(supabase, accountId) {
   if (!accountId) return process.env.ADMIN_EMAIL || null;
@@ -314,7 +321,7 @@ async function sendTeammateInvite(invite, inviterName, accountName) {
 
   const text = `Hi${invite.name ? ` ${invite.name}` : ''},\n\n${inviterName} has invited you to join ${accountName} on care 360.\n\nAccept your invitation here:\n${inviteUrl}\n\nIn Good Company Collective`;
 
-  await resend.emails.send({ from: FROM, to: invite.email, subject: `You have been invited to join ${accountName} on care 360`, html, text });
+  await sendEmail({ from: FROM, to: invite.email, subject: `You have been invited to join ${accountName} on care 360`, html, text });
 }
 
 // ── Data retention ───────────────────────────────────────────
@@ -382,24 +389,27 @@ async function sendRetentionWarning({ to, accountName, product, productLabel, de
 </div>
 </body></html>`;
   const text = `Your ${productLabel} data will be deleted on ${date}.\n\n${opening}\n\nOn ${date}, we'll permanently delete ${RETENTION_WHAT[product]}. This can't be undone.\n\n${keepText}\n\nTo get a copy first, email info@ingoodcocollective.com before ${date}.`;
-  await resend.emails.send({ from: RETENTION_FROM[product], to, subject: `Your ${productLabel} data will be deleted on ${date}`, html, text });
+  await sendEmail({ from: RETENTION_FROM[product], to, subject: `Your ${productLabel} data will be deleted on ${date}`, html, text });
 }
 
 // The daily list for IGC. Ids, products and dates only.
-async function sendRetentionSummary({ due, upcoming, warned, noOwnerEmail }) {
+async function sendRetentionSummary({ due, upcoming, warned, noOwnerEmail, warningFailed = [], freeDeleted = 0, freeFailed = false }) {
   const to = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL;
   if (!to) return;
   const row = i => `<li>${i.accountName}: ${i.product === 'care360' ? 'CARE 360' : 'Element Profile'}${i.deletionDate ? `, ${retentionDateLabel(i.deletionDate)}` : ''}</li>`;
   const section = (title, items) => items.length ? `<p style="margin:18px 0 6px;font-weight:bold">${title} (${items.length})</p><ul style="margin:0;padding-left:20px">${items.map(row).join('')}</ul>` : '';
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#30383B;line-height:1.6;max-width:560px">
-    <p style="margin:0 0 6px">Data retention, ${retentionDateLabel(new Date().toISOString().slice(0, 10))}. Nothing has been deleted. Review and approve in HQ.</p>
+    <p style="margin:0 0 6px">Data retention, ${retentionDateLabel(new Date().toISOString().slice(0, 10))}. ${freeDeleted ? 'No account data has been deleted.' : 'Nothing has been deleted.'} Review and approve in HQ.</p>
     ${section('Ready for your approval', due)}
     ${section('Owner warned today', warned)}
     ${section('Warned, deletion date coming up', upcoming)}
     ${section('No owner email on file: notice period started without an email', noOwnerEmail)}
+    ${section('Warning email did not send: not started, tried again tomorrow', warningFailed)}
+    ${freeDeleted ? `<p style="margin:18px 0 0">Free Element Profile assessments older than 24 months, deleted today: ${freeDeleted}</p>` : ''}
+    ${freeFailed ? '<p style="margin:18px 0 0">Free Element Profile assessment cleanup failed today and will try again tomorrow. Check the server logs.</p>' : ''}
     <p style="margin:22px 0 0"><a href="${APP_URL}/hq/retention" style="color:#A9633D;font-weight:bold">Open retention in HQ</a></p>
   </div>`;
-  await resend.emails.send({ from: FROM, to, subject: `Data retention: ${due.length} ready for approval`, html });
+  await sendEmail({ from: FROM, to, subject: `Data retention: ${due.length} ready for approval`, html });
 }
 
 // Weekly, only when there's been nothing else to report all week.
@@ -410,7 +420,7 @@ async function sendRetentionAllClear({ accountsChecked }) {
     <p style="margin:0 0 10px">Data retention is running. Nothing is due, warned or coming up this week (${accountsChecked} ${accountsChecked === 1 ? 'account' : 'accounts'} with a subscription checked).</p>
     <p style="margin:0"><a href="${APP_URL}/hq/retention" style="color:#A9633D;font-weight:bold">Open retention in HQ</a></p>
   </div>`;
-  await resend.emails.send({ from: FROM, to, subject: 'Data retention: all clear this week', html });
+  await sendEmail({ from: FROM, to, subject: 'Data retention: all clear this week', html });
 }
 
 module.exports = { sendRaterInvite, sendAdminNotice, sendRaterReminder, sendSignupNotice, sendTeammateInvite, resolveNotifyEmail, sendRetentionWarning, sendRetentionSummary, sendRetentionAllClear };

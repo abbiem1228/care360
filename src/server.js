@@ -27,6 +27,20 @@ if (!process.env.SESSION_SECRET) {
 }
 
 app.set('trust proxy', 1);
+
+// Security headers on every response, static files and errors included.
+// The CSP only stops other sites framing these pages: nothing stricter,
+// so Stripe, Supabase and the fonts keep loading as they do.
+app.use((req, res, next) => {
+  res.set({
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Content-Security-Policy': "frame-ancestors 'none'",
+    'X-Frame-Options': 'DENY'
+  });
+  next();
+});
 app.use((req, res, next) => {
   if (req.originalUrl === '/billing/webhook') return next();
   express.json()(req, res, next);

@@ -91,4 +91,36 @@ async function accessForAccountId(accountId, product) {
 
 const LOCKED_STATES = ['unpaid', 'ended'];
 
-module.exports = { productAccess, productPending, dataKeptUntil, accountSubscriptions, accessForAccountId, LOCKED_STATES };
+// Statuses under which an account still holds a product, for deciding
+// whether a new purchase would overlap. Wider than access: a payment
+// that's pending, past due, unpaid or paused is still theirs to fix in
+// Manage billing, not a reason to buy it again. Only an ended
+// subscription can be bought afresh.
+const HELD_STATUSES = ['active', 'trialing', 'past_due', 'incomplete', 'unpaid', 'paused'];
+
+async function heldProducts(accountId) {
+  const [{ data: account, error }, { data: subs, error: subsError }] = await Promise.all([
+    supabase.from('accounts').select('comp_care360, comp_element_profile').eq('id', accountId).maybeSingle(),
+    supabase.from('account_subscriptions').select('products, status').eq('account_id', accountId)
+  ]);
+  if (error) throw error;
+  if (subsError) throw subsError;
+  const held = (subs || []).filter(s => HELD_STATUSES.includes(s.status));
+  const covers = p => held.some(s => s.products === p || s.products === 'bundle');
+  return {
+    care360: covers('care360') || !!(account && account.comp_care360),
+    element_profile: covers('element_profile') || !!(account && account.comp_element_profile)
+  };
+}
+
+// What buying products would mean for an account holding held:
+// null (nothing overlaps, go ahead), 'already' (it has all of it), or
+// 'upgrade' (the bundle, when it has exactly one of the two).
+function purchaseOverlap(products, held) {
+  const wanted = products === 'bundle' ? ['care360', 'element_profile'] : [products];
+  const have = wanted.filter(p => held[p]).length;
+  if (!have) return null;
+  return have === wanted.length ? 'already' : 'upgrade';
+}
+
+module.exports = { productAccess, productPending, dataKeptUntil, accountSubscriptions, accessForAccountId, LOCKED_STATES, heldProducts, purchaseOverlap };

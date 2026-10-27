@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { icon } = require('../icons');
+const { heldProducts, purchaseOverlap } = require('../access');
 
 // Prices live here and nowhere else. Change them in one place.
 // Organizations buy one plan per product, billed annually, with no size
@@ -11,7 +12,7 @@ const { icon } = require('../icons');
 // subscription keeps working; they are never offered here.
 const PRODUCTS = {
   care360: {
-    label: 'CARE 360',
+    label: 'care 360',
     tab: 'care 360',
     tagline: 'Unlimited 360 surveys for your organization, with the full AI report, automatic reminders and the action plan template.',
     plan: {
@@ -107,7 +108,7 @@ const SPECIAL_PLANS = {
       'Requires a short application'
     ],
     cta: 'Apply for Community',
-    href: 'mailto:abbie@ingoodcocollective.com?subject=CARE%20360%20Community%20pricing',
+    href: 'https://ingoodcocollective.com/contact/?interest=community',
     style: 'soft'
   },
   enterprise: {
@@ -123,7 +124,7 @@ const SPECIAL_PLANS = {
       'Dedicated onboarding and support'
     ],
     cta: 'Talk to us',
-    href: 'mailto:abbie@ingoodcocollective.com?subject=CARE%20360%20Enterprise',
+    href: 'https://ingoodcocollective.com/contact/?interest=enterprise',
     style: 'soft'
   }
 };
@@ -164,11 +165,32 @@ const PAGE_COPY = {
 
 // ?billing= is ignored: organizations only ever see annual prices now,
 // and old ?billing=monthly links land on the same annual page.
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const asked   = PRODUCT_ALIASES[req.query.product] || req.query.product;
   const product = (SHOW_ALL_PRODUCTS && PRODUCTS[asked]) ? asked : 'care360';
-  res.send(plansPage(product, req));
+  res.send(plansPage(product, req, await heldFor(req)));
 });
+
+// What a signed-in account already has, so its cards never offer a second
+// subscription for it. Signed out, or if the lookup fails, nothing is held
+// and checkout itself still refuses any overlap.
+async function heldFor(req) {
+  if (!req.isAdmin || !req.accountId) return null;
+  try { return await heldProducts(req.accountId); } catch (e) { console.error('Plans: held products lookup failed:', e.message); return null; }
+}
+
+// The button for a product the account already has, or overlaps (the
+// bundle when it has one of the two), instead of a new checkout.
+function ownedAction(productKey, held, req) {
+  const overlap = held ? purchaseOverlap(productKey, held) : null;
+  if (overlap === 'upgrade') return { note: 'you have one of these already.', href: '/billing/upgrade-to-bundle', label: 'upgrade to the bundle' };
+  if (overlap === 'already') {
+    const billing = !!(req.account && req.account.stripe_customer_id);
+    return { note: 'you already have this.', href: billing ? '/billing/portal' : '/admin', label: billing ? 'manage billing' : 'back to your account' };
+  }
+  return null;
+}
+const ownedButton = (owned, cls) => `<div class="plan-owned">${owned.note}</div><a class="plan-btn ${cls}" href="${owned.href}">${owned.label}${icon('arrow-right')}</a>`;
 
 function money(n) {
   return '$' + n.toLocaleString('en-US');
@@ -203,7 +225,7 @@ const FAQ = {
   bundle:          ['elWithCare', 'careWhat', 'elWhat', 'careHiring']
 };
 
-const CONTACT_URL = 'https://www.ingoodcocollective.com/contact/';
+const CONTACT_URL = 'https://ingoodcocollective.com/contact/';
 // The free Element Profile anyone can take for themselves. Offered on the
 // Element and bundle tabs and on /coach, so people can try it before buying.
 const FREE_ASSESSMENT_URL = 'https://element.ingoodcocollective.com/free';
@@ -246,7 +268,7 @@ function specialCard(p) {
 // already logged-in visitor (buying a second product, or a higher
 // tier) skips straight to checkout, since creating a second account
 // for them would be wrong.
-function productCard(productKey, plan, loggedIn) {
+function productCard(productKey, plan, loggedIn, owned) {
   // tier=starter is the existing Starter price, now the one plan per product.
   const href = loggedIn
     ? `/billing/checkout?products=${productKey}&tier=starter&billing=annual`
@@ -261,7 +283,7 @@ function productCard(productKey, plan, loggedIn) {
     <div class="plan-price-row"><span class="plan-price">${money(plan.annual)}</span><span class="plan-per">/year</span></div>
     <div class="plan-sub">billed annually</div>
     ${featureList(plan.features)}
-    <a class="plan-btn plan-btn-primary" href="${href}">choose ${plan.name}${icon('arrow-right')}</a>
+    ${owned ? ownedButton(owned, 'plan-btn-primary') : `<a class="plan-btn plan-btn-primary" href="${href}">choose ${plan.name}${icon('arrow-right')}</a>`}
   </div>`;
 }
 
@@ -280,7 +302,7 @@ a{text-decoration:none;color:inherit}
 .top-logo{display:flex;align-items:center}
 .top-wordmark{height:19px;width:auto;display:block}
 .top-spacer{flex:1}
-.top-link{display:inline-flex;align-items:center;background:var(--ink);color:var(--cream);font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;text-transform:lowercase;transition:background .15s}
+.top-link{display:inline-flex;align-items:center;white-space:nowrap;flex-shrink:0;background:var(--ink);color:var(--cream);font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;text-transform:lowercase;transition:background .15s}
 .top-link:hover{background:var(--ink-deep)}
 
 .hero{position:relative;text-align:center;padding:72px 24px 36px;overflow:hidden}
@@ -344,6 +366,8 @@ a{text-decoration:none;color:inherit}
 .plan-wide .plan-sub{display:none}
 .plan-wide .plan-features{grid-area:feat;margin:18px 0 20px;padding-top:16px}
 .plan-wide .plan-btn{grid-area:btn}
+.plan-owned{text-align:center;font-size:13px;font-weight:600;color:var(--grey);margin:4px 0 10px}
+.plan-featured .plan-owned{color:rgba(247,243,234,0.75)}
 .plan-wide .plan-name{font-size:26px}
 .plan-wide .plan-blurb{min-height:0}
 .plan-wide .plan-price-text{font-size:22px;letter-spacing:-0.4px;color:var(--grey)}
@@ -385,7 +409,7 @@ a{text-decoration:none;color:inherit}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 `;
 
-function plansPage(product, req) {
+function plansPage(product, req, held) {
   const signedIn = !!req.isAdmin;
   const loggedIn = signedIn;
   const p = PRODUCTS[product];
@@ -404,7 +428,7 @@ function plansPage(product, req) {
         <p>${a}</p>
       </details>`).join('');
 
-  const planCard = productCard(product, p.plan, loggedIn);
+  const planCard = productCard(product, p.plan, loggedIn, ownedAction(product, held, req));
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -427,7 +451,7 @@ function plansPage(product, req) {
 ${PLANS_CSS}</style></head><body>
 
 <div class="top">
-  <a class="top-logo" href="https://www.ingoodcocollective.com/" aria-label="In Good Company Collective home">
+  <a class="top-logo" href="https://ingoodcocollective.com/" aria-label="In Good Company Collective home">
     <img class="top-wordmark" src="/img/igc-wordmark.svg" alt="in good company."/>
   </a>
   <div class="top-spacer"></div>
@@ -456,7 +480,7 @@ ${PLANS_CSS}</style></head><body>
     ${specialCard(SPECIAL_PLANS.community)}
     ${specialCard(SPECIAL_PLANS.enterprise)}
   </div>` : `
-  <div class="includes free-callout">${icon('check-circle')}<span>try it yourself first. take the element profile free.</span><a class="plan-btn" href="${FREE_ASSESSMENT_URL}">take it free${icon('arrow-right')}</a></div>
+  <div class="includes free-callout">${icon('check-circle')}<span>try it yourself first. take the element profile free.</span><a class="plan-btn" href="${FREE_ASSESSMENT_URL}" target="_blank" rel="noopener">take it free${icon('arrow-right')}</a></div>
   <div class="grid grid-1">${planCard}</div>`}
 
   <div class="includes">${icon('check-circle')}<span>${copy.foot}</span></div>
@@ -513,7 +537,7 @@ const COACH_CARDS = {
   }
 };
 
-function coachCard(productKey, highlighted, loggedIn) {
+function coachCard(productKey, highlighted, loggedIn, owned) {
   const card = COACH_CARDS[productKey];
   const monthly = PRODUCTS[productKey].plan.monthly;
   const trial = productKey === 'care360' && !loggedIn;
@@ -537,14 +561,15 @@ function coachCard(productKey, highlighted, loggedIn) {
     <div class="plan-price-row"><span class="plan-price">${money(monthly)}</span><span class="plan-per">/month</span></div>
     <div class="plan-sub">${trial ? 'free trial first, then billed monthly' : 'billed monthly'}</div>
     ${featureList(card.features)}
-    <a class="plan-btn ${highlighted ? 'plan-btn-primary' : ''}" href="${href}">${trial ? 'start free trial' : `choose ${card.name}`}${icon('arrow-right')}</a>
+    ${owned ? ownedButton(owned, highlighted ? 'plan-btn-primary' : '') : `<a class="plan-btn ${highlighted ? 'plan-btn-primary' : ''}" href="${href}">${trial ? 'start free trial' : `choose ${card.name}`}${icon('arrow-right')}</a>`}
     ${productKey === 'care360' ? '' : `<a class="coach-free" href="${FREE_ASSESSMENT_URL}">or take it yourself free first</a>`}
   </div>`;
 }
 
-coachRouter.get('/', (req, res) => {
+coachRouter.get('/', async (req, res) => {
   const highlight = COACH_PRODUCT_KEYS[req.query.product] || null;
   const loggedIn = !!req.isAdmin;
+  const held = await heldFor(req);
   res.set('X-Robots-Tag', 'noindex, nofollow');
   res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -565,7 +590,7 @@ ${PLANS_CSS}
 </style></head><body>
 
 <div class="top">
-  <a class="top-logo" href="https://www.ingoodcocollective.com/" aria-label="In Good Company Collective home">
+  <a class="top-logo" href="https://ingoodcocollective.com/" aria-label="In Good Company Collective home">
     <img class="top-wordmark" src="/img/igc-wordmark.svg" alt="in good company."/>
   </a>
   <div class="top-spacer"></div>
@@ -575,12 +600,12 @@ ${PLANS_CSS}
 <header class="hero">
   <div class="hero-marks"><img src="/img/care360-wordmark.svg" alt="care 360."/><span class="plus">+</span><img src="/img/element-wordmark.svg" alt="element."/></div>
   <h1 class="h1">coach pricing, billed monthly.</h1>
-  <p class="lede">Monthly plans for your client work with CARE 360 and The Element Profile, with no limit on how many leaders you run.</p>
+  <p class="lede">Monthly plans for your client work with care 360 and The Element Profile, with no limit on how many leaders you run.</p>
 </header>
 
 <main class="wrap">
   <div class="grid">
-    ${['care360', 'element_profile', 'bundle'].map(k => coachCard(k, k === highlight, loggedIn)).join('')}
+    ${['care360', 'element_profile', 'bundle'].map(k => coachCard(k, k === highlight, loggedIn, ownedAction(k, held, req))).join('')}
   </div>
   <p class="coach-note">for coaches and consultants using our tools with their clients.</p>
 

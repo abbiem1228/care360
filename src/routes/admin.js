@@ -285,7 +285,12 @@ router.post('/leaders/:leaderId/raters', requireAuth, async (req, res) => {
   }
 
   if (incompleteRows.length) {
-    const { data: leaderFull } = await db(req).from('leaders').select('*').eq('id', leaderId).maybeSingle();
+    const { data: leaderFull, error: leaderErr } = await db(req).from('leaders').select('*').eq('id', leaderId).maybeSingle();
+    // Found a moment ago, so a miss now is a failed lookup, not a missing leader.
+    if (!leaderFull) {
+      console.error('Rater form reload failed:', leaderErr ? leaderErr.message : 'leader not returned');
+      return res.status(500).send(adminShell('Something went wrong', `<div class="card alert-card" style="max-width:520px"><div style="font-size:13px;color:var(--grey);line-height:1.7;margin-bottom:16px">We couldn't reload this leader just now, so the raters were not saved. Please go back and try again.</div><a href="/admin/leaders/${encodeURIComponent(leaderId)}" class="btn btn-ghost">Back to leader</a></div>`, req));
+    }
     return res.send(raterFormPage(leaderFull, req,
       `Row ${incompleteRows.map(r => r.rowNumber).join(', ')} ${incompleteRows.length === 1 ? 'is' : 'are'} missing a name, email, or relationship. All three are required for each rater. Please complete or remove the highlighted row before saving.`,
       { names, emails, groups }

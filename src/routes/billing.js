@@ -7,6 +7,7 @@ const {
   CARE360_TERMS_URL, CARE360_PRIVACY_URL, ELEMENT_TERMS_URL, ELEMENT_PRIVACY_URL, messagePage
 } = require('./account');
 const { heldProducts, purchaseOverlap } = require('../access');
+const { gtmHead, gtmBody, pushEvent, handoffPage, audienceOf } = require('../analytics');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
@@ -197,7 +198,12 @@ checkoutRouter.get('/checkout', async (req, res) => {
       custom_text: { terms_of_service_acceptance: { message: termsConsentMessage(products) } }
     });
 
-    res.redirect(session.url);
+    // Hand GTM begin_checkout on the way to Stripe. value is the plan
+    // price before any promotion code, which Stripe asks for later.
+    res.send(handoffPage({
+      event: 'begin_checkout', product: products, audience: audienceOf(coach),
+      value: session.amount_subtotal / 100, currency: 'USD'
+    }, session.url));
   } catch (e) {
     console.error('Checkout session failed:', e.message);
     res.status(500).send('Something went wrong starting checkout. <a href="/plans">Back to plans</a>');
@@ -208,16 +214,58 @@ checkoutRouter.get('/checkout', async (req, res) => {
 // The webhook is what actually flips the plan. This page just gives
 // the person something to look at while that happens, since the
 // webhook can arrive a few seconds after the redirect.
+//
+// Stripe returns here with ?session_id=. That id is checked against
+// Stripe and this account, kept for one page view in a short signed
+// cookie, and dropped from the address, so GTM never sees it in a page
+// address and a refresh never sends purchase twice. The ids already
+// reported stay in a second cookie, so going Back to the Stripe return
+// link cannot send it again either.
+const PURCHASE_COOKIE = 'purchaseEvent';
+const REPORTED_COOKIE = 'purchasesReported';
+const ANALYTICS_COOKIE = {
+  signed: true, httpOnly: true, sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production', path: '/billing/checkout'
+};
 
-checkoutRouter.get('/checkout/success', requireAuth, (req, res) => {
-  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+function reportedPurchases(req) {
+  try { const ids = JSON.parse(req.signedCookies[REPORTED_COOKIE] || '[]'); return Array.isArray(ids) ? ids : []; } catch (e) { return []; }
+}
+
+checkoutRouter.get('/checkout/success', requireAuth, async (req, res) => {
+  const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id : null;
+  if (sessionId) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.client_reference_id === req.accountId && session.status === 'complete' &&
+          !reportedPurchases(req).includes(session.id)) {
+        const meta = session.metadata || {};
+        res.cookie(PURCHASE_COOKIE, JSON.stringify({
+          event: 'purchase', product: meta.products, audience: audienceOf(meta.audience === 'coach'),
+          value: session.amount_subtotal / 100, currency: 'USD', transaction_id: session.id
+        }), { ...ANALYTICS_COOKIE, maxAge: 10 * 60 * 1000 });
+      }
+    } catch (e) {
+      console.error('Checkout success lookup failed:', e.message);
+    }
+    return res.redirect('/billing/checkout/success');
+  }
+
+  let purchase = null;
+  try { purchase = req.signedCookies[PURCHASE_COOKIE] ? JSON.parse(req.signedCookies[PURCHASE_COOKIE]) : null; } catch (e) { /* malformed, send nothing */ }
+  if (purchase) {
+    res.clearCookie(PURCHASE_COOKIE, ANALYTICS_COOKIE);
+    const reported = [purchase.transaction_id, ...reportedPurchases(req)].slice(0, 10);
+    res.cookie(REPORTED_COOKIE, JSON.stringify(reported), { ...ANALYTICS_COOKIE, maxAge: 365 * 24 * 60 * 60 * 1000 });
+  }
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>${pushEvent(purchase)}${gtmHead()}
   <meta http-equiv="refresh" content="3;url=/admin"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/img/care-mark.svg"/>
   <style>body{font-family:'Noto Sans',Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#FAF8F4,#fff 70%);color:#30383B;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;-webkit-font-smoothing:antialiased}
   .card{background:#fff;border:1px solid rgba(48,56,59,0.09);box-shadow:0 2px 4px rgba(48,56,59,0.05),0 14px 32px rgba(48,56,59,0.09);border-radius:24px;padding:48px;max-width:440px;text-align:center}
   h2{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:40px;letter-spacing:-1.2px;margin:0 0 10px;text-transform:lowercase}p{color:#637074;font-size:15px;line-height:1.7;margin:0}</style></head>
-  <body><div class="card"><h2>Thank you</h2><p>Your subscription is being set up. This takes a few seconds. You will be taken to your dashboard automatically.</p></div></body></html>`);
+  <body>${gtmBody()}<div class="card"><h2>Thank you</h2><p>Your subscription is being set up. This takes a few seconds. You will be taken to your dashboard automatically.</p></div></body></html>`);
 });
 
 // ── Manage subscription (Stripe Customer Portal) ───────────────

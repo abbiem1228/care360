@@ -11,6 +11,7 @@ const guideRoutes  = require('./routes/guide');
 const accountRoutes = require('./routes/account');
 const plansRoutes = require('./routes/plans');
 const hqRoutes    = require('./routes/hq');
+const accountSettingsRoutes = require('./routes/account-settings');
 const { getSession } = require('./auth');
 const app = express();
 
@@ -60,6 +61,9 @@ app.use(async (req, res, next) => {
       req.account   = session.account;
       req.userDb    = session.db;
       req.isAdmin   = true;
+      // An email change confirmed since the last request: bring the
+      // account row and the Stripe customer up to date.
+      await accountSettingsRoutes.syncConfirmedEmail(req).catch(e => console.error('Email sync failed:', e.message));
       return next();
     }
   } catch (e) {
@@ -78,6 +82,7 @@ app.use('/billing/webhook', billing.webhookRouter);
 app.use('/billing', billing.checkoutRouter);
 app.use('/admin', customQuestions);
 app.use('/survey', surveyRoutes);
+app.use('/admin',  accountSettingsRoutes);
 app.use('/admin',  adminRoutes);
 app.use('/report', reportRoutes);
 app.use('/guide',  guideRoutes);

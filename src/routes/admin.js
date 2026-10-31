@@ -49,18 +49,15 @@ router.get('/', requireAuth, async (req, res) => {
 // Real teammate invites: a second real login on the same account,
 // distinct from the legacy shared password and from rater invites
 // (which invite someone to give feedback, not to join the account).
-router.get('/team', requireAuth, async (req, res) => {
-  const { data: teammates } = await db(req).from('account_users').select('*').order('created_at', { ascending: true });
-  const { data: invites }   = await db(req).from('account_invites').select('*').is('accepted_at', null).order('created_at', { ascending: false });
-  req.failedEmails = takeFailedEmails(req, res);
-  res.send(teamPage(teammates || [], invites || [], req));
-});
+// The team itself lives on the account page now (routes/account-settings.js);
+// the old address still works.
+router.get('/team', requireAuth, (req, res) => res.redirect('/admin/account#team'));
 
 router.post('/team/invites', requireAuth, async (req, res) => {
   const email = (req.body.email || '').trim().toLowerCase();
   const name  = (req.body.name || '').trim();
 
-  if (!email) return res.redirect('/admin/team');
+  if (!email) return res.redirect('/admin/account#team');
 
   const inviteRow = {
     account_id: req.accountId,
@@ -73,7 +70,7 @@ router.post('/team/invites', requireAuth, async (req, res) => {
   const { error } = await db(req).from('account_invites').insert([inviteRow]);
   if (error) {
     console.error('INVITE CREATE FAILED', error.message);
-    return res.redirect('/admin/team');
+    return res.redirect('/admin/account#team');
   }
 
   try {
@@ -85,10 +82,10 @@ router.post('/team/invites', requireAuth, async (req, res) => {
     // left looking pending; sending it again starts fresh.
     const { error: undoError } = await db(req).from('account_invites').delete().eq('token', inviteRow.token);
     if (undoError) console.error('Could not remove the unsent teammate invite:', undoError.message);
-    setFailedEmails(res, [email]);
+    return res.redirect('/admin/account?error=invite-failed#team');
   }
 
-  res.redirect('/admin/team');
+  res.redirect('/admin/account?done=invite-sent#team');
 });
 
 // ── Cross-app handoff to Element Profile ────────────────────────
@@ -725,7 +722,7 @@ function adminShell(title, content, req) {
   <nav class="admin-nav">
     ${navLogo}
     <a href="/admin" class="nav-link">Groups</a>
-    <a href="/admin/team" class="nav-link">Team</a>
+    <a href="/admin/account" class="nav-link">Account</a>
     <a href="/guide" class="nav-link">How it works</a>
     <div class="nav-spacer"></div>
     <div class="nav-user">
@@ -841,64 +838,6 @@ function dashboardPage(cycles, req) {
         <a href="/admin/cycles/new" class="btn btn-primary">${icon('plus')}Create Group</a>
       </div>`}
     </div>`, req);
-}
-
-function teamPage(teammates, invites, req) {
-  const teammateRows = teammates.map(t => `
-    <tr>
-      <td><span class="person">${avatar(t.name || t.email)}${t.name || '<span style="color:#ccc">&mdash;</span>'}</span></td>
-      <td style="color:var(--grey)">${t.email}</td>
-      <td><span class="badge badge-active">${t.role}</span></td>
-      <td>${new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
-    </tr>`).join('');
-
-  const inviteRows = invites.map(i => `
-    <tr>
-      <td><span class="person">${avatar(i.name || i.email)}${i.name || '<span style="color:#ccc">&mdash;</span>'}</span></td>
-      <td style="color:var(--grey)">${i.email}</td>
-      <td><span class="badge badge-draft">Pending</span></td>
-      <td>${new Date(i.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
-    </tr>`).join('');
-
-  const failedTo = (req.failedEmails || []).length
-    ? `<div class="flash flash-warn" role="alert">The email to ${failedEmailsList(req.failedEmails)} didn't send, so no invite was created. Check the address and try again.</div>`
-    : '';
-  return adminShell('Team', `${failedTo}
-    <div class="page-header">
-      <div>
-        <div class="page-title">team.</div>
-        <div class="page-sub">Invite a teammate to sign in and manage this same account with you.</div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header"><span class="card-title">Invite a teammate</span></div>
-      <form method="POST" action="/admin/team/invites" class="form-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">
-        <div class="form-group" style="margin:0">
-          <label class="form-label">Name</label>
-          <input class="form-control" name="name" placeholder="Jane Smith"/>
-        </div>
-        <div class="form-group" style="margin:0">
-          <label class="form-label">Email *</label>
-          <input class="form-control" type="email" name="email" required placeholder="jane@acme.com"/>
-        </div>
-        <button class="btn btn-primary" type="submit">${icon('send')}Send invite</button>
-      </form>
-    </div>
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header"><span class="card-title">Current team</span></div>
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
-        <tbody>${teammateRows}</tbody>
-      </table>
-    </div>
-    ${invites.length ? `
-    <div class="card">
-      <div class="card-header"><span class="card-title">Pending invites</span></div>
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Sent</th></tr></thead>
-        <tbody>${inviteRows}</tbody>
-      </table>
-    </div>` : ''}`, req);
 }
 
 function cycleFormPage(req) {
@@ -1216,3 +1155,5 @@ module.exports = router;
 // shell, real nav and real switcher included, instead of keeping their
 // own separate copy that silently stops matching this one.
 module.exports.adminShell = adminShell;
+module.exports.escapeHtml = escapeHtml;
+module.exports.avatar = avatar;

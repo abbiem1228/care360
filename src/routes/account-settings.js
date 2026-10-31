@@ -123,6 +123,8 @@ const fmtDate = iso => new Date(iso).toLocaleDateString('en-US', { month: 'short
 
 function accountPage(req, data, errors = {}) {
   const { teammates, invites, pendingEmail } = data;
+  const ownerRow = teammates.find(t => t.role === 'owner');
+  const ownerEmail = ownerRow ? ownerRow.email : null;
   const acct = req.account || {};
   const owner = isOwner(req);
   const notice = NOTICES[req.query.done] || NOTICES[req.query.error];
@@ -210,7 +212,7 @@ function accountPage(req, data, errors = {}) {
 
     <div class="card" id="team" style="margin-top:20px">
       <div class="card-header"><span class="card-title">team</span></div>
-      <p class="form-hint" style="margin:0 0 14px">Everyone here can sign in to this account in care 360${acct.has_element_profile ? ' and Element Profile' : ''}.${owner ? ' Removing someone ends their access to both right away.' : ' Only the account owner can remove people or cancel invites.'}</p>
+      <p class="form-hint" style="margin:0 0 14px">Everyone here can sign in to this account in care 360${acct.has_element_profile ? ' and Element Profile' : ''}. Admins can use everything in both apps except billing, removing people and cancelling invites, which stay with the owner.${owner ? ' Removing someone ends their access to both right away.' : ''}</p>
       <div class="table-scroll">
         <table class="data-table team-table">
           <thead><tr><th>name</th><th>email</th><th>role</th><th>joined</th><th></th></tr></thead>
@@ -242,7 +244,8 @@ function accountPage(req, data, errors = {}) {
     <div class="card" id="billing" style="margin-top:20px">
       <div class="card-header"><span class="card-title">billing</span></div>
       <p class="form-hint" style="margin:0 0 14px">This account has ${products}${acct.plan === 'trial' ? ', on a free trial' : ''}. Billing for both products is managed here.</p>
-      <div class="billing-actions">
+      ${owner ? '' : `<p class="form-hint" style="margin:-6px 0 0">Billing is managed by the account owner${ownerEmail ? `, <strong>${escapeHtml(ownerEmail)}</strong>` : ''}.</p>`}
+      <div class="billing-actions"${owner ? '' : ' hidden'}>
         ${acct.stripe_customer_id ? '<a href="/billing/portal" class="btn btn-primary">manage billing</a>' : ''}
         ${bundleLink ? `<a href="/billing/upgrade-to-bundle" class="btn btn-ghost">${bundleLink}</a>` : ''}
         ${acct.plan === 'trial' ? `<a href="${acct.is_coach ? '/coach?product=care360' : '/plans'}" class="btn btn-ghost">upgrade</a>` : ''}

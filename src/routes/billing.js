@@ -82,6 +82,20 @@ function requireAuth(req, res, next) {
   res.redirect('/signin');
 }
 
+// Billing is the account owner's. Teammates (admins) use everything else
+// in both apps, but buying, upgrading and the Stripe portal stay with the
+// owner. A signed-in request with no role (the legacy shared login) is
+// left as it was.
+function ownerOnlyBilling(req, res, next) {
+  if (!req.session || !req.session.role || req.session.role === 'owner') return next();
+  const { adminShell } = require('./admin');
+  res.status(403).send(adminShell('Billing', `<div class="card" style="max-width:560px">
+    <h2 style="font-family:'EB Garamond',Georgia,serif;font-size:30px;font-weight:500;letter-spacing:-0.8px;line-height:1.15;margin-bottom:10px">billing is the owner's.</h2>
+    <p style="font-size:14px;color:var(--grey);line-height:1.7;margin-bottom:20px">Your account owner manages billing for care 360 and Element Profile. Ask them if something needs changing.</p>
+    <a href="/admin" class="btn btn-ghost">back to groups</a>
+  </div>`, req));
+}
+
 // Same product-aware logic as the signup checkbox (src/routes/account.js):
 // a Bundle purchase is agreeing to two distinct products' real terms, so
 // the consent message names and links both, not one document covering
@@ -139,8 +153,9 @@ function alreadyHavePage(req, products) {
   );
 }
 
-checkoutRouter.get('/checkout', async (req, res) => {
+checkoutRouter.get('/checkout', async (req, res, next) => {
   if (!req.isAdmin) return res.redirect(signupForChoice(req.query));
+  if (req.session && req.session.role && req.session.role !== 'owner') return ownerOnlyBilling(req, res, next);
   const coach    = req.query.audience === 'coach';
   // One plan per product: every new checkout, organization or coach, uses
   // the existing Starter price. An old or crafted tier=growth link gets
@@ -237,7 +252,9 @@ checkoutRouter.get('/checkout/success', requireAuth, async (req, res) => {
   if (sessionId) {
     try {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
+      // The house account (accounts.is_internal) never reports a purchase.
       if (session.client_reference_id === req.accountId && session.status === 'complete' &&
+          !(req.account && req.account.is_internal) &&
           !reportedPurchases(req).includes(session.id)) {
         const meta = session.metadata || {};
         res.cookie(PURCHASE_COOKIE, JSON.stringify({
@@ -291,7 +308,7 @@ function portalReturnUrl(raw) {
   return `${APP_URL}/admin`;
 }
 
-checkoutRouter.get('/portal', requireAuth, async (req, res) => {
+checkoutRouter.get('/portal', requireAuth, ownerOnlyBilling, async (req, res) => {
   if (!req.account || !req.account.stripe_customer_id) {
     return res.status(400).send('No billing account found. <a href="/plans">See plans</a>');
   }
@@ -403,7 +420,7 @@ input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
   </div></body></html>`;
 }
 
-checkoutRouter.get('/upgrade-to-bundle', requireAuth, async (req, res) => {
+checkoutRouter.get('/upgrade-to-bundle', requireAuth, ownerOnlyBilling, async (req, res) => {
   const products = missingProduct(req.account);
   try {
     if (!products && req.accountId && await liveSubscriptionCount(req.accountId) > 1) {
@@ -419,7 +436,7 @@ checkoutRouter.get('/upgrade-to-bundle', requireAuth, async (req, res) => {
   res.send(upgradeConfirmPage(products, null, req.query.reason === 'both'));
 });
 
-checkoutRouter.post('/upgrade-to-bundle', requireAuth, async (req, res) => {
+checkoutRouter.post('/upgrade-to-bundle', requireAuth, ownerOnlyBilling, async (req, res) => {
   if (!req.accountId) {
     return res.redirect('/signin');
   }

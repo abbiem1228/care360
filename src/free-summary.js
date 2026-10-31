@@ -46,7 +46,21 @@ function dueWeek(now = new Date()) {
 const arizonaDate = ts => isoDate(new Date(new Date(ts).getTime() - ARIZONA_OFFSET_MS));
 const dateLabel = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
+// Everyone on the house account (accounts.is_internal): their free
+// assessments are demos, so the weekly summary leaves them out. Read
+// with select('*') so this still works before that column exists.
+async function internalEmails() {
+  const { data: accounts, error } = await supabase.from('accounts').select('*');
+  if (error) throw error;
+  const ids = (accounts || []).filter(a => a.is_internal).map(a => a.id);
+  if (!ids.length) return new Set();
+  const { data: users, error: usersError } = await supabase.from('account_users').select('email').in('account_id', ids);
+  if (usersError) throw usersError;
+  return new Set((users || []).map(u => (u.email || '').toLowerCase()));
+}
+
 async function weekRows(week) {
+  const house = await internalEmails();
   const rows = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from('free_assessments')
@@ -54,7 +68,7 @@ async function weekRows(week) {
       .gte('created_at', week.from.toISOString()).lt('created_at', week.to.toISOString())
       .order('created_at').range(from, from + 999);
     if (error) throw error;
-    rows.push(...data);
+    rows.push(...data.filter(r => !house.has((r.email || '').toLowerCase())));
     if (data.length < 1000) return rows;
   }
 }
@@ -171,4 +185,5 @@ async function recentWeeks(limit = 8) {
   return data;
 }
 
-module.exports = { runWeeklyFreeSummary, dueWeek, buildEmail, csvField, recentWeeks };
+// weekRows is exported for scripts that check which rows the summary keeps.
+module.exports = { runWeeklyFreeSummary, dueWeek, buildEmail, csvField, recentWeeks, weekRows };

@@ -644,8 +644,13 @@ input[type=checkbox]:focus-visible{outline:2px solid #A9633D;outline-offset:2px}
 function billingBanner(message, req) {
   return `<div style="background:#FBF5E6;border:1px solid #EEDFB8;border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:14px;color:#30383B;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
     <span style="flex:1;min-width:220px">${message}</span>
-    ${req.account && req.account.stripe_customer_id ? '<a href="/billing/portal" style="font-weight:700;color:#A9633D">Manage billing</a>' : ''}
+    ${req.account && req.account.stripe_customer_id && ownsBilling(req) ? '<a href="/billing/portal" style="font-weight:700;color:#A9633D">Manage billing</a>' : ''}
   </div>`;
+}
+
+// Billing links only for the account owner; admins see everything else.
+function ownsBilling(req) {
+  return !!(req && req.session && (!req.session.role || req.session.role === 'owner'));
 }
 
 function billingBanners(req) {
@@ -729,9 +734,9 @@ function adminShell(title, content, req) {
       <div class="nav-avatar">${initial}</div>
       ${acctName ? `<span class="nav-acct">${acctName}</span>` : ''}
       ${['trial', 'community', 'enterprise'].includes(plan) ? `<span class="nav-plan">${plan}</span>` : ''}
-      ${acct && acct.plan === 'trial' ? `<a href="${acct.is_coach ? '/coach?product=care360' : '/plans'}" class="nav-link nav-link-accent">Upgrade</a>` : ''}
-      ${bundleReminder ? `<a href="/billing/upgrade-to-bundle" class="nav-link nav-link-accent">${bundleReminder}</a>` : ''}
-      ${acct && acct.stripe_customer_id ? '<a href="/billing/portal" class="nav-link">Manage billing</a>' : ''}
+      ${acct && acct.plan === 'trial' && ownsBilling(req) ? `<a href="${acct.is_coach ? '/coach?product=care360' : '/plans'}" class="nav-link nav-link-accent">Upgrade</a>` : ''}
+      ${bundleReminder && ownsBilling(req) ? `<a href="/billing/upgrade-to-bundle" class="nav-link nav-link-accent">${bundleReminder}</a>` : ''}
+      ${acct && acct.stripe_customer_id && ownsBilling(req) ? '<a href="/billing/portal" class="nav-link">Manage billing</a>' : ''}
       <a href="/signout" class="nav-link">Sign out</a>
     </div>
   </nav>
@@ -1157,3 +1162,4 @@ module.exports = router;
 module.exports.adminShell = adminShell;
 module.exports.escapeHtml = escapeHtml;
 module.exports.avatar = avatar;
+module.exports.ownsBilling = ownsBilling;

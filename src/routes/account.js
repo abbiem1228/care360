@@ -200,6 +200,11 @@ router.post('/signin', async (req, res) => {
   const result = await signIn({ email: email.trim().toLowerCase(), password });
   if (result.error) return res.send(signinPage(result.error, email, ctx));
 
+  // A login whose owner removed it from the account still signs in to
+  // Supabase, but has no account here: say so instead of looping back.
+  const { data: link } = await supabase.from('account_users').select('id').eq('auth_user_id', result.user.id).maybeSingle();
+  if (!link) return res.send(signinPage("This login isn't part of an account anymore. Ask the account owner to invite you again.", email, ctx));
+
   setSessionCookies(res, result.session);
 
   // Signed in from a product someone picked: straight on to that
@@ -368,12 +373,13 @@ router.get('/handoff', async (req, res) => {
   setSessionCookies(res, session);
 
   // Element Profile's "Manage billing" link hands off here with
-  // next=/billing/portal?return=..., and its "Upgrade to the Bundle"
-  // link with next=/billing/upgrade-to-bundle, since billing lives in
+  // next=/billing/portal?return=..., its "Upgrade to the Bundle" link
+  // with next=/billing/upgrade-to-bundle, and its "Account" link with
+  // next=/admin/account, since billing and the account page live in
   // this app. Only those two paths are honored, so this can never become
   // an open redirect; billing.js separately checks the return target.
   const next = typeof req.query.next === 'string' ? req.query.next : '';
-  if (next === '/billing/portal' || next.startsWith('/billing/portal?') || next === '/billing/upgrade-to-bundle') {
+  if (next === '/billing/portal' || next.startsWith('/billing/portal?') || next === '/billing/upgrade-to-bundle' || next === '/admin/account') {
     return res.redirect(next);
   }
   res.redirect('/admin');

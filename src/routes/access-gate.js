@@ -55,6 +55,9 @@ async function careAccessGate(req, res, next) {
 
   const fullPath = req.baseUrl + req.path;
   if (ALWAYS_ALLOWED.includes(fullPath)) return next();
+  // The account page (email, password, team, billing links) works in
+  // every billing state, like billing itself.
+  if (fullPath === '/admin/account' || fullPath.startsWith('/admin/account/')) return next();
 
   let subs;
   try {

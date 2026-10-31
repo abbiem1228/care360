@@ -10,7 +10,7 @@
 const supabase = require('../db/client');
 const { productAccess, productPending, dataKeptUntil, accountSubscriptions, LOCKED_STATES } = require('../access');
 const { shell } = require('./account');
-const { adminShell } = require('./admin');
+const { adminShell, ownsBilling } = require('./admin');
 
 const INFO_EMAIL = 'info@ingoodcocollective.com';
 
@@ -94,9 +94,10 @@ async function careAccessGate(req, res, next) {
 // ── Shared pieces ────────────────────────────────────────────
 
 function manageBillingLink(req) {
-  return req.account && req.account.stripe_customer_id
+  if (!req.account || !req.account.stripe_customer_id) return '';
+  return ownsBilling(req)
     ? '<a href="/billing/portal" class="btn" style="display:block;text-align:center;text-decoration:none">Manage billing</a>'
-    : '';
+    : '<div class="alt">Your account owner manages billing. Ask them to update it.</div>';
 }
 
 // Only when Element Profile itself is fully usable, so the link never
@@ -119,7 +120,7 @@ function readOnlyBlockedPage(req) {
   return adminShell('Paused while billing is past due', `<div class="card" style="max-width:560px">
     <h2 style="font-family:'EB Garamond',Georgia,serif;font-size:30px;font-weight:500;letter-spacing:-0.8px;line-height:1.15;margin-bottom:10px">this is paused for now.</h2>
     <p style="font-size:14px;color:var(--grey);line-height:1.7;margin-bottom:20px">While your last payment is past due, you can still view everything, including existing reports, close a survey early, change an open Group's dates and remove a rater, but you can't make other changes or start anything new. Updating your billing restores full access right away.</p>
-    ${req.account && req.account.stripe_customer_id ? '<a href="/billing/portal" class="btn btn-primary">Manage billing</a>' : ''}
+    ${req.account && req.account.stripe_customer_id && ownsBilling(req) ? '<a href="/billing/portal" class="btn btn-primary">Manage billing</a>' : ''}
     <a href="/admin" class="btn btn-ghost">Back to dashboard</a>
   </div>`, req);
 }
@@ -147,7 +148,7 @@ function endedPage(req) {
     <div class="title">your care 360 subscription has ended.</div>
     <div class="sub">Your account and data are kept ${req.care360KeptUntil ? `until ${req.care360KeptUntil}` : 'for 60 days after your subscription ends'}, so you can resubscribe and pick up where you left off, or ask us for an export. After that, they're permanently deleted.</div>
     <a href="${req.account && req.account.is_coach ? '/coach?product=care360' : '/plans?product=care360'}" class="btn" style="display:block;text-align:center;text-decoration:none">Resubscribe</a>
-    ${req.account && req.account.stripe_customer_id ? '<div class="alt"><a href="/billing/portal">Manage billing and past invoices</a></div>' : ''}
+    ${req.account && req.account.stripe_customer_id && ownsBilling(req) ? '<div class="alt"><a href="/billing/portal">Manage billing and past invoices</a></div>' : ''}
     ${footerLinks(req)}`);
 }
 

@@ -92,14 +92,17 @@ router.get('/', requireOwner, async (req, res) => {
   });
 
   const rows = Object.values(byAccount);
+  // The house account (accounts.is_internal) is listed, marked "house",
+  // but never counted: demos would otherwise read as customers and use.
+  const counted = rows.filter(r => !r.is_internal);
 
   const now       = new Date();
   const monthAgo  = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const total     = rows.length;
-  const trials    = rows.filter(r => r.plan === 'trial').length;
-  const paying    = rows.filter(r => ['starter','growth','community','enterprise'].includes(r.plan)).length;
-  const newThisMonth = rows.filter(r => new Date(r.created_at) > monthAgo).length;
-  const dormant   = rows.filter(r => r.plan === 'trial' && r.leaders === 0).length;
+  const total     = counted.length;
+  const trials    = counted.filter(r => r.plan === 'trial').length;
+  const paying    = counted.filter(r => ['starter','growth','community','enterprise'].includes(r.plan)).length;
+  const newThisMonth = counted.filter(r => new Date(r.created_at) > monthAgo).length;
+  const dormant   = counted.filter(r => r.plan === 'trial' && r.leaders === 0).length;
 
   res.send(hqPage({ rows, total, trials, paying, newThisMonth, dormant }));
 });
@@ -150,7 +153,7 @@ function hqPage(d) {
         <div class="acct-email">${email}</div>
       </td>
       <td><span class="product product-${productKey}">${productLabel}</span></td>
-      <td><span class="plan plan-${r.plan}">${r.plan}</span>${r.is_coach ? ' <span class="plan plan-coach">coach</span>' : ''}</td>
+      <td><span class="plan plan-${r.plan}">${r.plan}</span>${r.is_coach ? ' <span class="plan plan-coach">coach</span>' : ''}${r.is_internal ? ' <span class="plan plan-coach" title="Not counted in the totals above">house</span>' : ''}</td>
       <td>${fmt(r.created_at)}</td>
       <td class="num">${r.surveys}</td>
       <td class="num">${r.leaders}<div class="sub-num">${r.activeLeaders} active</div></td>
